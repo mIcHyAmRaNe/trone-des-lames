@@ -40,11 +40,11 @@ const groupMatches = state.matches.filter((m) => m.phase === 'group');
 
                   <span class="flex flex-none items-center gap-1 tabular-nums">
                     <span class:list={['min-w-6 text-center', aWin ? 'text-gold-light' : 'text-parchment-dim/70']}>
-                      {m.forfeit && aWin ? 'F' : formatPoints(m.aScore)}
+                      {m.forfeit ? (aWin ? 'F' : '—') : formatPoints(m.aScore)}
                     </span>
                     <span class="text-parchment-dim/40">–</span>
                     <span class:list={['min-w-6 text-center', bWin ? 'text-gold-light' : 'text-parchment-dim/70']}>
-                      {m.forfeit && bWin ? 'F' : formatPoints(m.bScore)}
+                      {m.forfeit ? (bWin ? 'F' : '—') : formatPoints(m.bScore)}
                     </span>
                   </span>
 

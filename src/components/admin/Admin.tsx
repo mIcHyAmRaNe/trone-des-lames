@@ -453,7 +453,9 @@ function Fighters({ state, run }: { state: TournamentState; run: Run }) {
                     <button
                       type="button"
                       aria-label={`Renommer ${f.name}`}
-                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim transition-colors hover:text-gold"
+                      disabled={locked}
+                      title={locked ? 'Le tirage a eu lieu : le nom ne peut plus être modifié' : undefined}
+                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim transition-colors hover:text-gold disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:text-parchment-dim"
                       onClick={() => {
                         setEditing(f.id);
                         setEditName(f.name);
@@ -616,9 +618,18 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
           type="button"
           onClick={saveAll}
           disabled={busy || pending.length === 0}
+          title={
+            pending.length === 0
+              ? 'Saisissez les points des duels à valider'
+              : `Valider ${pending.length} duel(s) en un seul enregistrement`
+          }
           className="btn-gold px-3 py-1.5 text-[0.625rem] disabled:opacity-35"
         >
-          {busy ? 'Validation…' : `Tout valider (${pending.length})`}
+          {busy
+            ? 'Validation…'
+            : pending.length === 0
+              ? 'Tout valider'
+              : `Tout valider (${pending.length})`}
         </button>
       }
     >

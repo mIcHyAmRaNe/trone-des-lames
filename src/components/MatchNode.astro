@@ -23,18 +23,19 @@ const { m, phase } = Astro.props;
 const aWin = m.played && m.winnerId === m.a?.id;
 const bWin = m.played && m.winnerId === m.b?.id;
 const champion = phase === 'final' && m.played;
+const empty = m.a == null && m.b == null;
 
 const label = (isWinner: boolean, score: number | null) =>
-  m.forfeit && isWinner ? 'Forfait' : formatPoints(score);
+  m.forfeit ? (isWinner ? 'Forfait' : '—') : formatPoints(score);
 ---
 
-<div class:list={['match-node', `node-${phase}`, champion && 'is-champion']}>
+<div class:list={['match-node', `node-${phase}`, champion && 'is-champion', empty && 'is-empty']}>
   <div class:list={['match-side', aWin && 'is-winner', m.played && !aWin && 'is-loser']}>
-    <span class="match-name">{m.a?.name ?? '—'}</span>
+    <span class="match-name">{m.a?.name ?? 'En attente'}</span>
     <span class="match-score">{label(aWin, m.aScore)}</span>
   </div>
   <div class:list={['match-side', bWin && 'is-winner', m.played && !bWin && 'is-loser']}>
-    <span class="match-name">{m.b?.name ?? '—'}</span>
+    <span class="match-name">{m.b?.name ?? 'En attente'}</span>
     <span class="match-score">{label(bWin, m.bScore)}</span>
   </div>
 
@@ -75,6 +76,11 @@ const label = (isWinner: boolean, score: number | null) =>
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--color-parchment-dim);
+  }
+
+  .is-empty .match-name {
+    color: color-mix(in oklab, var(--color-parchment-dim) 45%, transparent);
+    font-style: italic;
   }
 
   .match-score {

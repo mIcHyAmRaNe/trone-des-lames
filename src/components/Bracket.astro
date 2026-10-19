@@ -14,12 +14,36 @@ const fin = state.matches.find((m) => m.phase === 'final');
 
 const hasBracket = qf.length > 0;
 
-// QF1+QF3 feed SF1, QF2+QF4 feed SF2 — each pair is one visual block.
-const qfPairs = [
-  [qf.find((m) => m.slot === 1), qf.find((m) => m.slot === 3)],
-  [qf.find((m) => m.slot === 2), qf.find((m) => m.slot === 4)],
+/**
+ * Visual order matters: SF1 is fed by QF1+QF3 and SF2 by QF2+QF4, so the pairs
+ * must be adjacent on screen. That gives the column order below.
+ *
+ * Four equal rows, centres at 12.5 / 37.5 / 62.5 / 87.5 %:
+ *   row 1 = QF1 -> 12.5     SF1 between rows 1-2 -> 25
+ *   row 2 = QF3 -> 37.5     SF2 between rows 3-4 -> 75
+ *   row 3 = QF2 -> 62.5     Final centred on all four -> 50
+ *   row 4 = QF4 -> 87.5
+ */
+const qfOrder = [
+  { slot: 1, y: 12.5 },
+  { slot: 3, y: 37.5 },
+  { slot: 2, y: 62.5 },
+  { slot: 4, y: 87.5 },
 ];
-const sfSlots = [sf.find((m) => m.slot === 1), sf.find((m) => m.slot === 2)];
+const sfOrder = [
+  { slot: 1, y: 25 },
+  { slot: 2, y: 75 },
+];
+const FINAL_Y = 50;
+
+const gapOne = [
+  { from: 12.5, to: 37.5, out: 25 },
+  { from: 62.5, to: 87.5, out: 75 },
+];
+const gapTwo = [{ from: 25, to: 75, out: FINAL_Y }];
+
+const qfBySlot = (slot: number) => qf.find((m) => m.slot === slot);
+const sfBySlot = (slot: number) => sf.find((m) => m.slot === slot);
 ---
 
 {!hasBracket ? (
@@ -39,38 +63,64 @@ const sfSlots = [sf.find((m) => m.slot === 1), sf.find((m) => m.slot === 2)];
       Faites glisser horizontalement →
     </p>
 
-    <div class="overflow-x-auto pb-2">
+    <div class="scroll">
       <div class="bracket">
-        <div class="round round-qf">
+        <div class="titles">
           <h3 class="round-title">Quarts de finale</h3>
-          <div class="round-body">
-            {qfPairs.map((pair) => (
-              <div class="pair">
-                <div class="node-slot">{pair[0] ? <MatchNode m={pair[0]} phase="qf" /> : null}</div>
-                <div class="node-slot">{pair[1] ? <MatchNode m={pair[1]} phase="qf" /> : null}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div class="round round-sf">
+          <span aria-hidden="true"></span>
           <h3 class="round-title">Demi-finales</h3>
-          <div class="round-body">
-            {qfPairs.map((_, i) => (
-              <div class="pair pair-single">
-                <div class="node-slot">{sfSlots[i] ? <MatchNode m={sfSlots[i]!} phase="sf" /> : null}</div>
-              </div>
-            ))}
-          </div>
+          <span aria-hidden="true"></span>
+          <h3 class="round-title">Grande finale</h3>
         </div>
 
-        <div class="round round-final">
-          <h3 class="round-title">Grande finale</h3>
-          <div class="round-body">
-            <div class="pair pair-single">
-              <div class="node-slot">
-                {fin ? <MatchNode m={fin} phase="final" /> : <p class="empty">En attente</p>}
-              </div>
+        <div class="grid">
+          <div class="col col-qf">
+            {qfOrder.map(({ slot, y }) => {
+              const m = qfBySlot(slot);
+              return (
+                <div class="node" style={`--y:${y}`}>
+                  {m ? <MatchNode m={m} phase="qf" /> : <div class="placeholder">—</div>}
+                </div>
+              );
+            })}
+          </div>
+
+          <div class="gap" aria-hidden="true">
+            {gapOne.map((g) => (
+              <>
+                <span class="stub" style={`--y:${g.from}`}></span>
+                <span class="stub" style={`--y:${g.to}`}></span>
+                <span class="spine" style={`--from:${g.from};--to:${g.to}`}></span>
+                <span class="out" style={`--y:${g.out}`}></span>
+              </>
+            ))}
+          </div>
+
+          <div class="col col-sf">
+            {sfOrder.map(({ slot, y }) => {
+              const m = sfBySlot(slot);
+              return (
+                <div class="node" style={`--y:${y}`}>
+                  {m ? <MatchNode m={m} phase="sf" /> : <div class="placeholder">En attente</div>}
+                </div>
+              );
+            })}
+          </div>
+
+          <div class="gap" aria-hidden="true">
+            {gapTwo.map((g) => (
+              <>
+                <span class="stub" style={`--y:${g.from}`}></span>
+                <span class="stub" style={`--y:${g.to}`}></span>
+                <span class="spine" style={`--from:${g.from};--to:${g.to}`}></span>
+                <span class="out" style={`--y:${g.out}`}></span>
+              </>
+            ))}
+          </div>
+
+          <div class="col col-final">
+            <div class="node node-final" style={`--y:${FINAL_Y}`}>
+              {fin ? <MatchNode m={fin} phase="final" /> : <div class="placeholder">En attente</div>}
             </div>
           </div>
         </div>
@@ -80,20 +130,28 @@ const sfSlots = [sf.find((m) => m.slot === 1), sf.find((m) => m.slot === 2)];
 )}
 
 <style>
-  .bracket {
-    --gap: 3rem;
-    display: grid;
-    grid-template-columns: 1fr var(--gap) 1fr var(--gap) 1fr;
-    min-width: 46rem;
+  .scroll {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
   }
 
-  .round { display: flex; flex-direction: column; }
-  .round-qf { grid-column: 1; }
-  .round-sf { grid-column: 3; }
-  .round-final { grid-column: 5; }
+  .bracket {
+    --gap: 3.5rem;
+    --row: 6.5rem;
+    min-width: 48rem;
+  }
+
+  .titles,
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr var(--gap) 1fr var(--gap) 1fr;
+  }
+
+  .titles > * {
+    padding-bottom: 0.75rem;
+  }
 
   .round-title {
-    height: 2.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -105,105 +163,90 @@ const sfSlots = [sf.find((m) => m.slot === 1), sf.find((m) => m.slot === 2)];
     text-align: center;
   }
 
-  /* Every round uses the same number of equal-height blocks. A node centred in
-     a block therefore lines up exactly with the midpoint of its two parents. */
-  .round-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding-block: 0.5rem;
+  /* A node is absolutely centred on its computed percentage, so a child always
+     lands exactly on the midpoint of its two parents — no pixel maths. */
+  .grid {
+    position: relative;
+    height: calc(var(--row) * 4);
   }
 
-  .pair {
+  .col {
     position: relative;
-    flex: 1;
-    display: grid;
-    grid-template-rows: 1fr 1fr;
-    align-items: center;
+    grid-row: 1;
   }
 
-  .pair-single { grid-template-rows: 1fr; }
+  .col-qf { grid-column: 1; }
+  .col-sf { grid-column: 3; }
+  .col-final { grid-column: 5; }
 
-  .node-slot {
-    position: relative;
-    display: flex;
-    align-items: center;
+  .node {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--y) * 1%);
+    transform: translateY(-50%);
     min-width: 0;
   }
 
-  .empty {
-    width: 100%;
+  .placeholder {
+    padding: 0.85rem 0.75rem;
+    border: 1px dashed color-mix(in oklab, var(--color-gold) 20%, transparent);
     text-align: center;
     font-size: 0.75rem;
-    color: var(--color-parchment-dim);
+    font-style: italic;
+    color: color-mix(in oklab, var(--color-parchment-dim) 55%, transparent);
   }
 
-  /* ---- connectors, all owned by this file so Astro scoping can't drop them ---- */
+  /* ---- connectors ---- */
 
-  /* QF pair: two input stubs (at 25% / 75%), a spine, and an output stub at 50% */
-  .round-qf .pair::before {
-    content: "";
-    position: absolute;
-    top: 25%;
-    bottom: 25%;
-    right: calc(-0.5 * var(--gap));
-    width: 1px;
-    background: color-mix(in oklab, var(--color-gold) 40%, transparent);
-    pointer-events: none;
-  }
-
-  .round-qf .pair::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: calc(-1 * var(--gap));
-    width: calc(0.5 * var(--gap));
-    height: 1px;
-    background: color-mix(in oklab, var(--color-gold) 40%, transparent);
-    pointer-events: none;
-  }
-
-  /* the two horizontal stubs leaving each QF node */
-  .round-qf .node-slot::after {
-    content: "";
-    position: absolute;
-    right: calc(-0.5 * var(--gap));
-    width: calc(0.5 * var(--gap));
-    height: 1px;
-    background: color-mix(in oklab, var(--color-gold) 40%, transparent);
-    pointer-events: none;
-  }
-  .round-qf .node-slot:nth-child(1)::after { top: 25%; }
-  .round-qf .node-slot:nth-child(2)::after { top: 75%; }
-
-  /* SF -> final: one output stub per SF, plus a spine and the final input */
-  .round-sf .pair::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: calc(-1 * var(--gap));
-    width: calc(0.5 * var(--gap));
-    height: 1px;
-    background: color-mix(in oklab, var(--color-gold) 40%, transparent);
-    pointer-events: none;
-  }
-
-  .round-sf .round-body::before {
-    content: "";
-    position: absolute;
-    top: 25%;
-    bottom: 25%;
-    right: calc(-0.5 * var(--gap));
-    width: 1px;
-    background: color-mix(in oklab, var(--color-gold) 40%, transparent);
-    pointer-events: none;
-  }
-
-  .round-sf .round-body {
+  .gap {
     position: relative;
+    grid-row: 1;
+  }
+
+  .stub,
+  .out {
+    position: absolute;
+    left: 0;
+    width: 50%;
+    height: 1px;
+    top: calc(var(--y) * 1%);
+    background: color-mix(in oklab, var(--color-gold) 42%, transparent);
+    transform: translateY(-0.5px);
+  }
+
+  .out {
+    left: 50%;
+    width: 50%;
+  }
+
+  .spine {
+    position: absolute;
+    left: 50%;
+    width: 1px;
+    top: calc(var(--from) * 1%);
+    height: calc((var(--to) - var(--from)) * 1%);
+    background: color-mix(in oklab, var(--color-gold) 42%, transparent);
+    transform: translateX(-0.5px);
+  }
+
+  .out::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-gold) 75%, transparent);
+    transform: translate(-50%, -1.5px);
   }
 
   @media (max-width: 640px) {
-    .bracket { --gap: 1.5rem; min-width: 42rem; }
+    .bracket {
+      --gap: 1.75rem;
+      --row: 6rem;
+      min-width: 44rem;
+    }
   }
 </style>
