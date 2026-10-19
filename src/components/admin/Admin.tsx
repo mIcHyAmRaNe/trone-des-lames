@@ -1,8 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TournamentState } from '../../lib/state';
-import { formatPoints } from '../../lib/format';
 
-type Phase = 'group' | 'qf' | 'sf' | 'final';
 type Match = TournamentState['matches'][number];
 
 async function api(path: string, init?: RequestInit) {
@@ -10,12 +8,77 @@ async function api(path: string, init?: RequestInit) {
     ...init,
     headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
   });
-  if (res.status === 401) throw new Error('UNAUTHORIZED');
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({ error: 'Erreur inconnue' }));
-    throw new Error(data.error ?? 'Erreur inconnue');
-  }
-  return res.status === 204 ? null : res.json().catch(() => null);
+  if (res.status === 401) throw new Error('Session expirée. Reconnectez-vous.');
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error(data?.error ?? 'Une erreur est survenue');
+  return data;
+}
+
+const POINT_SUGGESTIONS = ['18', '19', '20', '21', '22', '23', '24', '25'];
+
+function parsePoints(raw: string): number | null {
+  const t = raw.trim().replace(',', '.');
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+type Draft = { a: string; b: string; forfeit: boolean; forfeitLoserId: number | null };
+
+function draftOf(match: Match): Draft {
+  return {
+    a: match.aScore == null ? '' : String(match.aScore).replace('.', ','),
+    b: match.bScore == null ? '' : String(match.bScore).replace('.', ','),
+    forfeit: match.forfeit,
+    // Stored winnerId is the winner; the forfeiting fighter is the other one.
+    forfeitLoserId:
+      match.forfeit && match.played && match.winnerId != null
+        ? match.winnerId === match.a?.id
+          ? (match.b?.id ?? null)
+          : (match.a?.id ?? null)
+        : null,
+  };
+}
+
+function analyze(match: Match, draft: Draft) {
+  const pa = parsePoints(draft.a);
+  const pb = parsePoints(draft.b);
+  const tie = !draft.forfeit && pa != null && pb != null && pa === pb;
+  const ready = draft.forfeit
+    ? draft.forfeitLoserId != null
+    : pa != null && pb != null && pa !== pb;
+
+  const winner = draft.forfeit
+    ? draft.forfeitLoserId === match.a?.id
+      ? match.b
+      : match.a
+    : pa != null && pb != null && pa !== pb
+      ? pa > pb
+        ? match.a
+        : match.b
+      : null;
+
+  const initial = draftOf(match);
+  const dirty =
+    draft.a !== initial.a ||
+    draft.b !== initial.b ||
+    draft.forfeit !== initial.forfeit ||
+    (draft.forfeit && draft.forfeitLoserId !== initial.forfeitLoserId);
+
+  return { pa, pb, tie, ready, winner, dirty };
+}
+
+function payload(match: Match, draft: Draft) {
+  const { pa, pb, ready } = analyze(match, draft);
+  if (!ready) return null;
+  return {
+    id: match.id,
+    aScore: draft.forfeit ? null : pa,
+    bScore: draft.forfeit ? null : pb,
+    forfeit: draft.forfeit,
+    forfeitLoserId: draft.forfeit ? draft.forfeitLoserId : null,
+  };
 }
 
 export default function Admin() {
@@ -25,12 +88,11 @@ export default function Admin() {
 
   const notify = useCallback((kind: 'ok' | 'err', msg: string) => {
     setToast({ kind, msg });
-    window.setTimeout(() => setToast(null), 3500);
+    window.setTimeout(() => setToast(null), 4200);
   }, []);
 
   const refresh = useCallback(async () => {
-    const data = await api('/api/tournament?slug=classique');
-    setState(data as TournamentState);
+    setState((await api('/api/tournament?slug=classique')) as TournamentState);
   }, []);
 
   useEffect(() => {
@@ -48,21 +110,22 @@ export default function Admin() {
         await fn();
         await refresh();
         notify('ok', okMsg);
+        return true;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Erreur';
-        if (msg === 'UNAUTHORIZED') {
-          setAuthed(false);
-          notify('err', 'Session expirée');
-        } else {
-          notify('err', msg);
-        }
+        notify('err', e instanceof Error ? e.message : 'Une erreur est survenue');
+        return false;
       }
     },
     [refresh, notify],
   );
 
   if (authed === null) {
-    return <p className="py-16 text-center text-sm text-parchment-dim">Chargement…</p>;
+    return (
+      <div className="flex flex-col items-center gap-3 py-20">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-gold/30 border-t-gold" />
+        <span className="text-xs uppercase tracking-[0.14em] text-parchment-dim">Chargement</span>
+      </div>
+    );
   }
 
   if (!authed) {
@@ -77,7 +140,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="label-caps">Espace administrateur</p>
@@ -99,22 +162,49 @@ export default function Admin() {
 
       {state && <Fighters state={state} run={run} />}
       {state && <DrawPanel state={state} run={run} />}
-      {state && <GroupMatchesPanel state={state} run={run} />}
-      {state && <BracketPanel state={state} run={run} />}
+      {state && <DuelPanel state={state} run={run} phase="group" />}
+      {state && <DuelPanel state={state} run={run} phase="bracket" />}
       {state && <ResetPanel run={run} />}
 
-      {toast && (
-        <div
-          role="status"
-          className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 border px-5 py-3 text-xs font-semibold uppercase tracking-[0.12em] ${
-            toast.kind === 'ok'
-              ? 'border-gold/60 bg-ink-3 text-gold'
-              : 'border-blood bg-ink-3 text-blood'
-          }`}
-        >
-          {toast.msg}
-        </div>
-      )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+    </div>
+  );
+}
+
+function Toast({
+  toast,
+  onClose,
+}: {
+  toast: { kind: 'ok' | 'err'; msg: string } | null;
+  onClose: () => void;
+}) {
+  if (!toast) return null;
+  const ok = toast.kind === 'ok';
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={`fixed bottom-5 left-1/2 z-50 flex w-[min(92vw,26rem)] -translate-x-1/2 items-start gap-3 rounded-lg border px-4 py-3 shadow-2xl backdrop-blur-md ${
+        ok ? 'border-gold/50 bg-ink-3/95' : 'border-blood/70 bg-ink-3/95'
+      }`}
+    >
+      <span
+        className={`mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full text-[0.625rem] font-bold ${
+          ok ? 'bg-gold text-ink' : 'bg-blood text-parchment'
+        }`}
+        aria-hidden="true"
+      >
+        {ok ? '✓' : '!'}
+      </span>
+      <p className="flex-1 text-sm leading-snug text-parchment">{toast.msg}</p>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Fermer la notification"
+        className="-mr-1 -mt-1 flex-none rounded p-1 text-parchment-dim transition-colors hover:text-parchment"
+      >
+        ✕
+      </button>
     </div>
   );
 }
@@ -132,7 +222,7 @@ function Login({ onDone }: { onDone: () => void }) {
       await api('/api/admin/session', { method: 'POST', body: JSON.stringify({ password }) });
       onDone();
     } catch (err) {
-      setError(err instanceof Error && err.message !== 'UNAUTHORIZED' ? err.message : 'Mot de passe incorrect');
+      setError(err instanceof Error ? err.message : 'Connexion impossible');
     } finally {
       setBusy(false);
     }
@@ -140,7 +230,7 @@ function Login({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="mx-auto max-w-sm">
-      <form onSubmit={submit} className="card-dark texture-noise p-7">
+      <form onSubmit={submit} className="card-dark texture-noise rounded-lg p-7">
         <p className="label-caps">Accès restreint</p>
         <h1 className="mt-2 font-display text-xl tracking-[0.06em] text-parchment">Connexion administrateur</h1>
         <div className="rule-gold my-5"></div>
@@ -154,11 +244,18 @@ function Login({ onDone }: { onDone: () => void }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'login-error' : undefined}
           required
-          className="w-full border border-gold/25 bg-ink px-3 py-2.5 text-sm text-parchment outline-none focus:border-gold"
+          className="w-full rounded border border-gold/25 bg-ink px-3 py-2.5 text-sm text-parchment outline-none transition-colors focus:border-gold aria-invalid:border-blood"
         />
 
-        {error && <p className="mt-3 text-xs text-blood">{error}</p>}
+        {error && (
+          <p id="login-error" role="alert" className="mt-3 flex items-start gap-2 text-xs text-blood">
+            <span aria-hidden="true">⚠</span>
+            {error}
+          </p>
+        )}
 
         <button type="submit" disabled={busy} className="btn-gold mt-5 w-full disabled:opacity-50">
           {busy ? 'Connexion…' : 'Entrer'}
@@ -168,14 +265,27 @@ function Login({ onDone }: { onDone: () => void }) {
   );
 }
 
-type Run = (fn: () => Promise<unknown>, okMsg: string) => Promise<void>;
+type Run = (fn: () => Promise<unknown>, okMsg: string) => Promise<boolean>;
 
-function Section({ title, meta, children }: { title: string; meta?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  meta,
+  children,
+  action,
+}: {
+  title: string;
+  meta?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
   return (
-    <section className="card-dark texture-noise">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gold/20 px-5 py-3">
-        <h2 className="font-display text-sm tracking-[0.16em] text-gold">{title}</h2>
-        {meta && <span className="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim">{meta}</span>}
+    <section className="card-dark texture-noise overflow-hidden rounded-lg">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gold/20 px-5 py-3">
+        <div className="flex items-center gap-3">
+          <h2 className="font-display text-sm tracking-[0.16em] text-gold">{title}</h2>
+          {meta && <span className="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim">{meta}</span>}
+        </div>
+        {action}
       </header>
       <div className="p-5">{children}</div>
     </section>
@@ -184,43 +294,83 @@ function Section({ title, meta, children }: { title: string; meta?: string; chil
 
 function Fighters({ state, run }: { state: TournamentState; run: Run }) {
   const [name, setName] = useState('');
+  const [error, setError] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
+  const [editError, setEditError] = useState('');
+
   const locked = state.matches.length > 0;
   const full = state.fighters.length >= 16;
+
+  const duplicates = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const f of state.fighters) {
+      const key = f.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+    }
+    return new Set([...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k));
+  }, [state.fighters]);
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    const value = name.trim();
+    if (!value) {
+      setError('Saisissez un nom');
+      return;
+    }
+    try {
+      await api('/api/admin/fighters', { method: 'POST', body: JSON.stringify({ name: value }) });
+      setName('');
+      setError('');
+      await run(async () => {}, `« ${value} » inscrit`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ajout impossible');
+    }
+  }
 
   return (
     <Section title="Combattants" meta={`${state.fighters.length} / 16`}>
       {!locked && (
-        <form
-          className="mb-5 flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const value = name.trim();
-            if (!value) return;
-            void run(async () => {
-              await api('/api/admin/fighters', { method: 'POST', body: JSON.stringify({ name: value }) });
-              setName('');
-            }, 'Combattant ajouté');
-          }}
-        >
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nom du combattant"
-            maxLength={40}
-            disabled={full}
-            className="flex-1 border border-gold/25 bg-ink px-3 py-2.5 text-sm text-parchment outline-none focus:border-gold disabled:opacity-50"
-          />
-          <button type="submit" disabled={full || !name.trim()} className="btn-gold disabled:opacity-40">
-            Ajouter
-          </button>
+        <form onSubmit={add} className="mb-5">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex-1">
+              <input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError('');
+                }}
+                placeholder="Nom du combattant"
+                maxLength={40}
+                aria-label="Nom du nouveau combattant"
+                aria-invalid={error ? true : undefined}
+                disabled={full}
+                className={`w-full rounded border bg-ink px-3 py-2.5 text-sm text-parchment outline-none transition-colors placeholder:text-parchment-dim/40 disabled:opacity-50 ${
+                  error ? 'border-blood' : 'border-gold/25 focus:border-gold'
+                }`}
+              />
+              {error && (
+                <p role="alert" className="mt-1.5 flex items-start gap-1.5 text-xs text-blood">
+                  <span aria-hidden="true">⚠</span>
+                  {error}
+                </p>
+              )}
+            </div>
+            <button type="submit" disabled={full || !name.trim()} className="btn-gold flex-none disabled:opacity-40">
+              Ajouter
+            </button>
+          </div>
+          {full && (
+            <p className="mt-2 text-xs text-parchment-dim">
+              Seize combattants inscrits. Supprimez-en un pour en ajouter un autre.
+            </p>
+          )}
         </form>
       )}
 
       {locked && (
-        <p className="mb-4 text-xs text-parchment-dim">
-          Le tirage a eu lieu : les noms ne sont plus modifiables.
+        <p className="mb-4 rounded border border-gold/20 bg-gold/[0.05] px-3 py-2 text-xs text-parchment-dim">
+          Le tirage a eu lieu : les combattants ne peuvent plus être retirés.
         </p>
       )}
 
@@ -228,78 +378,110 @@ function Fighters({ state, run }: { state: TournamentState; run: Run }) {
         <p className="py-6 text-center text-sm text-parchment-dim">Aucun combattant inscrit.</p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
-          {state.fighters.map((f) => (
-            <li key={f.id} className="flex items-center gap-2 border border-gold/10 bg-ink/40 px-3 py-2">
-              {f.grp && (
-                <span className="flex-none border border-gold/40 px-1.5 py-0.5 text-[0.5rem] font-bold text-gold">
-                  {f.grp}
-                </span>
-              )}
+          {state.fighters.map((f) => {
+            const key = f.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+            const dup = duplicates.has(key);
+            return (
+              <li
+                key={f.id}
+                className={`flex items-center gap-2 rounded border px-3 py-2 ${
+                  dup ? 'border-blood/60 bg-blood/[0.06]' : 'border-gold/10 bg-ink/40'
+                }`}
+              >
+                {f.grp && (
+                  <span className="flex-none rounded-sm border border-gold/40 px-1.5 py-0.5 text-[0.5rem] font-bold text-gold">
+                    {f.grp}
+                  </span>
+                )}
 
-              {editing === f.id ? (
-                <>
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    maxLength={40}
-                    className="min-w-0 flex-1 border border-gold/25 bg-ink px-2 py-1 text-sm text-parchment outline-none focus:border-gold"
-                  />
-                  <button
-                    type="button"
-                    className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-gold"
-                    onClick={() =>
-                      void run(async () => {
-                        await api('/api/admin/fighters', {
-                          method: 'PATCH',
-                          body: JSON.stringify({ id: f.id, name: editName.trim() }),
-                        });
-                        setEditing(null);
-                      }, 'Nom modifié')
-                    }
-                  >
-                    OK
-                  </button>
-                  <button
-                    type="button"
-                    className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim"
-                    onClick={() => setEditing(null)}
-                  >
-                    Annuler
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="min-w-0 flex-1 truncate text-sm text-parchment">{f.name}</span>
-                  <button
-                    type="button"
-                    aria-label={`Renommer ${f.name}`}
-                    className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim hover:text-gold"
-                    onClick={() => {
-                      setEditing(f.id);
-                      setEditName(f.name);
-                    }}
-                  >
-                    Modifier
-                  </button>
-                  {!locked && (
+                {editing === f.id ? (
+                  <>
+                    <input
+                      value={editName}
+                      onChange={(e) => {
+                        setEditName(e.target.value);
+                        setEditError('');
+                      }}
+                      maxLength={40}
+                      aria-label={`Nouveau nom pour ${f.name}`}
+                      aria-invalid={editError ? true : undefined}
+                      className={`min-w-0 flex-1 rounded border bg-ink px-2 py-1 text-sm text-parchment outline-none ${
+                        editError ? 'border-blood' : 'border-gold/25 focus:border-gold'
+                      }`}
+                    />
                     <button
                       type="button"
-                      aria-label={`Supprimer ${f.name}`}
-                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-blood hover:text-red-400"
-                      onClick={() =>
-                        void run(
-                          () => api(`/api/admin/fighters?id=${f.id}`, { method: 'DELETE' }),
-                          'Combattant supprimé',
-                        )
-                      }
+                      className="flex-none text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-gold"
+                      onClick={async () => {
+                        try {
+                          await api('/api/admin/fighters', {
+                            method: 'PATCH',
+                            body: JSON.stringify({ id: f.id, name: editName.trim() }),
+                          });
+                          setEditing(null);
+                          setEditError('');
+                          await run(async () => {}, 'Nom modifié');
+                        } catch (err) {
+                          setEditError(err instanceof Error ? err.message : 'Renommage impossible');
+                        }
+                      }}
                     >
-                      Suppr.
+                      OK
                     </button>
-                  )}
-                </>
-              )}
-            </li>
-          ))}
+                    <button
+                      type="button"
+                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim"
+                      onClick={() => {
+                        setEditing(null);
+                        setEditError('');
+                      }}
+                    >
+                      Annuler
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="min-w-0 flex-1 truncate text-sm text-parchment">{f.name}</span>
+                    {dup && (
+                      <span
+                        className="flex-none text-[0.5rem] uppercase tracking-[0.1em] text-blood"
+                        title="Nom en double"
+                      >
+                        Doublon
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      aria-label={`Renommer ${f.name}`}
+                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim transition-colors hover:text-gold"
+                      onClick={() => {
+                        setEditing(f.id);
+                        setEditName(f.name);
+                        setEditError('');
+                      }}
+                    >
+                      Modifier
+                    </button>
+                    {!locked && (
+                      <button
+                        type="button"
+                        aria-label={`Supprimer ${f.name}`}
+                        className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-blood transition-colors hover:text-red-400"
+                        onClick={() =>
+                          void run(
+                            () => api(`/api/admin/fighters?id=${f.id}`, { method: 'DELETE' }),
+                            'Combattant supprimé',
+                          )
+                        }
+                      >
+                        Suppr.
+                      </button>
+                    )}
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </Section>
@@ -308,20 +490,20 @@ function Fighters({ state, run }: { state: TournamentState; run: Run }) {
 
 function DrawPanel({ state, run }: { state: TournamentState; run: Run }) {
   const hasDraw = state.matches.length > 0;
-  const ready = state.fighters.length === 16;
+  const missing = 16 - state.fighters.length;
 
   return (
     <Section title="Tirage au sort">
       {hasDraw ? (
         <p className="text-sm text-parchment-dim">
-          Les groupes ont été tirés. Rendez-vous dans les duels de poules pour saisir les résultats.
+          Les groupes ont été tirés. Saisissez les résultats dans la section suivante.
         </p>
       ) : (
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <button
             type="button"
-            disabled={!ready}
-            className="btn-gold disabled:opacity-40"
+            disabled={missing !== 0}
+            className="btn-gold flex-none disabled:opacity-40"
             onClick={() => {
               if (!window.confirm('Tirer au sort les 4 groupes ? Cette action est définitive.')) return;
               void run(() => api('/api/admin/draw', { method: 'POST' }), 'Groupes tirés au sort');
@@ -330,7 +512,9 @@ function DrawPanel({ state, run }: { state: TournamentState; run: Run }) {
             Tirer au sort les groupes
           </button>
           <p className="text-xs text-parchment-dim">
-            {ready ? 'Les 16 combattants seront répartis en 4 groupes de 4.' : `Il manque ${16 - state.fighters.length} combattant(s).`}
+            {missing === 0
+              ? 'Les 16 combattants seront répartis en 4 groupes de 4.'
+              : `Il manque ${missing} combattant${missing > 1 ? 's' : ''} pour lancer le tirage.`}
           </p>
         </div>
       )}
@@ -338,321 +522,380 @@ function DrawPanel({ state, run }: { state: TournamentState; run: Run }) {
   );
 }
 
-function GroupMatchesPanel({ state, run }: { state: TournamentState; run: Run }) {
-  const groups = ['A', 'B', 'C', 'D'];
-  const groupMatches = state.matches.filter((m) => m.phase === 'group');
-  if (groupMatches.length === 0) return null;
+function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; phase: 'group' | 'bracket' }) {
+  const matches = state.matches.filter((m) =>
+    phase === 'group' ? m.phase === 'group' : m.phase !== 'group',
+  );
+  const [drafts, setDrafts] = useState<Record<number, Draft>>({});
+  const [busy, setBusy] = useState(false);
 
-  const allPlayed = groupMatches.every((m) => m.played);
+  // Drop drafts for matches that no longer exist.
+  useEffect(() => {
+    setDrafts((prev) => {
+      const next: Record<number, Draft> = {};
+      for (const m of matches) next[m.id] = prev[m.id] ?? draftOf(m);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  const setOne = useCallback(
+    (id: number, match: Match) => (patch: Partial<Draft>) =>
+      setDrafts((prev) => ({ ...prev, [id]: { ...(prev[id] ?? draftOf(match)), ...patch } })),
+    [],
+  );
+
+  const pending = matches.filter((m) => {
+    const d = drafts[m.id] ?? draftOf(m);
+    const { ready, dirty } = analyze(m, d);
+    return ready && (!m.played || dirty);
+  });
+
+  async function saveAll() {
+    const results = matches
+      .map((m) => payload(m, drafts[m.id] ?? draftOf(m)))
+      .filter((p) => p != null);
+    if (results.length === 0) return;
+    setBusy(true);
+    const ok = await run(
+      () => api('/api/admin/match', { method: 'POST', body: JSON.stringify({ results }) }),
+      `${results.length} duel${results.length > 1 ? 's' : ''} validé${results.length > 1 ? 's' : ''}`,
+    );
+    setBusy(false);
+    if (ok) setDrafts({});
+  }
+
+  if (phase === 'bracket') {
+    const hasBracket = matches.length > 0;
+    const groupsDone =
+      state.matches.filter((m) => m.phase === 'group').length > 0 &&
+      state.matches.filter((m) => m.phase === 'group').every((m) => m.played);
+
+    if (!hasBracket) {
+      return (
+        <Section title="Phase finale">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              disabled={!groupsDone}
+              className="btn-gold flex-none disabled:opacity-40"
+              onClick={() => {
+                if (!window.confirm('Générer les quarts de finale à partir du classement ?')) return;
+                void run(() => api('/api/admin/bracket', { method: 'POST' }), 'Quarts de finale générés');
+              }}
+            >
+              Générer les quarts
+            </button>
+            <p className="text-xs leading-relaxed text-parchment-dim">
+              {groupsDone
+                ? 'Tableau : 1er A – 2e B · 1er B – 2e A · 1er C – 2e D · 1er D – 2e C.'
+                : 'Tous les duels de poules doivent être validés.'}
+            </p>
+          </div>
+        </Section>
+      );
+    }
+  }
+
+  if (matches.length === 0) return null;
+
+  const played = matches.filter((m) => m.played).length;
+  const rounds: { phase: string; label: string }[] = [
+    { phase: 'qf', label: 'Quarts de finale' },
+    { phase: 'sf', label: 'Demi-finales' },
+    { phase: 'final', label: 'Grande finale' },
+  ];
+  const groups = ['A', 'B', 'C', 'D'];
 
   return (
-    <Section title="Duels de poules" meta={`${groupMatches.filter((m) => m.played).length} / 24`}>
-      <div className="space-y-6">
-        {groups.map((g) => {
-          const rows = groupMatches.filter((m) => m.grp === g).sort((a, b) => a.slot - b.slot);
-          return (
-            <div key={g}>
-              <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-gold">GROUPE {g}</h3>
-              <div className="space-y-2">
-                {rows.map((m) => (
-                  <MatchEditor key={m.id} match={m} run={run} />
-                ))}
+    <Section
+      title={phase === 'group' ? 'Duels de poules' : 'Phase finale'}
+      meta={`${played} / ${matches.length} validés`}
+      action={
+        <button
+          type="button"
+          onClick={saveAll}
+          disabled={busy || pending.length === 0}
+          className="btn-gold px-3 py-1.5 text-[0.625rem] disabled:opacity-35"
+        >
+          {busy ? 'Validation…' : `Tout valider (${pending.length})`}
+        </button>
+      }
+    >
+      {phase === 'group' ? (
+        <div className="space-y-7">
+          {groups.map((g) => {
+            const rows = matches.filter((m) => m.grp === g).sort((a, b) => a.slot - b.slot);
+            if (rows.length === 0) return null;
+            return (
+              <div key={g}>
+                <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-gold">GROUPE {g}</h3>
+                <div className="space-y-2">
+                  {rows.map((m) => (
+                    <DuelEditor
+                      key={m.id}
+                      match={m}
+                      draft={drafts[m.id] ?? draftOf(m)}
+                      patch={setOne(m.id, m)}
+                      run={run}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {rounds.map(({ phase: p, label }) => {
+            const rows = matches.filter((m) => m.phase === p).sort((a, b) => a.slot - b.slot);
+            if (rows.length === 0) return null;
+            return (
+              <div key={p}>
+                <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-gold">{label}</h3>
+                <div className="space-y-2">
+                  {rows.map((m) => (
+                    <DuelEditor
+                      key={m.id}
+                      match={m}
+                      draft={drafts[m.id] ?? draftOf(m)}
+                      patch={setOne(m.id, m)}
+                      run={run}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-[0.6875rem] leading-relaxed text-parchment-dim/70">
+            Modifier un quart réinitialise la demi-finale et la finale concernées si le vainqueur change.
+          </p>
+        </div>
+      )}
 
-      {allPlayed && (
-        <p className="mt-5 border-l-2 border-gold pl-3 text-xs text-parchment-dim">
-          Tous les duels de poules sont joués. Vous pouvez générer les quarts de finale.
+      {phase === 'group' && played === matches.length && (
+        <p className="mt-5 rounded border border-gold/30 bg-gold/[0.05] px-3 py-2 text-xs text-gold">
+          Tous les duels de poules sont validés. Vous pouvez générer les quarts de finale.
         </p>
       )}
     </Section>
   );
 }
 
-function MatchEditor({ match, run }: { match: Match; run: Run }) {
-  const [winner, setWinner] = useState<number | null>(match.winnerId);
-  const [aScore, setAScore] = useState<string>(match.aScore?.toString() ?? '');
-  const [bScore, setBScore] = useState<string>(match.bScore?.toString() ?? '');
-  const [forfeit, setForfeit] = useState(match.forfeit);
-
-  const dirty =
-    winner !== match.winnerId ||
-    aScore !== (match.aScore?.toString() ?? '') ||
-    bScore !== (match.bScore?.toString() ?? '') ||
-    forfeit !== match.forfeit;
+function DuelEditor({
+  match,
+  draft,
+  patch,
+  run,
+}: {
+  match: Match;
+  draft: Draft;
+  patch: (p: Partial<Draft>) => void;
+  run: Run;
+}) {
+  const { pa, pb, tie, ready, winner, dirty } = analyze(match, draft);
 
   function save() {
-    if (!winner) return;
+    const body = payload(match, draft);
+    if (!body) return;
     void run(
-      () =>
-        api('/api/admin/match', {
-          method: 'POST',
-          body: JSON.stringify({
-            id: match.id,
-            winnerId: winner,
-            aScore: forfeit ? null : aScore === '' ? null : Number(aScore),
-            bScore: forfeit ? null : bScore === '' ? null : Number(bScore),
-            forfeit,
-          }),
-        }),
-      'Résultat enregistré',
+      () => api('/api/admin/match', { method: 'POST', body: JSON.stringify(body) }),
+      'Résultat validé',
     );
   }
 
   return (
     <div
-      className={`border px-3 py-3 ${
-        match.played ? 'border-gold/25 bg-gold/[0.04]' : 'border-gold/10'
+      className={`rounded border px-3 py-3 transition-colors ${
+        match.played ? 'border-gold/30 bg-gold/[0.045]' : 'border-gold/10 bg-ink/30'
       }`}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="grid flex-1 gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => setWinner(match.a?.id ?? null)}
-            aria-pressed={winner === match.a?.id}
-            className={`flex items-center justify-between gap-2 border px-3 py-2 text-left text-sm transition-colors ${
-              winner === match.a?.id
-                ? 'border-gold bg-gold/10 text-gold-light'
-                : 'border-gold/15 text-parchment-dim hover:border-gold/40'
-            }`}
-          >
-            <span className="min-w-0 truncate">{match.a?.name ?? '—'}</span>
-            <input
-              type="number"
-              step="0.5"
-              min="0"
-              inputMode="decimal"
-              value={aScore}
-              disabled={forfeit}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => setAScore(e.target.value)}
-              aria-label={`Points de ${match.a?.name ?? 'A'}`}
-              className="w-16 flex-none border border-gold/20 bg-ink px-1.5 py-1 text-right text-xs tabular-nums text-parchment outline-none focus:border-gold disabled:opacity-40"
-            />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setWinner(match.b?.id ?? null)}
-            aria-pressed={winner === match.b?.id}
-            className={`flex items-center justify-between gap-2 border px-3 py-2 text-left text-sm transition-colors ${
-              winner === match.b?.id
-                ? 'border-gold bg-gold/10 text-gold-light'
-                : 'border-gold/15 text-parchment-dim hover:border-gold/40'
-            }`}
-          >
-            <span className="min-w-0 truncate">{match.b?.name ?? '—'}</span>
-            <input
-              type="number"
-              step="0.5"
-              min="0"
-              inputMode="decimal"
-              value={bScore}
-              disabled={forfeit}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => setBScore(e.target.value)}
-              aria-label={`Points de ${match.b?.name ?? 'B'}`}
-              className="w-16 flex-none border border-gold/20 bg-ink px-1.5 py-1 text-right text-xs tabular-nums text-parchment outline-none focus:border-gold disabled:opacity-40"
-            />
-          </button>
+          <ScoreRow
+            fighter={match.a}
+            value={draft.a}
+            onChange={(v) => patch({ a: v })}
+            disabled={draft.forfeit}
+            isWinner={!draft.forfeit && pa != null && pb != null && pa > pb}
+            isLoser={!draft.forfeit && pa != null && pb != null && pa < pb}
+            isForfeitLoser={draft.forfeit && draft.forfeitLoserId === match.a?.id}
+          />
+          <ScoreRow
+            fighter={match.b}
+            value={draft.b}
+            onChange={(v) => patch({ b: v })}
+            disabled={draft.forfeit}
+            isWinner={!draft.forfeit && pa != null && pb != null && pb > pa}
+            isLoser={!draft.forfeit && pa != null && pb != null && pb < pa}
+            isForfeitLoser={draft.forfeit && draft.forfeitLoserId === match.b?.id}
+          />
         </div>
 
-        <label className="flex flex-none items-center gap-2 text-[0.625rem] uppercase tracking-[0.12em] text-parchment-dim">
-          <input
-            type="checkbox"
-            checked={forfeit}
-            onChange={(e) => {
-              setForfeit(e.target.checked);
-              if (e.target.checked) {
-                setAScore('');
-                setBScore('');
-              }
-            }}
-            className="accent-gold"
-          />
-          Forfait
-        </label>
-
-        <button
-          type="button"
-          onClick={save}
-          disabled={!winner || (!dirty && match.played)}
-          className="btn-gold flex-none px-4 py-2 text-[0.625rem] disabled:opacity-35"
-        >
-          {match.played ? 'Modifier' : 'Valider'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2 lg:flex-none">
+          <ForfeitControl match={match} draft={draft} patch={patch} />
+          <button
+            type="button"
+            onClick={save}
+            disabled={!ready || (match.played && !dirty)}
+            className="btn-gold flex-none px-4 py-2 text-[0.625rem] disabled:opacity-35"
+          >
+            {match.played ? 'Mettre à jour' : 'Valider'}
+          </button>
+        </div>
       </div>
 
-      {forfeit && (
-        <p className="mt-2 text-[0.625rem] leading-relaxed text-parchment-dim/80">
-          Forfait : points calculés automatiquement selon la règle (18 / points du 1er duel / moyenne des deux premiers).
-        </p>
-      )}
-
-      {match.played && !dirty && (
-        <p className="mt-2 text-[0.625rem] uppercase tracking-[0.12em] text-gold/70">
-          Enregistré — vainqueur : {match.winnerId === match.a?.id ? match.a?.name : match.b?.name}
-          {match.forfeit ? ' (forfait)' : ` · ${formatPoints(match.aScore)} – ${formatPoints(match.bScore)}`}
-        </p>
-      )}
+      <div className="mt-2 min-h-[1.1rem] text-[0.6875rem] leading-snug">
+        {tie && (
+          <p role="alert" className="flex items-center gap-1.5 text-blood">
+            <span aria-hidden="true">⚠</span>
+            Points identiques : un duel doit désigner un vainqueur.
+          </p>
+        )}
+        {draft.forfeit && draft.forfeitLoserId == null && (
+          <p role="alert" className="flex items-center gap-1.5 text-blood">
+            <span aria-hidden="true">⚠</span>
+            Indiquez qui déclare forfait.
+          </p>
+        )}
+        {winner && ready && (
+          <p className="text-parchment-dim">
+            Vainqueur : <span className="font-semibold text-gold">{winner.name}</span>
+            {draft.forfeit ? ' — victoire par forfait' : !match.played ? ' (sélection automatique)' : ''}
+          </p>
+        )}
+        {!ready && !tie && !draft.forfeit && (
+          <p className="text-parchment-dim/60">Saisissez les points des deux combattants.</p>
+        )}
+      </div>
     </div>
   );
 }
 
-function BracketPanel({ state, run }: { state: TournamentState; run: Run }) {
-  const groupMatches = state.matches.filter((m) => m.phase === 'group');
-  const bracket = state.matches.filter((m) => m.phase !== 'group');
-  const canGenerate = groupMatches.length > 0 && groupMatches.every((m) => m.played);
-
-  if (bracket.length === 0) {
-    return (
-      <Section title="Phase finale">
-        <div className="flex flex-wrap items-center gap-4">
-          <button
-            type="button"
-            disabled={!canGenerate}
-            className="btn-gold disabled:opacity-40"
-            onClick={() => {
-              if (!window.confirm('Générer les quarts de finale à partir du classement ?')) return;
-              void run(() => api('/api/admin/bracket', { method: 'POST' }), 'Quarts de finale générés');
-            }}
-          >
-            Générer les quarts
-          </button>
-          <p className="text-xs text-parchment-dim">
-            {canGenerate
-              ? 'Le tableau sera créé selon les règles : 1er A – 2e B, 1er B – 2e A, 1er C – 2e D, 1er D – 2e C.'
-              : 'Tous les duels de poules doivent être validés.'}
-          </p>
-        </div>
-      </Section>
-    );
-  }
-
-  const rounds: { phase: Phase; label: string }[] = [
-    { phase: 'qf', label: 'Quarts de finale' },
-    { phase: 'sf', label: 'Demi-finales' },
-    { phase: 'final', label: 'Grande finale' },
-  ];
-
+function ScoreRow({
+  fighter,
+  value,
+  onChange,
+  disabled,
+  isWinner,
+  isLoser,
+  isForfeitLoser,
+}: {
+  fighter: { id: number; name: string } | null;
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+  isWinner: boolean;
+  isLoser: boolean;
+  isForfeitLoser: boolean;
+}) {
   return (
-    <Section title="Phase finale">
-      <div className="space-y-6">
-        {rounds.map(({ phase, label }) => {
-          const rows = bracket.filter((m) => m.phase === phase).sort((a, b) => a.slot - b.slot);
-          if (rows.length === 0) return null;
-          return (
-            <div key={phase}>
-              <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-gold">{label}</h3>
-              <div className="space-y-2">
-                {rows.map((m) => (
-                  <BracketEditor key={m.id} match={m} run={run} />
-                ))}
-              </div>
-            </div>
-          );
-        })}
+    <div
+      className={`flex items-center justify-between gap-2 rounded border px-3 py-2 transition-colors ${
+        isWinner
+          ? 'border-gold/70 bg-gold/10'
+          : isForfeitLoser
+            ? 'border-blood/60 bg-blood/[0.07]'
+            : 'border-gold/15'
+      }`}
+    >
+      <span
+        className={`min-w-0 flex-1 truncate text-sm ${
+          isWinner
+            ? 'font-semibold text-gold-light'
+            : isLoser || isForfeitLoser
+              ? 'text-parchment-dim/70 line-through'
+              : 'text-parchment-dim'
+        }`}
+      >
+        {fighter?.name ?? '—'}
+        {isForfeitLoser && (
+          <span className="ml-1.5 text-[0.5rem] uppercase tracking-wider text-blood no-underline">forfait</span>
+        )}
+      </span>
+
+      <div className="flex flex-none items-center gap-1">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.5"
+          min="0"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={`Points de ${fighter?.name ?? 'ce combattant'}`}
+          placeholder="—"
+          className="w-16 rounded border border-gold/20 bg-ink px-1.5 py-1 text-right text-xs tabular-nums text-parchment outline-none transition-colors placeholder:text-parchment-dim/30 focus:border-gold disabled:opacity-30"
+        />
+        <select
+          aria-label={`Suggestions de points pour ${fighter?.name ?? 'ce combattant'}`}
+          value=""
+          disabled={disabled}
+          onChange={(e) => {
+            if (e.target.value) onChange(e.target.value);
+          }}
+          className="w-6 cursor-pointer rounded border border-gold/20 bg-ink px-0.5 py-1 text-[0.625rem] text-gold outline-none transition-colors focus:border-gold disabled:opacity-30"
+        >
+          <option value="">▾</option>
+          {POINT_SUGGESTIONS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
       </div>
-    </Section>
+    </div>
   );
 }
 
-function BracketEditor({ match, run }: { match: Match; run: Run }) {
-  const [winner, setWinner] = useState<number | null>(match.winnerId);
-  const [aScore, setAScore] = useState(match.aScore?.toString() ?? '');
-  const [bScore, setBScore] = useState(match.bScore?.toString() ?? '');
-  const [forfeit, setForfeit] = useState(match.forfeit);
-
-  const ready = match.a != null && match.b != null;
-
+function ForfeitControl({
+  match,
+  draft,
+  patch,
+}: {
+  match: Match;
+  draft: Draft;
+  patch: (p: Partial<Draft>) => void;
+}) {
   return (
-    <div className="border border-gold/10 px-3 py-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="grid flex-1 gap-2 sm:grid-cols-2">
-          {[match.a, match.b].map((f, i) => (
-            <button
-              key={i}
-              type="button"
-              disabled={!f}
-              onClick={() => f && setWinner(f.id)}
-              aria-pressed={f ? winner === f.id : false}
-              className={`flex items-center justify-between gap-2 border px-3 py-2 text-left text-sm transition-colors disabled:opacity-40 ${
-                f && winner === f.id
-                  ? 'border-gold bg-gold/10 text-gold-light'
-                  : 'border-gold/15 text-parchment-dim hover:border-gold/40'
-              }`}
-            >
-              <span className="min-w-0 truncate">{f?.name ?? 'En attente'}</span>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                inputMode="decimal"
-                value={i === 0 ? aScore : bScore}
-                disabled={!f || forfeit}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => (i === 0 ? setAScore(e.target.value) : setBScore(e.target.value))}
-                aria-label={`Points de ${f?.name ?? (i === 0 ? 'A' : 'B')}`}
-                className="w-16 flex-none border border-gold/20 bg-ink px-1.5 py-1 text-right text-xs tabular-nums text-parchment outline-none focus:border-gold disabled:opacity-40"
-              />
-            </button>
-          ))}
-        </div>
+    <div className="flex items-center gap-2">
+      <label className="flex cursor-pointer items-center gap-1.5 text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim">
+        <input
+          type="checkbox"
+          checked={draft.forfeit}
+          onChange={(e) => patch({ forfeit: e.target.checked, forfeitLoserId: null })}
+          className="accent-gold"
+        />
+        Forfait
+      </label>
 
-        <label className="flex flex-none items-center gap-2 text-[0.625rem] uppercase tracking-[0.12em] text-parchment-dim">
-          <input
-            type="checkbox"
-            checked={forfeit}
-            onChange={(e) => {
-              setForfeit(e.target.checked);
-              if (e.target.checked) {
-                setAScore('');
-                setBScore('');
-              }
-            }}
-            className="accent-gold"
-          />
-          Forfait
-        </label>
-
-        <button
-          type="button"
-          disabled={!winner || !ready}
-          className="btn-gold flex-none px-4 py-2 text-[0.625rem] disabled:opacity-35"
-          onClick={() =>
-            void run(
-              () =>
-                api('/api/admin/match', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    id: match.id,
-                    winnerId: winner,
-                    aScore: forfeit ? null : aScore === '' ? null : Number(aScore),
-                    bScore: forfeit ? null : bScore === '' ? null : Number(bScore),
-                    forfeit,
-                  }),
-                }),
-              'Résultat enregistré',
-            )
-          }
+      {draft.forfeit && (
+        <select
+          aria-label="Combattant déclarant forfait"
+          value={draft.forfeitLoserId ?? ''}
+          onChange={(e) => patch({ forfeitLoserId: e.target.value ? Number(e.target.value) : null })}
+          className="rounded border border-blood/50 bg-ink px-2 py-1.5 text-xs text-parchment outline-none focus:border-blood"
         >
-          Valider
-        </button>
-      </div>
+          <option value="">Qui déclare forfait ?</option>
+          {[match.a, match.b]
+            .filter((f) => f != null)
+            .map((f) => (
+              <option key={f!.id} value={f!.id}>
+                {f!.name}
+              </option>
+            ))}
+        </select>
+      )}
     </div>
   );
 }
 
 function ResetPanel({ run }: { run: Run }) {
   return (
-    <Section title="Zone de réinitialisation">
+    <Section title="Réinitialisation">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs leading-relaxed text-parchment-dim">
-          Efface les résultats des duels et le tableau final, mais conserve les combattants et les groupes.
+          Efface les résultats et le tableau final. Conserve les combattants et les groupes.
         </p>
         <button
           type="button"

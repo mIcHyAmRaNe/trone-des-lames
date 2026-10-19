@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ cookies }) => {
     sql: "SELECT COUNT(*) AS n FROM matches WHERE edition_id = ? AND phase <> 'group'",
     args: [edition.id],
   });
-  if (Number(exists.rows[0].n) > 0) return json({ error: 'Le bracket existe déjà' }, 409);
+  if (Number(exists.rows[0].n) > 0) return json({ error: 'Le tableau final existe déjà' }, 409);
 
   const [fr, mr] = await Promise.all([
     d.execute({ sql: 'SELECT * FROM fighters WHERE edition_id = ?', args: [edition.id] }),
@@ -25,10 +25,15 @@ export const POST: APIRoute = async ({ cookies }) => {
   const matches = mr.rows as unknown as Match[];
 
   if (matches.length === 0 || matches.some((m) => m.played !== 1)) {
-    return json({ error: 'Tous les matchs de poules doivent être joués' }, 409);
+    return json({ error: 'Tous les duels de poules doivent être validés' }, 409);
   }
 
-  const seeds = bracketSeeds(computeStandings(fighters, matches));
+  let seeds: [number, number][];
+  try {
+    seeds = bracketSeeds(computeStandings(fighters, matches));
+  } catch {
+    return json({ error: 'Classement incomplet : vérifiez les duels de poules' }, 409);
+  }
 
   const statements = seeds.map(([a, b], i) => ({
     sql: 'INSERT INTO matches (edition_id, phase, slot, a_id, b_id) VALUES (?, ?, ?, ?, ?)',

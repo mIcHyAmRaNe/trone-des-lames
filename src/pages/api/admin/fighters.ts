@@ -4,19 +4,48 @@ import { isAdmin, json, unauthorized } from '../../../lib/auth';
 
 export const prerender = false;
 
+const MAX_NAME = 40;
+
+/** Accent- and case-insensitive key, so "Élodie" and "elodie" clash. */
+function normalize(name: string) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cleanName(raw: unknown) {
+  return typeof raw === 'string' ? raw.trim().replace(/\s+/g, ' ').slice(0, MAX_NAME) : '';
+}
+
 export const POST: APIRoute = async ({ request, cookies }) => {
   if (!isAdmin(cookies)) return unauthorized();
-  const { name } = (await request.json()) as { name?: string };
-  const clean = name?.trim().slice(0, 40);
-  if (!clean) return json({ error: 'Nom requis' }, 400);
+
+  const body = (await request.json().catch(() => null)) as { name?: string } | null;
+  const clean = cleanName(body?.name);
+  if (!clean) return json({ error: 'Le nom du combattant est requis' }, 400);
 
   const edition = await getEdition();
   const d = await getDb();
+
   const count = await d.execute({
     sql: 'SELECT COUNT(*) AS n FROM fighters WHERE edition_id = ?',
     args: [edition.id],
   });
-  if (Number(count.rows[0].n) >= 16) return json({ error: 'Seize combattants maximum' }, 400);
+  if (Number(count.rows[0].n) >= 16) {
+    return json({ error: 'Seize combattants maximum : supprimez-en un avant d’en ajouter' }, 409);
+  }
+
+  const existing = await d.execute({
+    sql: 'SELECT id, name FROM fighters WHERE edition_id = ?',
+    args: [edition.id],
+  });
+  const clash = (existing.rows as unknown as { id: number; name: string }[]).find(
+    (f) => normalize(f.name) === normalize(clean),
+  );
+  if (clash) return json({ error: `Le nom « ${clash.name} » est déjà inscrit` }, 409);
 
   const r = await d.execute({
     sql: 'INSERT INTO fighters (edition_id, name) VALUES (?, ?)',
@@ -27,19 +56,39 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
 export const PATCH: APIRoute = async ({ request, cookies }) => {
   if (!isAdmin(cookies)) return unauthorized();
-  const { id, name } = (await request.json()) as { id?: number; name?: string };
-  const clean = name?.trim().slice(0, 40);
-  if (!id || !clean) return json({ error: 'Données invalides' }, 400);
 
+  const body = (await request.json().catch(() => null)) as { id?: number; name?: string } | null;
+  const id = Number(body?.id);
+  const clean = cleanName(body?.name);
+  if (!Number.isInteger(id) || id <= 0) return json({ error: 'Combattant invalide' }, 400);
+  if (!clean) return json({ error: 'Le nom du combattant est requis' }, 400);
+
+  const edition = await getEdition();
   const d = await getDb();
-  await d.execute({ sql: 'UPDATE fighters SET name = ? WHERE id = ?', args: [clean, id] });
+
+  const others = await d.execute({
+    sql: 'SELECT id, name FROM fighters WHERE edition_id = ? AND id <> ?',
+    args: [edition.id, id],
+  });
+  const clash = (others.rows as unknown as { id: number; name: string }[]).find(
+    (f) => normalize(f.name) === normalize(clean),
+  );
+  if (clash) return json({ error: `Le nom « ${clash.name} » est déjà inscrit` }, 409);
+
+  const r = await d.execute({
+    sql: 'UPDATE fighters SET name = ? WHERE id = ? AND edition_id = ?',
+    args: [clean, id, edition.id],
+  });
+  if (r.rowsAffected === 0) return json({ error: 'Combattant introuvable' }, 404);
+
   return json({ ok: true });
 };
 
 export const DELETE: APIRoute = async ({ url, cookies }) => {
   if (!isAdmin(cookies)) return unauthorized();
+
   const id = Number(url.searchParams.get('id'));
-  if (!id) return json({ error: 'Identifiant requis' }, 400);
+  if (!Number.isInteger(id) || id <= 0) return json({ error: 'Identifiant requis' }, 400);
 
   const d = await getDb();
   const edition = await getEdition();
@@ -47,8 +96,15 @@ export const DELETE: APIRoute = async ({ url, cookies }) => {
     sql: 'SELECT COUNT(*) AS n FROM matches WHERE edition_id = ?',
     args: [edition.id],
   });
-  if (Number(started.rows[0].n) > 0) return json({ error: 'Le tournoi a commencé' }, 409);
+  if (Number(started.rows[0].n) > 0) {
+    return json({ error: 'Le tirage a eu lieu : les combattants ne peuvent plus être retirés' }, 409);
+  }
 
-  await d.execute({ sql: 'DELETE FROM fighters WHERE id = ? AND edition_id = ?', args: [id, edition.id] });
+  const r = await d.execute({
+    sql: 'DELETE FROM fighters WHERE id = ? AND edition_id = ?',
+    args: [id, edition.id],
+  });
+  if (r.rowsAffected === 0) return json({ error: 'Combattant introuvable' }, 404);
+
   return json({ ok: true });
 };

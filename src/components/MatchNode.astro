@@ -23,16 +23,19 @@ const { m, phase } = Astro.props;
 const aWin = m.played && m.winnerId === m.a?.id;
 const bWin = m.played && m.winnerId === m.b?.id;
 const champion = phase === 'final' && m.played;
+
+const label = (isWinner: boolean, score: number | null) =>
+  m.forfeit && isWinner ? 'Forfait' : formatPoints(score);
 ---
 
 <div class:list={['match-node', `node-${phase}`, champion && 'is-champion']}>
   <div class:list={['match-side', aWin && 'is-winner', m.played && !aWin && 'is-loser']}>
     <span class="match-name">{m.a?.name ?? '—'}</span>
-    <span class="match-score">{m.forfeit && aWin ? 'Forfait' : formatPoints(m.aScore)}</span>
+    <span class="match-score">{label(aWin, m.aScore)}</span>
   </div>
   <div class:list={['match-side', bWin && 'is-winner', m.played && !bWin && 'is-loser']}>
     <span class="match-name">{m.b?.name ?? '—'}</span>
-    <span class="match-score">{m.forfeit && bWin ? 'Forfait' : formatPoints(m.bScore)}</span>
+    <span class="match-score">{label(bWin, m.bScore)}</span>
   </div>
 
   {champion && (
@@ -47,19 +50,13 @@ const champion = phase === 'final' && m.played;
 <style>
   .match-node {
     position: relative;
-    border: 1px solid color-mix(in oklab, var(--color-gold) 22%, transparent);
+    width: 100%;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 24%, transparent);
     background: linear-gradient(180deg, var(--color-ink-3), var(--color-ink-2));
-    min-width: 0;
     transition: border-color 0.15s ease;
   }
   .match-node:hover {
-    border-color: color-mix(in oklab, var(--color-gold) 48%, transparent);
-  }
-
-  /* stub reaching back to the previous round's bracket */
-  .node-sf::before,
-  .node-final::before {
-    display: none;
+    border-color: color-mix(in oklab, var(--color-gold) 50%, transparent);
   }
 
   .match-side {
@@ -88,7 +85,7 @@ const champion = phase === 'final' && m.played;
   }
 
   .is-winner {
-    background: color-mix(in oklab, var(--color-gold) 9%, transparent);
+    background: color-mix(in oklab, var(--color-gold) 10%, transparent);
     box-shadow: inset 2px 0 0 var(--color-gold);
   }
   .is-winner .match-name,
