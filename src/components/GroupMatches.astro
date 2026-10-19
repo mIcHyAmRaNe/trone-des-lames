@@ -1,0 +1,71 @@
+---
+import type { TournamentState } from '../lib/state';
+import { GROUPS } from '../lib/tournament';
+import { formatPoints } from '../lib/format';
+
+interface Props {
+  state: TournamentState;
+}
+
+const { state } = Astro.props;
+const groupMatches = state.matches.filter((m) => m.phase === 'group');
+---
+
+{groupMatches.length === 0 ? (
+  <p class="card-dark px-6 py-10 text-center text-sm text-parchment-dim">
+    Les duels apparaîtront après le tirage au sort.
+  </p>
+) : (
+  <div class="grid gap-6 lg:grid-cols-2">
+    {GROUPS.map((g) => {
+      const rows = groupMatches.filter((m) => m.grp === g).sort((a, b) => a.slot - b.slot);
+      return (
+        <section class="card-dark texture-noise">
+          <header class="flex items-center justify-between border-b border-gold/20 px-5 py-3">
+            <h3 class="font-display text-sm tracking-[0.2em] text-gold">GROUPE {g}</h3>
+            <span class="text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
+              {rows.filter((m) => m.played).length} / {rows.length} duels
+            </span>
+          </header>
+
+          <ul>
+            {rows.map((m) => {
+              const aWin = m.played && m.winnerId === m.a?.id;
+              const bWin = m.played && m.winnerId === m.b?.id;
+              return (
+                <li class="flex items-center gap-2 border-b border-gold/5 px-4 py-2.5 text-sm last:border-0 sm:gap-3">
+                  <span class:list={['flex-1 truncate text-right', aWin ? 'font-semibold text-gold-light' : 'text-parchment-dim']}>
+                    {m.a?.name ?? '—'}
+                  </span>
+
+                  <span class="flex flex-none items-center gap-1 tabular-nums">
+                    <span class:list={['min-w-6 text-center', aWin ? 'text-gold-light' : 'text-parchment-dim/70']}>
+                      {m.forfeit && aWin ? 'F' : formatPoints(m.aScore)}
+                    </span>
+                    <span class="text-parchment-dim/40">–</span>
+                    <span class:list={['min-w-6 text-center', bWin ? 'text-gold-light' : 'text-parchment-dim/70']}>
+                      {m.forfeit && bWin ? 'F' : formatPoints(m.bScore)}
+                    </span>
+                  </span>
+
+                  <span class:list={['flex-1 truncate', bWin ? 'font-semibold text-gold-light' : 'text-parchment-dim']}>
+                    {m.b?.name ?? '—'}
+                  </span>
+
+                  {m.forfeit && (
+                    <span class="flex-none border border-blood/60 px-1.5 py-0.5 text-[0.5rem] font-bold uppercase tracking-[0.1em] text-blood" title="Victoire par forfait">
+                      Forfait
+                    </span>
+                  )}
+                  {!m.played && (
+                    <span class="flex-none text-[0.5rem] uppercase tracking-[0.1em] text-parchment-dim/50">À venir</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      );
+    })}
+  </div>
+)}

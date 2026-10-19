@@ -1,11 +1,146 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import StatusBadge from '../components/StatusBadge.astro';
+import { getTournamentState } from '../lib/state';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+export const prerender = false;
+
+const state = await getTournamentState();
+const champion = state.edition.champion;
+const fighters = state.fighters;
+const registered = fighters.length;
 ---
 
 <Layout>
-	<Welcome />
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b border-gold/15">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(201,162,39,0.13),transparent_70%)]"></div>
+
+    <div class="container-tdl relative flex flex-col items-center py-20 text-center sm:py-28">
+      <p class="label-caps reveal">Renaissance Kingdoms · Édition Classique</p>
+
+      <h1 class="reveal mt-5 font-display text-4xl leading-[1.05] font-black tracking-[0.08em] text-parchment sm:text-6xl lg:text-7xl">
+        LE TRÔNE<br />
+        <span class="bg-gradient-to-b from-gold-light via-gold to-gold-dim bg-clip-text text-transparent">DES LAMES</span>
+      </h1>
+
+      <div class="rule-gold reveal my-7 w-40"></div>
+
+      <p class="reveal max-w-xl text-balance leading-relaxed text-parchment-dim">
+        Seize combattants. Quatre groupes. Une seule couronne.
+        Suivez chaque duel, chaque point, chaque élimination jusqu’au sacre.
+      </p>
+
+      <div class="reveal mt-7"><StatusBadge state={state} /></div>
+
+      {champion && (
+        <div class="reveal mt-8 border border-gold/40 bg-gold/[0.06] px-8 py-5">
+          <p class="label-caps">Champion du Trône des Lames</p>
+          <p class="champion-shimmer mt-1 font-display text-2xl font-bold tracking-[0.1em] sm:text-3xl">
+            {champion.name}
+          </p>
+        </div>
+      )}
+
+      <div class="reveal mt-9 flex flex-wrap items-center justify-center gap-3">
+        <a href="/tournoi" class="btn-gold">Voir le tournoi</a>
+        <a href="/reglement" class="btn-ghost">Lire le règlement</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRESENTATION -->
+  <section class="container-tdl py-20">
+    <div class="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+      <div>
+        <p class="label-caps">Présentation</p>
+        <h2 class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl">
+          Un tournoi de maîtrise<br class="hidden sm:block" /> et de stratégie
+        </h2>
+        <div class="rule-gold my-6 w-24"></div>
+        <p class="leading-relaxed text-parchment-dim">
+          Le Trône des Lames oppose seize combattants de Renaissance Kingdoms dans une
+          compétition en deux phases : une phase de poules, puis une phase finale à
+          élimination directe.
+        </p>
+        <p class="mt-4 leading-relaxed text-parchment-dim">
+          Chaque duel désigne obligatoirement un vainqueur — aucun match nul n’est autorisé.
+          Les combats se déroulent sur le jeu, les résultats officiels sont reportés ici
+          par l’organisation.
+        </p>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        {[
+          { n: '16', l: 'Combattants', d: 'Quatre groupes de quatre' },
+          { n: '24', l: 'Duels de poules', d: 'Six duels par groupe' },
+          { n: '8', l: 'Qualifiés', d: 'Les deux premiers de chaque groupe' },
+          { n: '31', l: 'Duels au total', d: 'Jusqu’à la grande finale' },
+        ].map((s) => (
+          <div class="card-dark texture-noise px-5 py-6">
+            <p class="font-display text-3xl font-bold tracking-[0.06em] text-gold">{s.n}</p>
+            <p class="mt-1 text-sm font-semibold text-parchment">{s.l}</p>
+            <p class="mt-1 text-xs leading-relaxed text-parchment-dim">{s.d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASES -->
+  <section class="border-y border-gold/15 bg-ink-2/60">
+    <div class="container-tdl py-20">
+      <div class="text-center">
+        <p class="label-caps">Déroulement</p>
+        <h2 class="mt-3 font-display text-3xl tracking-[0.04em] text-parchment sm:text-4xl">Les deux phases</h2>
+      </div>
+
+      <div class="mt-12 grid gap-6 md:grid-cols-2">
+        <article class="card-dark texture-noise relative p-7">
+          <span class="absolute right-5 top-5 font-display text-5xl font-black text-gold/10">01</span>
+          <p class="label-caps">Phase de poules</p>
+          <h3 class="mt-2 font-display text-xl tracking-[0.06em] text-parchment">Quatre groupes de quatre</h3>
+          <p class="mt-3 text-sm leading-relaxed text-parchment-dim">
+            Chaque combattant affronte une seule fois les trois autres membres de son groupe,
+            soit six duels par groupe et vingt-quatre au total.
+          </p>
+          <ul class="mt-5 space-y-2 text-sm text-parchment-dim">
+            <li class="flex gap-2"><span class="text-gold">◆</span> Classement par victoires, puis points cumulés</li>
+            <li class="flex gap-2"><span class="text-gold">◆</span> Confrontation directe en cas d’égalité</li>
+            <li class="flex gap-2"><span class="text-gold">◆</span> Les deux premiers de chaque groupe qualifiés</li>
+          </ul>
+        </article>
+
+        <article class="card-dark texture-noise relative p-7">
+          <span class="absolute right-5 top-5 font-display text-5xl font-black text-gold/10">02</span>
+          <p class="label-caps">Phase finale</p>
+          <h3 class="mt-2 font-display text-xl tracking-[0.06em] text-parchment">Élimination directe</h3>
+          <p class="mt-3 text-sm leading-relaxed text-parchment-dim">
+            Huit qualifiés s’affrontent en quarts de finale, demi-finales, puis grande finale.
+            Chaque duel est éliminatoire : le vainqueur poursuit, le perdant quitte la lice.
+          </p>
+          <ul class="mt-5 space-y-2 text-sm text-parchment-dim">
+            <li class="flex gap-2"><span class="text-gold">◆</span> Les premiers affrontent les deuxièmes d’autres groupes</li>
+            <li class="flex gap-2"><span class="text-gold">◆</span> Aucun duel entre combattants d’un même groupe en quarts</li>
+            <li class="flex gap-2"><span class="text-gold">◆</span> Le vainqueur de la finale est sacré champion</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="container-tdl py-20">
+    <div class="card-dark texture-noise flex flex-col items-center gap-5 px-6 py-14 text-center">
+      <p class="label-caps">{registered} / 16 combattants inscrits</p>
+      <h2 class="max-w-lg font-display text-2xl leading-snug tracking-[0.04em] text-parchment sm:text-3xl">
+        La couronne attend son champion
+      </h2>
+      <div class="rule-gold w-24"></div>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="/tournoi" class="btn-gold">Suivre le tournoi</a>
+        <a href="/reglement" class="btn-ghost">Règlement officiel</a>
+      </div>
+    </div>
+  </section>
 </Layout>

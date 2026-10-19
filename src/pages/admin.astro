@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Admin from '../components/admin/Admin';
+
+export const prerender = false;
+---
+
+<Layout title="Administration — Le Trône des Lames">
+  <div class="container-tdl py-14">
+    <Admin client:only="react" />
+  </div>
+</Layout>

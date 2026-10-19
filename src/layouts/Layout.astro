@@ -1,23 +1,92 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
-</html>
+---
+import '../styles/global.css';
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Le Trône des Lames — Tournoi Renaissance Kingdoms',
+  description = 'Seize combattants, quatre groupes, une seule couronne. Suivez le tournoi Le Trône des Lames : poules, classements et phase finale.',
+} = Astro.props;
+
+const path = Astro.url.pathname;
+const links = [
+  { href: '/', label: 'Accueil' },
+  { href: '/tournoi', label: 'Tournoi' },
+  { href: '/reglement', label: 'Règlement' },
+  { href: '/admin', label: 'Admin' },
+];
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0d0b0a" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="flex min-h-screen flex-col">
+    <header class="sticky top-0 z-50 border-b border-gold/25 bg-ink/85 backdrop-blur-md">
+      <div class="container-tdl flex h-16 items-center justify-between gap-4">
+        <a href="/" class="group flex items-center gap-2.5" aria-label="Le Trône des Lames, accueil">
+          <svg viewBox="0 0 24 24" class="h-6 w-6 text-gold transition-transform group-hover:rotate-6" fill="currentColor" aria-hidden="true">
+            <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zm4.4 10h11.2l1-6.2L16 12 12 5.8 8 12 5.4 10.8l1 6.2zM6 20h12v2H6v-2z"/>
+          </svg>
+          <span class="font-display text-sm font-bold tracking-[0.18em] text-parchment">LE TRÔNE DES LAMES</span>
+        </a>
+
+        <nav aria-label="Navigation principale">
+          <ul class="flex items-center gap-1 sm:gap-2">
+            {links.map((l) => {
+              const active = l.href === '/' ? path === '/' : path.startsWith(l.href);
+              return (
+                <li>
+                  <a
+                    href={l.href}
+                    aria-current={active ? 'page' : undefined}
+                    class:list={[
+                      'block px-2.5 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] transition-colors sm:px-3',
+                      active ? 'text-gold' : 'text-parchment-dim hover:text-parchment',
+                    ]}
+                  >
+                    {l.label}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <footer class="mt-24 border-t border-gold/20 bg-ink-2">
+      <div class="container-tdl flex flex-col items-center gap-3 py-10 text-center">
+        <svg viewBox="0 0 24 24" class="h-7 w-7 text-gold/70" fill="currentColor" aria-hidden="true">
+          <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zm4.4 10h11.2l1-6.2L16 12 12 5.8 8 12 5.4 10.8l1 6.2zM6 20h12v2H6v-2z"/>
+        </svg>
+        <p class="font-display text-xs tracking-[0.24em] text-gold">LE TRÔNE DES LAMES</p>
+        <p class="max-w-md text-xs leading-relaxed text-parchment-dim">
+          Tournoi de combat Renaissance Kingdoms. Résultats officiels gérés par l’organisation.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

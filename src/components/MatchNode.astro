@@ -1,0 +1,131 @@
+---
+import { formatPoints } from '../lib/format';
+
+interface MatchVM {
+  id: number;
+  phase: string;
+  slot: number;
+  a: { id: number; name: string } | null;
+  b: { id: number; name: string } | null;
+  winnerId: number | null;
+  aScore: number | null;
+  bScore: number | null;
+  forfeit: boolean;
+  played: boolean;
+}
+
+interface Props {
+  m: MatchVM;
+  phase: 'qf' | 'sf' | 'final';
+}
+
+const { m, phase } = Astro.props;
+const aWin = m.played && m.winnerId === m.a?.id;
+const bWin = m.played && m.winnerId === m.b?.id;
+const champion = phase === 'final' && m.played;
+---
+
+<div class:list={['match-node', `node-${phase}`, champion && 'is-champion']}>
+  <div class:list={['match-side', aWin && 'is-winner', m.played && !aWin && 'is-loser']}>
+    <span class="match-name">{m.a?.name ?? '—'}</span>
+    <span class="match-score">{m.forfeit && aWin ? 'Forfait' : formatPoints(m.aScore)}</span>
+  </div>
+  <div class:list={['match-side', bWin && 'is-winner', m.played && !bWin && 'is-loser']}>
+    <span class="match-name">{m.b?.name ?? '—'}</span>
+    <span class="match-score">{m.forfeit && bWin ? 'Forfait' : formatPoints(m.bScore)}</span>
+  </div>
+
+  {champion && (
+    <div class="champion-crown" aria-hidden="true">
+      <svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor">
+        <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7z" />
+      </svg>
+    </div>
+  )}
+</div>
+
+<style>
+  .match-node {
+    position: relative;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 22%, transparent);
+    background: linear-gradient(180deg, var(--color-ink-3), var(--color-ink-2));
+    min-width: 0;
+    transition: border-color 0.15s ease;
+  }
+  .match-node:hover {
+    border-color: color-mix(in oklab, var(--color-gold) 48%, transparent);
+  }
+
+  /* stub reaching back to the previous round's bracket */
+  .node-sf::before,
+  .node-final::before {
+    display: none;
+  }
+
+  .match-side {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--color-gold) 10%, transparent);
+  }
+  .match-side:last-of-type { border-bottom: 0; }
+
+  .match-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-parchment-dim);
+  }
+
+  .match-score {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    color: var(--color-parchment-dim);
+  }
+
+  .is-winner {
+    background: color-mix(in oklab, var(--color-gold) 9%, transparent);
+    box-shadow: inset 2px 0 0 var(--color-gold);
+  }
+  .is-winner .match-name,
+  .is-winner .match-score {
+    color: var(--color-gold-light);
+    font-weight: 600;
+  }
+
+  .is-loser .match-name {
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in oklab, var(--color-blood) 75%, transparent);
+    opacity: 0.5;
+  }
+  .is-loser .match-score { opacity: 0.45; }
+
+  .is-champion {
+    border-color: var(--color-gold);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-gold) 35%, transparent),
+      0 0 36px color-mix(in oklab, var(--color-gold) 24%, transparent);
+  }
+
+  .champion-crown {
+    position: absolute;
+    top: -0.8rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, var(--color-gold-light), var(--color-gold));
+    color: var(--color-ink);
+    box-shadow: 0 0 20px color-mix(in oklab, var(--color-gold) 55%, transparent);
+  }
+
+  @media (max-width: 640px) {
+    .match-side { font-size: 0.75rem; padding: 0.45rem 0.6rem; }
+  }
+</style>

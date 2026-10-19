@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --color-ink: #0d0b0a;
+  --color-ink-2: #16120f;
+  --color-ink-3: #1f1915;
+  --color-gold: #c9a227;
+  --color-gold-light: #e8c96a;
+  --color-gold-dim: #7a6320;
+  --color-parchment: #e8ddc7;
+  --color-parchment-dim: #a89d88;
+  --color-blood: #8b1e1e;
+}
+
+@layer base {
+  html {
+    background: var(--color-ink);
+    color: var(--color-parchment);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201, 162, 39, 0.09), transparent 70%),
+      radial-gradient(ellipse 60% 40% at 50% 110%, rgba(139, 30, 30, 0.07), transparent 70%);
+  }
+
+  ::selection {
+    background: var(--color-gold);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+  }
+}
+
+@utility container-tdl {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+/* Aged paper / metal texture without images */
+@utility texture-noise {
+  position: relative;
+}
+.texture-noise::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: repeating-linear-gradient(
+    45deg,
+    #fff 0 1px,
+    transparent 1px 3px
+  );
+}
+
+@utility rule-gold {
+  background: linear-gradient(90deg, transparent, var(--color-gold-dim), var(--color-gold), var(--color-gold-dim), transparent);
+  height: 1px;
+}
+
+@utility label-caps {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+@utility card-dark {
+  background: linear-gradient(180deg, var(--color-ink-3), var(--color-ink-2));
+  border: 1px solid color-mix(in oklab, var(--color-gold) 18%, transparent);
+}
+
+@utility btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  background: linear-gradient(180deg, var(--color-gold-light), var(--color-gold));
+  border: 1px solid var(--color-gold-light);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-gold:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(201, 162, 39, 0.28);
+  filter: brightness(1.06);
+}
+
+@utility btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  border: 1px solid color-mix(in oklab, var(--color-gold) 45%, transparent);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-ghost:hover {
+  background: color-mix(in oklab, var(--color-gold) 10%, transparent);
+  border-color: var(--color-gold);
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    animation: fade-up 0.6s ease both;
+  }
+  .champion-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-gold) 20%,
+      #fff6cf 40%,
+      var(--color-gold-light) 60%,
+      var(--color-gold) 80%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 4s linear infinite;
+  }
+}

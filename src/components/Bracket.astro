@@ -1,0 +1,157 @@
+---
+import type { TournamentState } from '../lib/state';
+import MatchNode from './MatchNode.astro';
+
+interface Props {
+  state: TournamentState;
+}
+
+const { state } = Astro.props;
+
+const qf = state.matches.filter((m) => m.phase === 'qf').sort((a, b) => a.slot - b.slot);
+const sf = state.matches.filter((m) => m.phase === 'sf').sort((a, b) => a.slot - b.slot);
+const fin = state.matches.find((m) => m.phase === 'final');
+
+const hasBracket = qf.length > 0;
+
+// QF1+QF3 feed SF1, QF2+QF4 feed SF2 — keep those pairs adjacent visually.
+const qfPairs = [
+  [qf.find((m) => m.slot === 1), qf.find((m) => m.slot === 3)],
+  [qf.find((m) => m.slot === 2), qf.find((m) => m.slot === 4)],
+];
+const sfPair = [sf.find((m) => m.slot === 1), sf.find((m) => m.slot === 2)];
+---
+
+{!hasBracket ? (
+  <div class="card-dark texture-noise flex flex-col items-center gap-3 px-6 py-16 text-center">
+    <svg viewBox="0 0 24 24" class="h-10 w-10 text-gold/40" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+      <path d="M4 6h5v4H4zM4 14h5v4H4zM15 10h5v4h-5z" />
+      <path d="M9 8h3v8h3M9 16h3" />
+    </svg>
+    <p class="font-display text-lg tracking-[0.14em] text-parchment">Le tirage n’a pas encore eu lieu</p>
+    <p class="max-w-md text-sm leading-relaxed text-parchment-dim">
+      Les huit qualifiés seront placés dans le tableau à l’issue de la phase de poules.
+    </p>
+  </div>
+) : (
+  <div>
+    <p class="mb-3 text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim sm:hidden">
+      Faites glisser horizontalement →
+    </p>
+
+    <div class="overflow-x-auto pb-2">
+      <div class="bracket">
+        <div class="col">
+          <h3 class="col-title">Quarts de finale</h3>
+          <div class="col-body">
+            {qfPairs.map((pair) => (
+              <div class="pair">
+                {pair.filter((m) => m != null).map((m) => <MatchNode m={m!} phase="qf" />)}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="col">
+          <h3 class="col-title">Demi-finales</h3>
+          <div class="col-body">
+            <div class="pair">
+              {sfPair.filter((m) => m != null).map((m) => <MatchNode m={m!} phase="sf" />)}
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <h3 class="col-title">Grande finale</h3>
+          <div class="col-body">
+            <div class="pair pair-final">
+              {fin ? <MatchNode m={fin} phase="final" /> : <p class="empty">En attente</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<style>
+  .bracket {
+    --gap: 2rem;
+    display: grid;
+    grid-template-columns: 1fr var(--gap) 1fr var(--gap) 1fr;
+    min-width: 44rem;
+  }
+
+  .col { display: flex; flex-direction: column; }
+  .col:nth-child(1) { grid-column: 1; }
+  .col:nth-child(2) { grid-column: 3; }
+  .col:nth-child(3) { grid-column: 5; }
+
+  .col-title {
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 0.625rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-gold);
+    text-align: center;
+  }
+
+  /* pair = two nodes + the "]" connector into the next round.
+     Grid rows of 1fr put the two node centres at exactly 25% and 75%,
+     so the connector geometry below stays exact at any height. */
+  .pair {
+    position: relative;
+    flex: 1;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    align-items: center;
+  }
+
+  .pair-final {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* left half of the gap: two stubs + vertical spine at mid-gap */
+  .pair::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    right: calc(-0.5 * var(--gap));
+    width: calc(0.5 * var(--gap));
+    border: 1px solid color-mix(in oklab, var(--color-gold) 38%, transparent);
+    border-left: 0;
+    pointer-events: none;
+  }
+
+  /* right half of the gap: spine -> centre of the next-round node */
+  .pair::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: calc(-1 * var(--gap));
+    width: calc(0.5 * var(--gap));
+    height: 1px;
+    background: color-mix(in oklab, var(--color-gold) 38%, transparent);
+    pointer-events: none;
+  }
+
+  .pair-final::after,
+  .pair-final::before { display: none; }
+
+  .empty {
+    align-self: center;
+    font-size: 0.75rem;
+    color: var(--color-parchment-dim);
+  }
+
+  @media (max-width: 640px) {
+    .bracket { --gap: 1.25rem; min-width: 40rem; }
+  }
+</style>

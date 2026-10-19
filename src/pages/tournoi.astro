@@ -1,0 +1,77 @@
+---
+import Layout from '../layouts/Layout.astro';
+import StatusBadge from '../components/StatusBadge.astro';
+import GroupTables from '../components/GroupTables.astro';
+import GroupMatches from '../components/GroupMatches.astro';
+import Bracket from '../components/Bracket.astro';
+import { getTournamentState } from '../lib/state';
+
+export const prerender = false;
+
+const state = await getTournamentState();
+const { edition } = state;
+const champion = edition.champion;
+
+const totalPlayed = state.matches.filter((m) => m.played).length;
+const totalMatches = state.matches.length || 31;
+---
+
+<Layout title="Tournoi — Le Trône des Lames">
+  <section class="border-b border-gold/15 bg-ink-2/40">
+    <div class="container-tdl py-14">
+      <p class="label-caps">Édition {edition.name}</p>
+      <div class="mt-3 flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <h1 class="font-display text-3xl font-bold tracking-[0.06em] text-parchment sm:text-5xl">
+            Le Tournoi
+          </h1>
+          <div class="rule-gold my-5 w-28"></div>
+          <p class="text-sm text-parchment-dim">
+            {totalPlayed} / {totalMatches} duels enregistrés
+          </p>
+        </div>
+        <StatusBadge state={state} />
+      </div>
+
+      {champion && (
+        <div class="mt-8 flex flex-wrap items-center gap-4 border border-gold/40 bg-gold/[0.06] px-6 py-4">
+          <svg viewBox="0 0 24 24" class="h-8 w-8 text-gold" fill="currentColor" aria-hidden="true">
+            <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zM6 20h12v2H6v-2z" />
+          </svg>
+          <div>
+            <p class="label-caps">Champion du Trône des Lames</p>
+            <p class="champion-shimmer font-display text-xl font-bold tracking-[0.08em] sm:text-2xl">
+              {champion.name}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <div class="container-tdl space-y-20 py-16">
+    <section aria-labelledby="classements">
+      <div class="mb-6 flex items-center gap-4">
+        <h2 id="classements" class="font-display text-xl tracking-[0.08em] text-parchment">Classements des groupes</h2>
+        <div class="rule-gold hidden flex-1 sm:block"></div>
+      </div>
+      <GroupTables state={state} />
+    </section>
+
+    <section aria-labelledby="duels">
+      <div class="mb-6 flex items-center gap-4">
+        <h2 id="duels" class="font-display text-xl tracking-[0.08em] text-parchment">Duels de poules</h2>
+        <div class="rule-gold hidden flex-1 sm:block"></div>
+      </div>
+      <GroupMatches state={state} />
+    </section>
+
+    <section aria-labelledby="phase-finale">
+      <div class="mb-6 flex items-center gap-4">
+        <h2 id="phase-finale" class="font-display text-xl tracking-[0.08em] text-parchment">Phase finale</h2>
+        <div class="rule-gold hidden flex-1 sm:block"></div>
+      </div>
+      <Bracket state={state} />
+    </section>
+  </div>
+</Layout>

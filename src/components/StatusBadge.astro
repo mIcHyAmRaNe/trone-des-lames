@@ -1,0 +1,33 @@
+---
+import type { TournamentState } from '../lib/state';
+
+interface Props {
+  state: TournamentState;
+}
+
+const { state } = Astro.props;
+
+const statusLabel: Record<string, string> = {
+  setup: 'Inscriptions ouvertes',
+  groups: 'Phase de poules',
+  bracket: 'Phase finale',
+  done: 'Tournoi terminé',
+};
+
+const statusTone: Record<string, string> = {
+  setup: 'border-parchment-dim/40 text-parchment-dim',
+  groups: 'border-gold/60 text-gold',
+  bracket: 'border-gold/60 text-gold',
+  done: 'border-gold bg-gold/10 text-gold-light',
+};
+---
+
+<span
+  class:list={[
+    'inline-flex items-center gap-2 border px-3 py-1.5 text-[0.625rem] font-bold uppercase tracking-[0.2em]',
+    statusTone[state.edition.status] ?? statusTone.setup,
+  ]}
+>
+  <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+  {statusLabel[state.edition.status] ?? 'Inscriptions ouvertes'}
+</span>

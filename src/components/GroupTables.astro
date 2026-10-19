@@ -1,0 +1,77 @@
+---
+import type { TournamentState } from '../lib/state';
+import { GROUPS } from '../lib/tournament';
+import { formatPoints } from '../lib/format';
+
+interface Props {
+  state: TournamentState;
+}
+
+const { state } = Astro.props;
+const standings = state.standings;
+---
+
+<div class="grid gap-6 lg:grid-cols-2">
+  {GROUPS.map((g) => {
+    const rows = standings[g] ?? [];
+    return (
+      <section class="card-dark texture-noise" aria-labelledby={`groupe-${g}`}>
+        <header class="flex items-center justify-between border-b border-gold/20 px-5 py-3.5">
+          <h3 id={`groupe-${g}`} class="font-display text-sm tracking-[0.2em] text-gold">
+            GROUPE {g}
+          </h3>
+          <span class="text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim">
+            2 qualifiés
+          </span>
+        </header>
+
+        {rows.length === 0 ? (
+          <p class="px-5 py-8 text-center text-sm text-parchment-dim">Aucun combattant.</p>
+        ) : (
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-gold/10 text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim">
+                  <th scope="col" class="py-2.5 pl-5 pr-2 font-medium">Combattant</th>
+                  <th scope="col" class="px-2 py-2.5 text-center font-medium">V</th>
+                  <th scope="col" class="px-2 py-2.5 text-right font-medium">Pts</th>
+                  <th scope="col" class="py-2.5 pl-2 pr-5 text-right font-medium">Cl.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr
+                    class:list={[
+                      'border-b border-gold/5 last:border-0',
+                      r.qualified && 'bg-gold/[0.055]',
+                    ]}
+                  >
+                    <td class:list={['py-3 pl-5 pr-2', r.qualified && 'border-l-2 border-gold']}>
+                      <span class="flex flex-wrap items-center gap-2">
+                        <span class:list={['font-medium', r.qualified ? 'text-parchment' : 'text-parchment-dim']}>
+                          {r.name}
+                        </span>
+                        {r.qualified && (
+                          <span class="border border-gold/50 px-1.5 py-0.5 text-[0.5rem] font-bold uppercase tracking-[0.14em] text-gold">
+                            Qualifié
+                          </span>
+                        )}
+                      </span>
+                    </td>
+                    <td class="px-2 py-3 text-center tabular-nums text-parchment-dim">{r.wins}</td>
+                    <td class="px-2 py-3 text-right tabular-nums text-parchment">{formatPoints(r.points)}</td>
+                    <td class="py-3 pl-2 pr-5 text-right tabular-nums">
+                      <span class:list={[r.rank <= 2 ? 'text-gold' : 'text-parchment-dim', 'font-semibold']}>
+                        {r.rank}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    );
+  })}
+</div>
