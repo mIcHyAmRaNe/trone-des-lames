@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ cookies }) => {
     return json({ error: 'Classement incomplet : vérifiez les duels de poules' }, 409);
   }
 
-  const statements = seeds.map(([a, b], i) => ({
+  const statements: { sql: string; args: (string | number)[] }[] = seeds.map(([a, b], i) => ({
     sql: 'INSERT INTO matches (edition_id, phase, slot, a_id, b_id) VALUES (?, ?, ?, ?, ?)',
     args: [edition.id, 'qf', i + 1, a, b],
   }));
@@ -49,11 +49,12 @@ export const POST: APIRoute = async ({ cookies }) => {
     sql: 'INSERT INTO matches (edition_id, phase, slot) VALUES (?, ?, ?)',
     args: [edition.id, 'final', 1],
   });
-  statements.push({
-    sql: "UPDATE editions SET status = 'bracket' WHERE id = ?",
-    args: [edition.id],
-  });
 
-  await d.batch(statements, 'write');
+  try {
+    await d.batch(statements, 'write');
+  } catch (e) {
+    if (String(e).includes('UNIQUE')) return json({ error: 'Le tableau final existe déjà' }, 409);
+    throw e;
+  }
   return json({ ok: true });
 };

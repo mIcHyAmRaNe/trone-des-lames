@@ -1,13 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getDb, getEdition, type Match } from '../../../lib/db';
 import { isAdmin, json, unauthorized } from '../../../lib/auth';
-import {
-  ValidationError,
-  parsePoints,
-  resolveResult,
-  resultStatement,
-  syncBracket,
-} from '../../../lib/save-match';
+import { ValidationError, resolveResult, resultStatement, syncBracket } from '../../../lib/save-match';
 
 export const prerender = false;
 
@@ -42,6 +36,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const missing = ids.filter((id) => !byId.has(id));
   if (missing.length) return json({ error: 'Un duel est introuvable' }, 404);
 
+  const bracket = await d.execute({
+    sql: "SELECT COUNT(*) AS n FROM matches WHERE edition_id = ? AND phase <> 'group'",
+    args: [edition.id],
+  });
+  const hasBracket = Number(bracket.rows[0].n) > 0;
+
+  // The bracket is frozen once generated: the QF pairings were computed from the
+  // standings of that moment, so a later group correction would make the
+  // standings and the bracket contradict each other (it cannot be re-drawn).
+  if (hasBracket && ids.some((id) => byId.get(id)!.phase === 'group')) {
+    return json(
+      { error: 'Le tableau final existe : effacez les résultats pour corriger un duel de poules' },
+      409,
+    );
+  }
+
   // Validate everything before writing anything: a batch is all-or-nothing.
   const resolved: { match: Match; res: ReturnType<typeof resolveResult> }[] = [];
   try {
@@ -60,23 +70,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   await d.batch(resolved.map(({ match, res }) => resultStatement(match, res)), 'write');
 
-  const hasBracket = [...byId.values()].some((m) => m.phase !== 'group');
   if (hasBracket) await syncBracket(edition.id);
-
-  // Final played -> champion; also covers editing an already-decided final.
-  const finalRow = await d.execute({
-    sql: "SELECT * FROM matches WHERE edition_id = ? AND phase = 'final'",
-    args: [edition.id],
-  });
-  const final = finalRow.rows[0] as unknown as Match | undefined;
-  await d.execute({
-    sql: 'UPDATE editions SET status = ? WHERE id = ?',
-    args: [final?.played === 1 ? 'done' : hasBracket ? 'bracket' : edition.status, edition.id],
-  });
 
   return json({ ok: true, saved: resolved.length });
 };
-
-/** Kept for the previous single-match contract. */
-export const PATCH = POST;
-export { parsePoints };

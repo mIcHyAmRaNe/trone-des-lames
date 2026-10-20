@@ -21,7 +21,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       [
         { sql: 'DELETE FROM matches WHERE edition_id = ?', args: [edition.id] },
         { sql: 'DELETE FROM fighters WHERE edition_id = ?', args: [edition.id] },
-        { sql: "UPDATE editions SET status = 'setup' WHERE id = ?", args: [edition.id] },
       ],
       'write',
     );
@@ -48,12 +47,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     args: [edition.id],
   });
   const fighters = fr.rows as unknown as Fighter[];
-  const drawn = fighters.some((f) => f.grp != null);
-
-  await d.execute({
-    sql: 'UPDATE editions SET status = ? WHERE id = ?',
-    args: [drawn ? 'groups' : 'setup', edition.id],
-  });
 
   // Sanity: standings must still be computable after the reset.
   const mr = await d.execute({

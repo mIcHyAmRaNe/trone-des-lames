@@ -1,4 +1,5 @@
 import { getDb, type Match } from './db';
+import { parsePoints } from './format';
 
 export class ValidationError extends Error {
   status: number;
@@ -22,14 +23,6 @@ export type Resolved = {
   bScore: number | null;
   forfeit: boolean;
 };
-
-/** Accepts "17,5" as well as 17.5. Returns null when out of range or unparsable. */
-export function parsePoints(v: unknown): number | null {
-  if (v === null || v === undefined || v === '') return null;
-  const n = typeof v === 'number' ? v : Number(String(v).trim().replace(',', '.'));
-  if (!Number.isFinite(n) || n < 0 || n > 999) return null;
-  return n;
-}
 
 /**
  * A duel always has a winner: the higher score. A forfeit is declared by the

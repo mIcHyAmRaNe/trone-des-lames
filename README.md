@@ -20,7 +20,7 @@ npm run dev               # http://localhost:4321
 ```
 
 En dev, sans `.env`, le mot de passe admin par défaut est `trone`.
-**En production, le serveur refuse de démarrer sans `ADMIN_PASSWORD` et `ADMIN_SECRET`.**
+**En production, toute action d’administration échoue sans `ADMIN_PASSWORD` et `ADMIN_SECRET` : renseignez-les avant de déployer.**
 
 ## Variables d'environnement
 
@@ -47,7 +47,7 @@ src/
     tournament.ts   # classement, forfaits, seeds du bracket
     auth.ts         # session HMAC, mot de passe
     state.ts        # état complet pour les pages
-    format.ts       # formatage des points (virgule française)
+    format.ts       # formatage et lecture des points (virgule française)
   components/
     Bracket.astro        # tableau final, connecteurs CSS purs
     MatchNode.astro      # un duel du tableau
@@ -63,7 +63,7 @@ src/
 
 ## Règles implémentées
 
-- Classement : victoires → points cumulés → confrontation directe → ordre alphabétique.
+- Classement : victoires → points cumulés → confrontation directe (si exactement deux combattants à égalité) → ordre alphabétique.
 - Forfaits : 18 pts au 1er duel, répétition des points du 1er au 2e, moyenne des deux premiers au 3e (décimales conservées).
 - Qualification affichée seulement quand les 24 duels de poules sont joués.
 - Bracket : 1A–2B, 1B–2A, 1C–2D, 1D–2C ; SF1 = V(QF1)+V(QF3), SF2 = V(QF2)+V(QF4).

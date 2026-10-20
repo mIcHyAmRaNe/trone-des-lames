@@ -28,3 +28,4 @@ pnpm-debug.log*
 local.db
 local.db-journal
 *.db
+.serena/

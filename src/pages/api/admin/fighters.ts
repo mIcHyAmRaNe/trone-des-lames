@@ -30,14 +30,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const edition = await getEdition();
   const d = await getDb();
 
-  const count = await d.execute({
-    sql: 'SELECT COUNT(*) AS n FROM fighters WHERE edition_id = ?',
-    args: [edition.id],
-  });
-  if (Number(count.rows[0].n) >= 16) {
-    return json({ error: 'Seize combattants maximum : supprimez-en un avant d’en ajouter' }, 409);
-  }
-
   const existing = await d.execute({
     sql: 'SELECT id, name FROM fighters WHERE edition_id = ?',
     args: [edition.id],
@@ -47,11 +39,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   );
   if (clash) return json({ error: `Le nom « ${clash.name} » est déjà inscrit` }, 409);
 
+  // The 16-fighter limit is enforced inside the insert, so two requests that
+  // both pass a COUNT check cannot both add a 17th fighter.
   const r = await d.execute({
-    sql: 'INSERT INTO fighters (edition_id, name) VALUES (?, ?)',
-    args: [edition.id, clean],
+    sql: `INSERT INTO fighters (edition_id, name)
+          SELECT ?, ? WHERE (SELECT COUNT(*) FROM fighters WHERE edition_id = ?) < 16
+          RETURNING id`,
+    args: [edition.id, clean, edition.id],
   });
-  return json({ id: Number(r.lastInsertRowid) }, 201);
+  if (r.rows.length === 0) {
+    return json({ error: 'Seize combattants maximum : supprimez-en un avant d’en ajouter' }, 409);
+  }
+  return json({ id: Number(r.rows[0].id) }, 201);
 };
 
 export const PATCH: APIRoute = async ({ request, cookies }) => {
@@ -74,6 +73,15 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
     (f) => normalize(f.name) === normalize(clean),
   );
   if (clash) return json({ error: `Le nom « ${clash.name} » est déjà inscrit` }, 409);
+
+  // Renaming after the draw would relabel fighters already published in results.
+  const started = await d.execute({
+    sql: 'SELECT COUNT(*) AS n FROM matches WHERE edition_id = ?',
+    args: [edition.id],
+  });
+  if (Number(started.rows[0].n) > 0) {
+    return json({ error: 'Le tirage a eu lieu : le nom ne peut plus être modifié' }, 409);
+  }
 
   const r = await d.execute({
     sql: 'UPDATE fighters SET name = ? WHERE id = ? AND edition_id = ?',

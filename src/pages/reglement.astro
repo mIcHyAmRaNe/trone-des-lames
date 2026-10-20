@@ -1,382 +1,742 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
 
 const sections = [
-  { id: 'organisation', n: '1', t: 'Organisation générale' },
-  { id: 'poules', n: '2', t: 'Phase de poules' },
-  { id: 'points', n: '3', t: 'Attribution et comptabilisation des points' },
-  { id: 'classement', n: '4', t: 'Classement des groupes' },
-  { id: 'qualification', n: '5', t: 'Qualification pour la phase finale' },
-  { id: 'finale', n: '6', t: 'Phase finale à élimination directe' },
-  { id: 'forfait', n: '7', t: 'Absence et abandon' },
-  { id: 'validation', n: '8', t: 'Validation des résultats' },
-  { id: 'bilan', n: '9', t: 'Bilan de la compétition' },
+    { id: "organisation", n: "1", t: "Organisation générale" },
+    { id: "poules", n: "2", t: "Phase de poules" },
+    { id: "points", n: "3", t: "Attribution et comptabilisation des points" },
+    { id: "classement", n: "4", t: "Classement des groupes" },
+    { id: "qualification", n: "5", t: "Qualification pour la phase finale" },
+    { id: "finale", n: "6", t: "Phase finale à élimination directe" },
+    { id: "forfait", n: "7", t: "Absence et abandon" },
+    { id: "validation", n: "8", t: "Validation des résultats" },
+    { id: "bilan", n: "9", t: "Bilan de la compétition" },
 ];
 
 const example = [
-  { name: 'Sabdel', wins: 2, pts: 24, rank: 1 },
-  { name: 'Harvey_specture', wins: 2, pts: 21, rank: 2 },
-  { name: 'Combattant C', wins: 1, pts: 25, rank: 3 },
-  { name: 'Combattant D', wins: 1, pts: 17, rank: 4 },
+    { name: "Combattant A", wins: 2, pts: 24, rank: 1 },
+    { name: "Combattant B", wins: 2, pts: 21, rank: 2 },
+    { name: "Combattant C", wins: 1, pts: 25, rank: 3 },
+    { name: "Combattant D", wins: 1, pts: 17, rank: 4 },
 ];
 ---
 
 <Layout
-  title="Règlement officiel — Le Trône des Lames"
-  description="Règlement officiel du tournoi Le Trône des Lames : organisation, phase de poules, classement, qualification, phase finale, forfaits et validation des résultats."
+    title="Règlement officiel - Le Trône des Lames"
+    description="Règlement officiel du tournoi Le Trône des Lames : organisation, phase de poules, classement, qualification, phase finale, forfaits et validation des résultats."
 >
-  <section class="border-b border-gold/15 bg-ink-2/40">
-    <div class="container-tdl py-14">
-      <p class="label-caps">Document officiel</p>
-      <h1 class="mt-3 font-display text-3xl font-bold tracking-[0.06em] text-parchment sm:text-5xl">
-        Règlement du tournoi
-      </h1>
-      <div class="rule-gold my-5 w-28"></div>
-      <p class="max-w-2xl leading-relaxed text-parchment-dim">
-        Le Trône des Lames est un tournoi de combat opposant seize combattants dans une
-        compétition organisée en deux phases : une phase de poules, suivie d’une phase finale
-        à élimination directe.
-      </p>
+    <section class="border-b border-gold/15 bg-ink-2/40">
+        <div class="container-tdl py-14">
+            <p class="label-caps">Document officiel</p>
+            <h1 class="mt-3 font-display text-3xl font-bold tracking-[0.06em] text-parchment sm:text-5xl">
+                Règlement du tournoi
+            </h1>
+            <div class="rule-gold my-5 w-28"></div>
+            <p class="max-w-2xl leading-relaxed text-parchment-dim">
+                Le Trône des Lames est un tournoi de combat opposant seize
+                combattants dans une compétition organisée en deux phases : une
+                phase de poules, suivie d’une phase finale à élimination
+                directe.
+            </p>
+        </div>
+    </section>
+
+    <div class="container-tdl grid gap-12 py-14 lg:grid-cols-[16rem_1fr] lg:gap-16">
+        <aside class="hidden lg:block">
+            <nav class="sticky top-24" aria-label="Sommaire du règlement">
+                <p class="label-caps mb-4">Sommaire</p>
+                <ol class="space-y-1.5 border-l border-gold/20">
+                    {sections.map((s) => (
+                        <li>
+                            <a
+                                href={`#${s.id}`}
+                                class="block border-l-2 border-transparent py-1 pl-3 text-xs leading-snug text-parchment-dim transition-colors hover:border-gold hover:text-parchment"
+                            >
+                                <span class="mr-1.5 font-display text-gold/70">
+                                    {s.n}.
+                                </span>
+                                {s.t}
+                            </a>
+                        </li>
+                    ))}
+                </ol>
+            </nav>
+        </aside>
+
+        <article class="max-w-3xl space-y-14">
+            <section id="organisation" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        01
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Organisation générale
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>
+                        Le tournoi réunit{" "}
+                        <strong class="text-parchment">16 combattants</strong>,
+                        répartis en
+                        <strong class="text-parchment">
+                            4 groupes de 4 combattants
+                        </strong>
+                        .
+                    </p>
+                    <p>Le tournoi se déroule en deux phases :</p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Phase de poules :
+                                </strong>{" "}
+                                chaque combattant affronte les trois autres
+                                combattants de son groupe.
+                            </span>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Phase finale :
+                                </strong>{" "}
+                                les deux meilleurs combattants de chaque groupe
+                                se qualifient pour les quarts de finale.
+                            </span>
+                        </li>
+                    </ul>
+                    <p>Chaque duel désigne obligatoirement un vainqueur.</p>
+                    <p>
+                        Les combats et l’attribution des points sont gérés par
+                        un site externe. Les résultats obtenus sur ce site
+                        servent de référence pour établir les classements du
+                        Trône des Lames.
+                    </p>
+                </div>
+            </section>
+
+            <section id="poules" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        02
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Phase de poules
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>
+                        Les seize combattants sont répartis en quatre groupes :
+                    </p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            Groupe A : 4 combattants
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            Groupe B : 4 combattants
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            Groupe C : 4 combattants
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            Groupe D : 4 combattants
+                        </li>
+                    </ul>
+                    <p>
+                        Chaque combattant affronte une seule fois chacun des
+                        trois autres membres de son groupe. Cela représente{" "}
+                        <strong class="text-parchment">
+                            6 duels par groupe
+                        </strong>{" "}
+                        et
+                        <strong class="text-parchment">
+                            24 duels au total
+                        </strong>{" "}
+                        pour la phase de poules.
+                    </p>
+                    <h3 class="pt-2 font-display text-base tracking-[0.08em] text-parchment">
+                        Objectif
+                    </h3>
+                    <p>
+                        L’objectif de chaque combattant est de remporter un
+                        maximum de victoires afin de terminer parmi les deux
+                        premiers de son groupe. Chaque victoire compte pour une
+                        victoire au classement. Les points obtenus pendant les
+                        combats sont également enregistrés afin de départager
+                        les combattants en cas d’égalité.
+                    </p>
+                </div>
+            </section>
+
+            <section id="points" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        03
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Attribution et comptabilisation des points
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>
+                        Les points sont attribués pendant les combats par le
+                        site externe de gestion des affrontements. Le site du
+                        Trône des Lames ne calcule pas les points des actions
+                        réalisées pendant un combat. Il conserve les résultats
+                        officiels nécessaires au classement :
+                    </p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le vainqueur de chaque duel ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le nombre de victoires de chaque combattant ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            les points obtenus lors de chaque combat ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le total des points cumulés pendant la phase de
+                            poules.
+                        </li>
+                    </ul>
+                    <p>
+                        Les points servent à départager les combattants ayant
+                        remporté le même nombre de duels.
+                    </p>
+                </div>
+            </section>
+
+            <section id="classement" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        04
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Classement des groupes
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>
+                        Le classement de chaque groupe est établi selon les
+                        critères suivants, appliqués dans cet ordre :
+                    </p>
+
+                    <div class="space-y-3">
+                        <div class="border-l-2 border-gold/50 pl-4">
+                            <p class="font-semibold text-parchment">
+                                1. Nombre de victoires
+                            </p>
+                            <p class="mt-1 text-sm">
+                                Le combattant ayant remporté le plus de duels
+                                est classé devant celui qui en a remporté moins.
+                            </p>
+                        </div>
+                        <div class="border-l-2 border-gold/50 pl-4">
+                            <p class="font-semibold text-parchment">
+                                2. Total des points de combat
+                            </p>
+                            <p class="mt-1 text-sm">
+                                En cas d’égalité de victoires, le combattant
+                                ayant obtenu le plus grand nombre de points
+                                cumulés pendant la phase de poules est classé
+                                devant son adversaire.
+                            </p>
+                        </div>
+                        <div class="border-l-2 border-gold/50 pl-4">
+                            <p class="font-semibold text-parchment">
+                                3. Confrontation directe
+                            </p>
+                            <p class="mt-1 text-sm">
+                                Si deux combattants présentent exactement le
+                                même nombre de victoires et le même total de
+                                points, l’avantage est accordé au combattant
+                                ayant remporté leur confrontation directe.
+                            </p>
+                        </div>
+                    </div>
+
+                    <p class="text-sm">
+                        La confrontation directe ne départage que deux
+                        combattants à égalité. Si trois combattants ou plus
+                        présentent le même nombre de victoires et le même total
+                        de points, l’ordre alphabétique s’applique.
+                    </p>
+
+                    <h3 class="pt-2 font-display text-base tracking-[0.08em] text-parchment">
+                        Exemple de classement
+                    </h3>
+                    <div class="overflow-x-auto border border-gold/20">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-ink-3">
+                                <tr class="border-b border-gold/20 text-[0.625rem] uppercase tracking-[0.14em] text-gold">
+                                    <th
+                                        scope="col"
+                                        class="px-4 py-3 font-medium"
+                                    >
+                                        Combattant
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="px-4 py-3 text-right font-medium"
+                                    >
+                                        Victoires
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="px-4 py-3 text-right font-medium"
+                                    >
+                                        Points cumulés
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        class="px-4 py-3 text-right font-medium"
+                                    >
+                                        Classement
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {example.map((r) => (
+                                    <tr class="border-b border-gold/10 last:border-0">
+                                        <td class="px-4 py-2.5 text-parchment">
+                                            {r.name}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums text-parchment-dim">
+                                            {r.wins}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums text-parchment-dim">
+                                            {r.pts}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums text-gold">
+                                            {r.rank}
+                                            {r.rank === 1 ? "er" : "e"}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-sm">
+                        Combattant A et Combattant B ont remporté deux duels
+                        chacun. Combattant A termine premier grâce à son total
+                        de points supérieur.
+                    </p>
+                </div>
+            </section>
+
+            <section id="qualification" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        05
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Qualification pour la phase finale
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>
+                        À l’issue de la phase de poules,{" "}
+                        <strong class="text-parchment">
+                            les deux premiers combattants de chaque groupe sont
+                            qualifiés
+                        </strong>
+                        . La phase finale rassemble donc huit combattants :
+                    </p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le 1er et le 2e du groupe A ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le 1er et le 2e du groupe B ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le 1er et le 2e du groupe C ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le 1er et le 2e du groupe D.
+                        </li>
+                    </ul>
+                    <p>
+                        Deux victoires ne garantissent pas automatiquement la
+                        qualification. En cas d’égalité entre plusieurs
+                        combattants, le classement est déterminé selon les
+                        critères définis dans le présent règlement.
+                    </p>
+                </div>
+            </section>
+
+            <section id="finale" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        06
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Phase finale à élimination directe
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-5 leading-relaxed text-parchment-dim">
+                    <p>
+                        La phase finale comprend trois tours : les quarts de
+                        finale, les demi-finales et la grande finale.
+                    </p>
+                    <p>
+                        À partir de cette phase, chaque duel est éliminatoire :
+                        le vainqueur poursuit la compétition et le perdant est
+                        éliminé.
+                    </p>
+
+                    <h3 class="pt-1 font-display text-base tracking-[0.08em] text-parchment">
+                        6.1. Quarts de finale
+                    </h3>
+                    <p>
+                        Les premiers de groupe affrontent les deuxièmes d’autres
+                        groupes.
+                    </p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Quart de finale 1 :
+                                </strong>{" "}
+                                1er du groupe A contre 2e du groupe B.
+                            </span>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Quart de finale 2 :
+                                </strong>{" "}
+                                1er du groupe B contre 2e du groupe A.
+                            </span>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Quart de finale 3 :
+                                </strong>{" "}
+                                1er du groupe C contre 2e du groupe D.
+                            </span>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Quart de finale 4 :
+                                </strong>{" "}
+                                1er du groupe D contre 2e du groupe C.
+                            </span>
+                        </li>
+                    </ul>
+                    <p>
+                        Les combattants issus d’un même groupe ne peuvent donc
+                        pas s’affronter en quarts de finale.
+                    </p>
+
+                    <h3 class="pt-1 font-display text-base tracking-[0.08em] text-parchment">
+                        6.2. Demi-finales
+                    </h3>
+                    <p>
+                        Les quatre vainqueurs des quarts de finale se qualifient
+                        pour les demi-finales.
+                    </p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Demi-finale 1 :
+                                </strong>{" "}
+                                vainqueur du quart de finale 1 contre vainqueur
+                                du quart de finale 3.
+                            </span>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            <span>
+                                <strong class="text-parchment">
+                                    Demi-finale 2 :
+                                </strong>{" "}
+                                vainqueur du quart de finale 2 contre vainqueur
+                                du quart de finale 4.
+                            </span>
+                        </li>
+                    </ul>
+                    <p>
+                        Les deux vainqueurs des demi-finales accèdent à la
+                        grande finale.
+                    </p>
+
+                    <h3 class="pt-1 font-display text-base tracking-[0.08em] text-parchment">
+                        6.3. Grande finale
+                    </h3>
+                    <p>
+                        Les deux derniers combattants s’affrontent lors de
+                        l’ultime duel du tournoi. Le vainqueur est proclamé{" "}
+                        <strong class="text-gold">
+                            Champion du Trône des Lames
+                        </strong>{" "}
+                        et remporte le titre suprême de cette édition.
+                    </p>
+                </div>
+            </section>
+
+            <section id="forfait" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        07
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Absence et abandon
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>
+                        Chaque duel doit obligatoirement désigner un vainqueur.
+                        Aucun match nul n’est autorisé. En cas d’absence ou
+                        d’abandon d’un combattant, celui-ci est déclaré perdant
+                        du duel. Son adversaire est déclaré vainqueur par
+                        forfait.
+                    </p>
+                    <p>
+                        Le vainqueur reçoit des points selon le numéro du combat
+                        concerné dans sa phase de poules.
+                    </p>
+
+                    <div class="space-y-4">
+                        <div class="card-dark px-5 py-4">
+                            <p class="font-semibold text-parchment">
+                                7.1. Forfait au premier combat
+                            </p>
+                            <p class="mt-1 text-sm">
+                                Si le forfait survient lors du premier combat du
+                                vainqueur, celui-ci reçoit{" "}
+                                <strong class="text-gold">18 points</strong>.
+                            </p>
+                        </div>
+                        <div class="card-dark px-5 py-4">
+                            <p class="font-semibold text-parchment">
+                                7.2. Forfait au deuxième combat
+                            </p>
+                            <p class="mt-1 text-sm">
+                                Si le forfait survient lors du deuxième combat
+                                du vainqueur, celui-ci reçoit un nombre de
+                                points égal à ceux obtenus lors de son premier
+                                combat.
+                            </p>
+                            <p class="mt-2 text-sm">
+                                Si son premier combat a été perdu par forfait,
+                                le combattant n’y a obtenu aucun point : le
+                                forfait suivant ne lui en rapporte donc aucun.
+                            </p>
+                            <p class="mt-2 text-sm text-parchment-dim/80">
+                                <em>
+                                    Exemple : 22 points au premier combat → 22
+                                    points attribués pour le forfait au deuxième
+                                    combat.
+                                </em>
+                            </p>
+                        </div>
+                        <div class="card-dark px-5 py-4">
+                            <p class="font-semibold text-parchment">
+                                7.3. Forfait au troisième combat
+                            </p>
+                            <p class="mt-1 text-sm">
+                                Si le forfait survient lors du troisième combat
+                                du vainqueur, celui-ci reçoit la moyenne des
+                                points obtenus lors de ses deux premiers
+                                combats.
+                            </p>
+                            <p class="mt-2 text-sm">
+                                <strong class="text-parchment">
+                                    Points attribués = (points du combat 1 +
+                                    points du combat 2) ÷ 2
+                                </strong>
+                            </p>
+                            <p class="mt-1 text-sm">
+                                Les décimales sont conservées lorsque le
+                                résultat n’est pas un nombre entier.
+                            </p>
+                            <p class="mt-2 text-sm text-parchment-dim/80">
+                                <em>
+                                    Exemple : premier combat 19 points, deuxième
+                                    combat 16 points → (19 + 16) ÷ 2 ={" "}
+                                    <strong class="text-gold">
+                                        17,5 points
+                                    </strong>
+                                    .
+                                </em>
+                            </p>
+                        </div>
+                        <div class="card-dark px-5 py-4">
+                            <p class="font-semibold text-parchment">
+                                7.4. Comptabilisation des forfaits
+                            </p>
+                            <ul class="mt-2 space-y-2 text-sm">
+                                <li class="flex gap-3">
+                                    <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                                    Les victoires obtenues par forfait sont
+                                    comptabilisées comme des victoires normales
+                                    dans le classement.
+                                </li>
+                                <li class="flex gap-3">
+                                    <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                                    Les points attribués par forfait sont
+                                    ajoutés au total des points du vainqueur.
+                                </li>
+                                <li class="flex gap-3">
+                                    <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                                    Le combattant absent ou ayant abandonné est
+                                    déclaré perdant et ne reçoit aucun point
+                                    pour le duel concerné.
+                                </li>
+                                <li class="flex gap-3">
+                                    <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                                    En phase finale, le forfait donne une
+                                    victoire par défaut, sans modifier le
+                                    classement des poules déjà terminé.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="validation" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        08
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Validation des résultats
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>
+                        Le site externe de gestion des combats constitue la
+                        référence officielle pour les résultats et les points
+                        générés pendant les affrontements. L’organisation du
+                        Trône des Lames est chargée de reporter et de valider
+                        les résultats sur le site du tournoi.
+                    </p>
+                    <p>
+                        Pour chaque duel, les informations suivantes doivent
+                        être enregistrées :
+                    </p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            les deux combattants concernés ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le vainqueur du duel ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            le perdant du duel ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            les points obtenus par chaque combattant, le cas
+                            échéant ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            la nature du résultat : combat normal ou victoire
+                            par forfait.
+                        </li>
+                    </ul>
+                    <p>
+                        Après validation, le classement du groupe doit être
+                        actualisé en fonction des résultats enregistrés. Toute
+                        contestation doit être signalée à l’organisation avant
+                        la validation définitive du classement.
+                    </p>
+                </div>
+            </section>
+
+            <section id="bilan" class="scroll-mt-24">
+                <div class="flex items-baseline gap-4">
+                    <span class="font-display text-4xl font-black text-gold/25">
+                        09
+                    </span>
+                    <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">
+                        Bilan de la compétition
+                    </h2>
+                </div>
+                <div class="rule-gold my-5 w-20"></div>
+                <div class="space-y-4 leading-relaxed text-parchment-dim">
+                    <p>Le tournoi comprend :</p>
+                    <ul class="space-y-2 pl-1">
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            16 combattants ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            4 groupes de 4 combattants ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            24 duels pendant la phase de poules ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            8 combattants qualifiés pour la phase finale ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            4 quarts de finale ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            2 demi-finales ;
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="mt-2 h-1 w-1 flex-none bg-gold"></span>
+                            1 grande finale.
+                        </li>
+                    </ul>
+                    <p class="border-l-2 border-gold pl-4">
+                        <strong class="text-parchment">Total : 31 duels</strong>
+                        , hors éventuel combat pour la troisième place ou duel
+                        supplémentaire de départage.
+                    </p>
+                    <p>
+                        À l’issue de la compétition, un seul combattant sera
+                        couronné
+                        <strong class="text-gold">
+                            Champion du Trône des Lames
+                        </strong>
+                        .
+                    </p>
+                </div>
+            </section>
+        </article>
     </div>
-  </section>
-
-  <div class="container-tdl grid gap-12 py-14 lg:grid-cols-[16rem_1fr] lg:gap-16">
-    <aside class="hidden lg:block">
-      <nav class="sticky top-24" aria-label="Sommaire du règlement">
-        <p class="label-caps mb-4">Sommaire</p>
-        <ol class="space-y-1.5 border-l border-gold/20">
-          {sections.map((s) => (
-            <li>
-              <a
-                href={`#${s.id}`}
-                class="block border-l-2 border-transparent py-1 pl-3 text-xs leading-snug text-parchment-dim transition-colors hover:border-gold hover:text-parchment"
-              >
-                <span class="mr-1.5 font-display text-gold/70">{s.n}.</span>{s.t}
-              </a>
-            </li>
-          ))}
-        </ol>
-      </nav>
-    </aside>
-
-    <article class="prose-tdl max-w-3xl space-y-14">
-      <section id="organisation" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">01</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Organisation générale</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>
-            Le tournoi réunit <strong class="text-parchment">16 combattants</strong>, répartis en
-            <strong class="text-parchment">4 groupes de 4 combattants</strong>.
-          </p>
-          <p>Le tournoi se déroule en deux phases :</p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Phase de poules :</strong> chaque combattant affronte les trois autres combattants de son groupe.</span></li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Phase finale :</strong> les deux meilleurs combattants de chaque groupe se qualifient pour les quarts de finale.</span></li>
-          </ul>
-          <p>
-            Chaque duel désigne obligatoirement un vainqueur. <strong class="text-parchment">Aucun match nul n’est autorisé.</strong>
-          </p>
-          <p>
-            Les combats et l’attribution des points sont gérés par un site externe. Les résultats
-            obtenus sur ce site servent de référence pour établir les classements du Trône des Lames.
-          </p>
-        </div>
-      </section>
-
-      <section id="poules" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">02</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Phase de poules</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>Les seize combattants sont répartis en quatre groupes :</p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>Groupe A : 4 combattants</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>Groupe B : 4 combattants</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>Groupe C : 4 combattants</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>Groupe D : 4 combattants</li>
-          </ul>
-          <p>
-            Chaque combattant affronte une seule fois chacun des trois autres membres de son groupe.
-            Cela représente <strong class="text-parchment">6 duels par groupe</strong> et
-            <strong class="text-parchment">24 duels au total</strong> pour la phase de poules.
-          </p>
-          <h3 class="pt-2 font-display text-base tracking-[0.08em] text-parchment">Objectif</h3>
-          <p>
-            L’objectif de chaque combattant est de remporter un maximum de victoires afin de terminer
-            parmi les deux premiers de son groupe. Chaque victoire compte pour une victoire au classement.
-            Les points obtenus pendant les combats sont également enregistrés afin de départager les
-            combattants en cas d’égalité.
-          </p>
-        </div>
-      </section>
-
-      <section id="points" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">03</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Attribution et comptabilisation des points</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>
-            Les points sont attribués pendant les combats par le site externe de gestion des affrontements.
-            Le site du Trône des Lames ne calcule pas les points des actions réalisées pendant un combat.
-            Il conserve les résultats officiels nécessaires au classement :
-          </p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le vainqueur de chaque duel ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le nombre de victoires de chaque combattant ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>les points obtenus lors de chaque combat ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le total des points cumulés pendant la phase de poules.</li>
-          </ul>
-          <p>Les points servent à départager les combattants ayant remporté le même nombre de duels.</p>
-        </div>
-      </section>
-
-      <section id="classement" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">04</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Classement des groupes</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>Le classement de chaque groupe est établi selon les critères suivants, appliqués dans cet ordre :</p>
-
-          <div class="space-y-3">
-            <div class="border-l-2 border-gold/50 pl-4">
-              <p class="font-semibold text-parchment">1. Nombre de victoires</p>
-              <p class="mt-1 text-sm">
-                Le combattant ayant remporté le plus de duels est classé devant celui qui en a remporté moins.
-              </p>
-            </div>
-            <div class="border-l-2 border-gold/50 pl-4">
-              <p class="font-semibold text-parchment">2. Total des points de combat</p>
-              <p class="mt-1 text-sm">
-                En cas d’égalité de victoires, le combattant ayant obtenu le plus grand nombre de points
-                cumulés pendant la phase de poules est classé devant son adversaire.
-              </p>
-            </div>
-            <div class="border-l-2 border-gold/50 pl-4">
-              <p class="font-semibold text-parchment">3. Confrontation directe</p>
-              <p class="mt-1 text-sm">
-                Si deux combattants présentent exactement le même nombre de victoires et le même total de
-                points, l’avantage est accordé au combattant ayant remporté leur confrontation directe.
-                Si plusieurs combattants restent à égalité et que la confrontation directe ne permet pas
-                de les départager, l’organisation devra appliquer un critère complémentaire défini avant
-                le début du tournoi.
-              </p>
-            </div>
-          </div>
-
-          <h3 class="pt-2 font-display text-base tracking-[0.08em] text-parchment">Exemple de classement</h3>
-          <div class="overflow-x-auto border border-gold/20">
-            <table class="w-full text-left text-sm">
-              <thead class="bg-ink-3">
-                <tr class="border-b border-gold/20 text-[0.625rem] uppercase tracking-[0.14em] text-gold">
-                  <th scope="col" class="px-4 py-3 font-medium">Combattant</th>
-                  <th scope="col" class="px-4 py-3 text-right font-medium">Victoires</th>
-                  <th scope="col" class="px-4 py-3 text-right font-medium">Points cumulés</th>
-                  <th scope="col" class="px-4 py-3 text-right font-medium">Classement</th>
-                </tr>
-              </thead>
-              <tbody>
-                {example.map((r) => (
-                  <tr class="border-b border-gold/10 last:border-0">
-                    <td class="px-4 py-2.5 text-parchment">{r.name}</td>
-                    <td class="px-4 py-2.5 text-right tabular-nums text-parchment-dim">{r.wins}</td>
-                    <td class="px-4 py-2.5 text-right tabular-nums text-parchment-dim">{r.pts}</td>
-                    <td class="px-4 py-2.5 text-right tabular-nums text-gold">{r.rank}{r.rank === 1 ? 'er' : 'e'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p class="text-sm">
-            Sabdel et Harvey_specture ont remporté deux duels chacun. Sabdel termine premier grâce à son
-            total de points supérieur.
-          </p>
-        </div>
-      </section>
-
-      <section id="qualification" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">05</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Qualification pour la phase finale</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>
-            À l’issue de la phase de poules, <strong class="text-parchment">les deux premiers combattants
-            de chaque groupe sont qualifiés</strong>. La phase finale rassemble donc huit combattants :
-          </p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le 1er et le 2e du groupe A ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le 1er et le 2e du groupe B ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le 1er et le 2e du groupe C ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le 1er et le 2e du groupe D.</li>
-          </ul>
-          <p>
-            Deux victoires ne garantissent pas automatiquement la qualification. En cas d’égalité entre
-            plusieurs combattants, le classement est déterminé selon les critères définis dans le présent règlement.
-          </p>
-        </div>
-      </section>
-
-      <section id="finale" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">06</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Phase finale à élimination directe</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-5 leading-relaxed text-parchment-dim">
-          <p>La phase finale comprend trois tours : les quarts de finale, les demi-finales et la grande finale.</p>
-          <p>
-            À partir de cette phase, chaque duel est éliminatoire : le vainqueur poursuit la compétition
-            et le perdant est éliminé.
-          </p>
-
-          <h3 class="pt-1 font-display text-base tracking-[0.08em] text-parchment">6.1. Quarts de finale</h3>
-          <p>Les premiers de groupe affrontent les deuxièmes d’autres groupes.</p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Quart de finale 1 :</strong> 1er du groupe A contre 2e du groupe B.</span></li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Quart de finale 2 :</strong> 1er du groupe B contre 2e du groupe A.</span></li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Quart de finale 3 :</strong> 1er du groupe C contre 2e du groupe D.</span></li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Quart de finale 4 :</strong> 1er du groupe D contre 2e du groupe C.</span></li>
-          </ul>
-          <p>Les combattants issus d’un même groupe ne peuvent donc pas s’affronter en quarts de finale.</p>
-
-          <h3 class="pt-1 font-display text-base tracking-[0.08em] text-parchment">6.2. Demi-finales</h3>
-          <p>Les quatre vainqueurs des quarts de finale se qualifient pour les demi-finales.</p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Demi-finale 1 :</strong> vainqueur du quart de finale 1 contre vainqueur du quart de finale 3.</span></li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span><span><strong class="text-parchment">Demi-finale 2 :</strong> vainqueur du quart de finale 2 contre vainqueur du quart de finale 4.</span></li>
-          </ul>
-          <p>Les deux vainqueurs des demi-finales accèdent à la grande finale.</p>
-
-          <h3 class="pt-1 font-display text-base tracking-[0.08em] text-parchment">6.3. Grande finale</h3>
-          <p>
-            Les deux derniers combattants s’affrontent lors de l’ultime duel du tournoi. Le vainqueur est
-            proclamé <strong class="text-gold">Champion du Trône des Lames</strong> et remporte le titre
-            suprême de cette édition.
-          </p>
-        </div>
-      </section>
-
-      <section id="forfait" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">07</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Absence et abandon</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>
-            Chaque duel doit obligatoirement désigner un vainqueur. Aucun match nul n’est autorisé.
-            En cas d’absence ou d’abandon d’un combattant, celui-ci est déclaré perdant du duel. Son
-            adversaire est déclaré vainqueur par forfait.
-          </p>
-          <p>
-            Le vainqueur reçoit des points selon le numéro du combat concerné dans sa phase de poules.
-          </p>
-
-          <div class="space-y-4">
-            <div class="card-dark px-5 py-4">
-              <p class="font-semibold text-parchment">7.1. Forfait au premier combat</p>
-              <p class="mt-1 text-sm">Si le forfait survient lors du premier combat du vainqueur, celui-ci reçoit <strong class="text-gold">18 points</strong>.</p>
-            </div>
-            <div class="card-dark px-5 py-4">
-              <p class="font-semibold text-parchment">7.2. Forfait au deuxième combat</p>
-              <p class="mt-1 text-sm">
-                Si le forfait survient lors du deuxième combat du vainqueur, celui-ci reçoit un nombre de
-                points égal à ceux obtenus lors de son premier combat.
-              </p>
-              <p class="mt-2 text-sm text-parchment-dim/80"><em>Exemple : 22 points au premier combat → 22 points attribués pour le forfait au deuxième combat.</em></p>
-            </div>
-            <div class="card-dark px-5 py-4">
-              <p class="font-semibold text-parchment">7.3. Forfait au troisième combat</p>
-              <p class="mt-1 text-sm">
-                Si le forfait survient lors du troisième combat du vainqueur, celui-ci reçoit la moyenne des
-                points obtenus lors de ses deux premiers combats.
-              </p>
-              <p class="mt-2 text-sm">
-                <strong class="text-parchment">Points attribués = (points du combat 1 + points du combat 2) ÷ 2</strong>
-              </p>
-              <p class="mt-1 text-sm">Les décimales sont conservées lorsque le résultat n’est pas un nombre entier.</p>
-              <p class="mt-2 text-sm text-parchment-dim/80">
-                <em>Exemple : premier combat 19 points, deuxième combat 16 points → (19 + 16) ÷ 2 = <strong class="text-gold">17,5 points</strong>.</em>
-              </p>
-            </div>
-            <div class="card-dark px-5 py-4">
-              <p class="font-semibold text-parchment">7.4. Comptabilisation des forfaits</p>
-              <ul class="mt-2 space-y-2 text-sm">
-                <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>Les victoires obtenues par forfait sont comptabilisées comme des victoires normales dans le classement.</li>
-                <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>Les points attribués par forfait sont ajoutés au total des points du vainqueur.</li>
-                <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>Le combattant absent ou ayant abandonné est déclaré perdant et ne reçoit aucun point pour le duel concerné.</li>
-                <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>En phase finale, le forfait donne une victoire par défaut, sans modifier le classement des poules déjà terminé.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="validation" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">08</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Validation des résultats</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>
-            Le site externe de gestion des combats constitue la référence officielle pour les résultats
-            et les points générés pendant les affrontements. L’organisation du Trône des Lames est chargée
-            de reporter et de valider les résultats sur le site du tournoi.
-          </p>
-          <p>Pour chaque duel, les informations suivantes doivent être enregistrées :</p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>les deux combattants concernés ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le vainqueur du duel ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>le perdant du duel ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>les points obtenus par chaque combattant, le cas échéant ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>la nature du résultat : combat normal ou victoire par forfait.</li>
-          </ul>
-          <p>
-            Après validation, le classement du groupe doit être actualisé en fonction des résultats
-            enregistrés. Toute contestation doit être signalée à l’organisation avant la validation
-            définitive du classement.
-          </p>
-        </div>
-      </section>
-
-      <section id="bilan" class="scroll-mt-24">
-        <div class="flex items-baseline gap-4">
-          <span class="font-display text-4xl font-black text-gold/25">09</span>
-          <h2 class="font-display text-2xl tracking-[0.04em] text-parchment">Bilan de la compétition</h2>
-        </div>
-        <div class="rule-gold my-5 w-20"></div>
-        <div class="space-y-4 leading-relaxed text-parchment-dim">
-          <p>Le tournoi comprend :</p>
-          <ul class="space-y-2 pl-1">
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>16 combattants ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>4 groupes de 4 combattants ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>24 duels pendant la phase de poules ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>8 combattants qualifiés pour la phase finale ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>4 quarts de finale ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>2 demi-finales ;</li>
-            <li class="flex gap-3"><span class="mt-2 h-1 w-1 flex-none bg-gold"></span>1 grande finale.</li>
-          </ul>
-          <p class="border-l-2 border-gold pl-4">
-            <strong class="text-parchment">Total : 31 duels</strong>, hors éventuel combat pour la troisième
-            place ou duel supplémentaire de départage.
-          </p>
-          <p>
-            À l’issue de la compétition, un seul combattant sera couronné
-            <strong class="text-gold">Champion du Trône des Lames</strong>.
-          </p>
-        </div>
-      </section>
-    </article>
-  </div>
 </Layout>

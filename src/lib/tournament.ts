@@ -42,6 +42,8 @@ function pointsOf(m: Match, fighterId: number, eff: Map<number, Eff>): number | 
 /**
  * Forfeit points for the winner: 18 on their 1st bout, the points of their
  * 1st bout on the 2nd, the average of the first two on the 3rd.
+ * "The points of their 1st bout" is read literally: a fighter who lost their
+ * 1st bout by forfeit scored 0 there, so a later forfeit win repeats 0.
  * Requires earlier rounds to be resolved first (we iterate by slot).
  */
 function forfeitPoints(
@@ -124,11 +126,31 @@ export function computeStandings(fighters: Fighter[], matches: Match[]): Record<
       return m.winner_id === x.fighterId ? -1 : 1;
     };
 
+    // Direct confrontation only breaks a tie between exactly two fighters:
+    // with three or more, the pairwise comparison is not transitive (a cycle
+    // would order fighters by registration order), so the alphabetical rule
+    // applies instead.
+    const tied = new Map<string, Standing[]>();
+    for (const r of rows) {
+      const key = `${r.wins}|${r.points}`;
+      const list = tied.get(key);
+      if (list) list.push(r);
+      else tied.set(key, [r]);
+    }
+    const advantage = new Map<string, number>();
+    for (const list of tied.values()) {
+      if (list.length !== 2) continue;
+      const [x, y] = list;
+      const d = h2h(x, y);
+      advantage.set(`${x.fighterId}|${y.fighterId}`, d);
+      advantage.set(`${y.fighterId}|${x.fighterId}`, -d);
+    }
+
     rows.sort(
       (x, y) =>
         y.wins - x.wins ||
         y.points - x.points ||
-        h2h(x, y) ||
+        (advantage.get(`${x.fighterId}|${y.fighterId}`) ?? 0) ||
         x.name.localeCompare(y.name, 'fr'),
     );
 
@@ -180,9 +202,10 @@ export function bracketSeeds(standings: Record<string, Standing[]>): [number, nu
 export function statusOf(matches: Match[], hasBracket: boolean): 'setup' | 'groups' | 'bracket' | 'done' {
   const final = matches.find((m) => m.phase === 'final');
   if (final?.played === 1) return 'done';
+  // The draw only happens once every group duel is played, so a complete group
+  // stage without a bracket is still the group stage.
   if (hasBracket) return 'bracket';
   const groups = matches.filter((m) => m.phase === 'group');
   if (groups.length === 0) return 'setup';
-  if (groups.every((m) => m.played === 1)) return 'bracket';
   return 'groups';
 }

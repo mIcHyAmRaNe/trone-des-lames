@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { computeStandings, bracketSeeds, statusOf, roundOfSlot } from '../src/lib/tournament.ts';
+import { formatPoints, parsePoints } from '../src/lib/format.ts';
 import type { Fighter, Match } from '../src/lib/db.ts';
 
 const F = (id: number, name: string, grp: string): Fighter => ({ id, name, grp, seed: id });
@@ -171,6 +172,82 @@ const M = (id: number, slot: number, a: number, b: number, w: number, aS: number
 {
   assert.equal(statusOf([], false), 'setup');
   console.log('✓ status');
+}
+
+// --- 10. Direct confrontation decides a tie between exactly two fighters
+{
+  // Zoe and Alice both finish 2 wins / 50 points; Zoe won their duel and would
+  // be second on alphabetical order alone.
+  const fighters = [F(1, 'Zoe', 'A'), F(2, 'Alice', 'A'), F(3, 'Mid', 'A'), F(4, 'Dan', 'A')];
+  const matches: Match[] = [
+    { ...M(1, 1, 1, 2, 1, 20, 10), grp: 'A' }, // Zoe beats Alice
+    { ...M(2, 2, 3, 4, 3, 20, 10), grp: 'A' },
+    { ...M(3, 3, 1, 3, 1, 20, 10), grp: 'A' },
+    { ...M(4, 4, 2, 4, 2, 20, 10), grp: 'A' },
+    { ...M(5, 5, 1, 4, 4, 10, 20), grp: 'A' }, // Dan beats Zoe
+    { ...M(6, 6, 2, 3, 2, 20, 10), grp: 'A' },
+  ];
+  const s = computeStandings(fighters, matches).A;
+  assert.equal(s[0].name, 'Zoe');
+  assert.equal(s[0].points, 50);
+  assert.equal(s[1].name, 'Alice');
+  assert.equal(s[1].points, 50);
+  console.log('✓ head-to-head breaks a two-fighter tie');
+}
+
+// --- 11. Three-way tie: alphabetical, whatever the registration order
+{
+  // Alice beats Bob, Bob beats Cara, Cara beats Alice, all beat Dan: identical
+  // wins and points. A pairwise comparison is a cycle here and must not decide.
+  const fighters = [F(1, 'Alice', 'A'), F(2, 'Bob', 'A'), F(3, 'Cara', 'A'), F(4, 'Dan', 'A')];
+  const matches: Match[] = [
+    { ...M(1, 1, 1, 2, 1, 20, 10), grp: 'A' },
+    { ...M(2, 2, 3, 4, 3, 20, 10), grp: 'A' },
+    { ...M(3, 3, 1, 3, 3, 10, 20), grp: 'A' },
+    { ...M(4, 4, 2, 4, 2, 20, 10), grp: 'A' },
+    { ...M(5, 5, 1, 4, 1, 20, 10), grp: 'A' },
+    { ...M(6, 6, 2, 3, 2, 20, 10), grp: 'A' },
+  ];
+  const ordered = computeStandings(fighters, matches).A.map((r) => r.name);
+  const reordered = computeStandings([fighters[2], fighters[0], fighters[1], fighters[3]], matches)
+    .A.map((r) => r.name);
+  assert.deepEqual(ordered, ['Alice', 'Bob', 'Cara', 'Dan']);
+  assert.deepEqual(reordered, ordered);
+  console.log('✓ three-way tie is order-independent');
+}
+
+// --- 12. A forfeit win after a first-bout forfeit loss repeats 0 points
+{
+  const fighters = [F(1, 'W', 'A'), F(2, 'X', 'A'), F(3, 'Y', 'A'), F(4, 'Z', 'A')];
+  const matches: Match[] = [
+    { ...M(1, 1, 1, 2, 2, 0, 0, 1), grp: 'A' }, // W forfeits bout 1: X wins, W scores 0
+    { ...M(2, 2, 3, 4, 3, 20, 10), grp: 'A' },
+    { ...M(3, 3, 1, 3, 1, 0, 0, 1), grp: 'A' }, // Y forfeits: W's 2nd bout repeats 0
+    { ...M(4, 4, 2, 4, 2, 20, 10), grp: 'A' },
+    { ...M(5, 5, 1, 4, 1, 20, 10), grp: 'A' },
+    { ...M(6, 6, 2, 3, 3, 20, 10), grp: 'A' },
+  ];
+  const w = computeStandings(fighters, matches).A.find((x) => x.name === 'W')!;
+  assert.equal(w.wins, 2);
+  assert.equal(w.points, 20); // 0 + 0 + 20
+  console.log('✓ forfeit after forfeit repeats 0');
+}
+
+// --- 13. Points are parsed and printed the same way on both sides
+{
+  assert.equal(parsePoints('17,5'), 17.5);
+  assert.equal(parsePoints('17.5'), 17.5);
+  assert.equal(parsePoints(18), 18);
+  assert.equal(parsePoints(''), null);
+  assert.equal(parsePoints('abc'), null);
+  assert.equal(parsePoints(1000), null);
+  assert.equal(parsePoints(-1), null);
+
+  assert.equal(formatPoints(63), '63');
+  assert.equal(formatPoints(17.5), '17,5');
+  assert.equal(formatPoints(17.65), '17,65');
+  assert.equal(formatPoints(null), '—');
+  console.log('✓ point parsing and formatting');
 }
 
 console.log('\nAll tournament logic tests passed.');

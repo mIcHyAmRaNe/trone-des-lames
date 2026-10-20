@@ -8,6 +8,15 @@ astro dev --background
 
 Manage the background server with `astro dev stop`, `astro dev status`, and `astro dev logs`.
 
+## UI dependencies
+
+The admin score inputs (`src/components/admin/ScoreSelect.tsx`) use
+`react-select`: a creatable combobox for points and a plain select for the
+forfeiting fighter. The dependency is deliberate — it provides the themed,
+keyboard-navigable, clearable combobox in one control. Do not replace it with
+native `<input>`/`<select>` elements or remove the dependency as a
+"simplification".
+
 ## Documentation
 
 Full documentation: https://docs.astro.build

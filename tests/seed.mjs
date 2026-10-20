@@ -1,10 +1,18 @@
 /**
  * Seeds a fully simulated "Classique" edition: 16 fighters, group draw,
  * 24 group duels (one forfeit), bracket, and played quarter-finals.
- * Usage: node tests/seed.mjs [baseUrl]
+ * Usage: node tests/seed.mjs [baseUrl] [--allow-remote]
+ *
+ * WARNING: this wipes the database it talks to. It refuses any non-local host
+ * unless --allow-remote is passed.
  */
 const BASE = process.argv[2] ?? 'http://localhost:4321';
 const PASSWORD = process.env.ADMIN_PASSWORD ?? 'trone';
+
+if (!/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/.test(BASE) && !process.argv.includes('--allow-remote')) {
+  console.error(`Refusé : ${BASE} n'est pas un serveur local. Ajoutez --allow-remote pour forcer.`);
+  process.exit(1);
+}
 
 let cookie = '';
 
@@ -150,7 +158,7 @@ async function main() {
   const fin = state.matches.find((m) => m.phase === 'final');
   if (fin) console.log(`\nFinale : ${fin.a?.name ?? '?'} vs ${fin.b?.name ?? '?'}`);
 
-  console.log('\nPrêt : http://localhost:4321/tournoi');
+  console.log(`\nPrêt : ${BASE}/tournoi`);
 }
 
 main().catch((e) => {

@@ -14,11 +14,8 @@ export async function getTournamentState(slug = 'classique') {
   const matches = mr.rows as unknown as Match[];
 
   const standings = computeStandings(fighters, matches);
+  // Derived from the matches on every read — never stored, so a read never writes.
   const status = statusOf(matches, matches.some((m) => m.phase !== 'group'));
-
-  if (status !== edition.status) {
-    await d.execute({ sql: 'UPDATE editions SET status = ? WHERE id = ?', args: [status, edition.id] });
-  }
 
   const final = matches.find((m) => m.phase === 'final' && m.played === 1);
   const championFighter = final?.winner_id != null ? fighters.find((f) => f.id === final.winner_id) : undefined;

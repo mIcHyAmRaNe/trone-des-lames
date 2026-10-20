@@ -13,9 +13,7 @@ async function init() {
       `CREATE TABLE IF NOT EXISTS editions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         slug TEXT NOT NULL UNIQUE,
-        name TEXT NOT NULL,
-        format TEXT NOT NULL DEFAULT 'classique',
-        status TEXT NOT NULL DEFAULT 'setup'
+        name TEXT NOT NULL
       )`,
       `CREATE TABLE IF NOT EXISTS fighters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,20 +42,36 @@ async function init() {
     'write',
   );
 
+  // Two requests that both pass the "already drawn?" check cannot both insert:
+  // the second transaction hits this index and is rolled back. Kept out of the
+  // batch above so pre-existing duplicates cannot block the boot.
+  try {
+    await db.batch(
+      ['CREATE UNIQUE INDEX IF NOT EXISTS ux_matches_slot ON matches (edition_id, phase, slot)'],
+      'write',
+    );
+  } catch (e) {
+    console.error('[db] index unique non créé (doublons existants ?)', e);
+  }
+
   const existing = await db.execute({
     sql: 'SELECT id FROM editions WHERE slug = ?',
     args: ['classique'],
   });
   if (existing.rows.length === 0) {
     await db.execute({
-      sql: "INSERT INTO editions (slug, name, format, status) VALUES ('classique', 'Classique', 'classique', 'setup')",
+      sql: "INSERT INTO editions (slug, name) VALUES ('classique', 'Classique')",
       args: [],
     });
   }
 }
 
 export function getDb() {
-  ready ??= init();
+  ready ??= init().catch((e) => {
+    // Retry on the next request instead of serving a cached failure forever.
+    ready = null;
+    throw e;
+  });
   return ready.then(() => db);
 }
 
@@ -65,8 +79,6 @@ export type Edition = {
   id: number;
   slug: string;
   name: string;
-  format: string;
-  status: 'setup' | 'groups' | 'bracket' | 'done';
 };
 
 export type Fighter = {

@@ -1,9 +1,17 @@
 /**
  * End-to-end API smoke test against a running dev server.
- * Usage: node tests/e2e.mjs [baseUrl]
+ * Usage: node tests/e2e.mjs [baseUrl] [--allow-remote]
+ *
+ * WARNING: this wipes the database it talks to. It refuses any non-local host
+ * unless --allow-remote is passed.
  */
 const BASE = process.argv[2] ?? 'http://localhost:4321';
 const PASSWORD = process.env.ADMIN_PASSWORD ?? 'trone';
+
+if (!/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/.test(BASE) && !process.argv.includes('--allow-remote')) {
+  console.error(`Refusé : ${BASE} n'est pas un serveur local. Ajoutez --allow-remote pour forcer.`);
+  process.exit(1);
+}
 
 let cookie = '';
 let pass = 0;
@@ -216,6 +224,20 @@ check(
   JSON.stringify(qf.map((m) => [groupOf.get(m.a.id), groupOf.get(m.b.id)])),
 );
 
+// 11b. results are frozen once the bracket exists
+const someFighterId = r.body.fighters[0].id;
+r = await req('/api/admin/fighters', {
+  method: 'PATCH',
+  body: JSON.stringify({ id: someFighterId, name: 'Renommé' }),
+});
+check('renommage après le tirage refusé → 409', r.status === 409, `got ${r.status}`);
+
+r = await req('/api/admin/match', {
+  method: 'POST',
+  body: JSON.stringify({ id: gmA[0].id, aScore: 30, bScore: 5 }),
+});
+check('duel de poules figé après le tableau → 409', r.status === 409, `got ${r.status} ${JSON.stringify(r.body)}`);
+
 // 12. QFs feed the right SFs
 const qfBySlot = new Map(qf.map((m) => [m.slot, m]));
 r = await req('/api/admin/match', {
@@ -294,6 +316,39 @@ for (const page of ['/', '/tournoi', '/reglement', '/admin']) {
   check(`GET ${page} → 200`, res.status === 200, `got ${res.status}`);
   check(`${page} contient le titre`, html.includes('TRÔNE') || html.includes('Trône'), '');
 }
+
+// 18. a second draw in flight cannot duplicate the matches
+r = await req('/api/admin/session', { method: 'POST', body: JSON.stringify({ password: PASSWORD }) });
+check('re-connexion → 200', r.status === 200, `got ${r.status}`);
+
+await req('/api/admin/reset', { method: 'POST', body: JSON.stringify({ what: 'all' }) });
+for (const name of names) {
+  await req('/api/admin/fighters', { method: 'POST', body: JSON.stringify({ name }) });
+}
+const both = await Promise.all([
+  req('/api/admin/draw', { method: 'POST' }),
+  req('/api/admin/draw', { method: 'POST' }),
+]);
+r = await req('/api/tournament?slug=classique');
+const groupCount = r.body.matches.filter((m) => m.phase === 'group').length;
+check(
+  'double tirage concurrent → 24 duels',
+  groupCount === 24,
+  `got ${groupCount} (statuts ${both.map((x) => x.status).join(',')})`,
+);
+check('double tirage : une seule requête acceptée', both.filter((x) => x.status === 200).length === 1);
+await req('/api/admin/reset', { method: 'POST', body: JSON.stringify({ what: 'all' }) });
+
+// 19. repeated wrong passwords are throttled (own client IP, so the harmless
+// login above is not affected)
+for (let i = 0; i < 6; i++) {
+  r = await req('/api/admin/session', {
+    method: 'POST',
+    body: JSON.stringify({ password: `wrong${i}` }),
+    headers: { 'x-forwarded-for': '203.0.113.9' },
+  });
+}
+check('trop de tentatives → 429', r.status === 429, `got ${r.status}`);
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

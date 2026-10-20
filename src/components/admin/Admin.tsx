@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TournamentState } from '../../lib/state';
+import { parsePoints } from '../../lib/format';
+import { GROUPS } from '../../lib/tournament';
+import { ForfeitSelect, ScoreSelect } from './ScoreSelect';
 
 type Match = TournamentState['matches'][number];
 
@@ -13,15 +16,6 @@ async function api(path: string, init?: RequestInit) {
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) throw new Error(data?.error ?? 'Une erreur est survenue');
   return data;
-}
-
-const POINT_SUGGESTIONS = ['18', '19', '20', '21', '22', '23', '24', '25'];
-
-function parsePoints(raw: string): number | null {
-  const t = raw.trim().replace(',', '.');
-  if (!t) return null;
-  const n = Number(t);
-  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 type Draft = { a: string; b: string; forfeit: boolean; forfeitLoserId: number | null };
@@ -493,6 +487,7 @@ function Fighters({ state, run }: { state: TournamentState; run: Run }) {
 function DrawPanel({ state, run }: { state: TournamentState; run: Run }) {
   const hasDraw = state.matches.length > 0;
   const missing = 16 - state.fighters.length;
+  const [busy, setBusy] = useState(false);
 
   return (
     <Section title="Tirage au sort">
@@ -504,11 +499,14 @@ function DrawPanel({ state, run }: { state: TournamentState; run: Run }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <button
             type="button"
-            disabled={missing !== 0}
+            disabled={missing !== 0 || busy}
             className="btn-gold flex-none disabled:opacity-40"
             onClick={() => {
               if (!window.confirm('Tirer au sort les 4 groupes ? Cette action est définitive.')) return;
-              void run(() => api('/api/admin/draw', { method: 'POST' }), 'Groupes tirés au sort');
+              setBusy(true);
+              void run(() => api('/api/admin/draw', { method: 'POST' }), 'Groupes tirés au sort').finally(() =>
+                setBusy(false),
+              );
             }}
           >
             Tirer au sort les groupes
@@ -530,6 +528,8 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
   );
   const [drafts, setDrafts] = useState<Record<number, Draft>>({});
   const [busy, setBusy] = useState(false);
+  // Once the final bracket exists, group results are read-only (the API rejects edits with 409).
+  const locked = phase === 'group' && state.matches.some((m) => m.phase !== 'group');
 
   // Drop drafts for matches that no longer exist.
   useEffect(() => {
@@ -538,7 +538,6 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
       for (const m of matches) next[m.id] = prev[m.id] ?? draftOf(m);
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   const setOne = useCallback(
@@ -579,11 +578,14 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <button
               type="button"
-              disabled={!groupsDone}
+              disabled={!groupsDone || busy}
               className="btn-gold flex-none disabled:opacity-40"
               onClick={() => {
                 if (!window.confirm('Générer les quarts de finale à partir du classement ?')) return;
-                void run(() => api('/api/admin/bracket', { method: 'POST' }), 'Quarts de finale générés');
+                setBusy(true);
+                void run(() => api('/api/admin/bracket', { method: 'POST' }), 'Quarts de finale générés').finally(() =>
+                  setBusy(false),
+                );
               }}
             >
               Générer les quarts
@@ -607,7 +609,6 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
     { phase: 'sf', label: 'Demi-finales' },
     { phase: 'final', label: 'Grande finale' },
   ];
-  const groups = ['A', 'B', 'C', 'D'];
 
   return (
     <Section
@@ -617,7 +618,7 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
         <button
           type="button"
           onClick={saveAll}
-          disabled={busy || pending.length === 0}
+          disabled={busy || pending.length === 0 || locked}
           title={
             pending.length === 0
               ? 'Saisissez les points des duels à valider'
@@ -635,7 +636,13 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
     >
       {phase === 'group' ? (
         <div className="space-y-7">
-          {groups.map((g) => {
+          {locked && (
+            <p className="rounded border border-gold/20 bg-gold/[0.05] px-3 py-2 text-xs text-parchment-dim">
+              Le tableau final est généré : les résultats de poules ne peuvent plus être modifiés. Pour corriger un
+              résultat, utilisez « Effacer les résultats » dans la section Réinitialisation.
+            </p>
+          )}
+          {GROUPS.map((g) => {
             const rows = matches.filter((m) => m.grp === g).sort((a, b) => a.slot - b.slot);
             if (rows.length === 0) return null;
             return (
@@ -649,6 +656,7 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
                       draft={drafts[m.id] ?? draftOf(m)}
                       patch={setOne(m.id, m)}
                       run={run}
+                      locked={locked}
                     />
                   ))}
                 </div>
@@ -672,6 +680,7 @@ function DuelPanel({ state, run, phase }: { state: TournamentState; run: Run; ph
                       draft={drafts[m.id] ?? draftOf(m)}
                       patch={setOne(m.id, m)}
                       run={run}
+                      locked={locked}
                     />
                   ))}
                 </div>
@@ -698,11 +707,13 @@ function DuelEditor({
   draft,
   patch,
   run,
+  locked,
 }: {
   match: Match;
   draft: Draft;
   patch: (p: Partial<Draft>) => void;
   run: Run;
+  locked: boolean;
 }) {
   const { pa, pb, tie, ready, winner, dirty } = analyze(match, draft);
 
@@ -727,8 +738,13 @@ function DuelEditor({
             fighter={match.a}
             value={draft.a}
             onChange={(v) => patch({ a: v })}
-            disabled={draft.forfeit}
-            isWinner={!draft.forfeit && pa != null && pb != null && pa > pb}
+            disabled={draft.forfeit || locked}
+            forfeit={draft.forfeit}
+            isWinner={
+              draft.forfeit
+                ? draft.forfeitLoserId != null && draft.forfeitLoserId !== match.a?.id
+                : pa != null && pb != null && pa > pb
+            }
             isLoser={!draft.forfeit && pa != null && pb != null && pa < pb}
             isForfeitLoser={draft.forfeit && draft.forfeitLoserId === match.a?.id}
           />
@@ -736,19 +752,24 @@ function DuelEditor({
             fighter={match.b}
             value={draft.b}
             onChange={(v) => patch({ b: v })}
-            disabled={draft.forfeit}
-            isWinner={!draft.forfeit && pa != null && pb != null && pb > pa}
+            disabled={draft.forfeit || locked}
+            forfeit={draft.forfeit}
+            isWinner={
+              draft.forfeit
+                ? draft.forfeitLoserId != null && draft.forfeitLoserId !== match.b?.id
+                : pa != null && pb != null && pb > pa
+            }
             isLoser={!draft.forfeit && pa != null && pb != null && pb < pa}
             isForfeitLoser={draft.forfeit && draft.forfeitLoserId === match.b?.id}
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:flex-none">
-          <ForfeitControl match={match} draft={draft} patch={patch} />
+          {!locked && <ForfeitControl match={match} draft={draft} patch={patch} />}
           <button
             type="button"
             onClick={save}
-            disabled={!ready || (match.played && !dirty)}
+            disabled={locked || !ready || (match.played && !dirty)}
             className="btn-gold flex-none px-4 py-2 text-[0.625rem] disabled:opacity-35"
           >
             {match.played ? 'Mettre à jour' : 'Valider'}
@@ -788,6 +809,7 @@ function ScoreRow({
   value,
   onChange,
   disabled,
+  forfeit,
   isWinner,
   isLoser,
   isForfeitLoser,
@@ -796,6 +818,7 @@ function ScoreRow({
   value: string;
   onChange: (v: string) => void;
   disabled: boolean;
+  forfeit: boolean;
   isWinner: boolean;
   isLoser: boolean;
   isForfeitLoser: boolean;
@@ -825,35 +848,24 @@ function ScoreRow({
         )}
       </span>
 
-      <div className="flex flex-none items-center gap-1">
-        <input
-          type="number"
-          inputMode="decimal"
-          step="0.5"
-          min="0"
-          value={value}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-          aria-label={`Points de ${fighter?.name ?? 'ce combattant'}`}
-          placeholder="—"
-          className="w-16 rounded border border-gold/20 bg-ink px-1.5 py-1 text-right text-xs tabular-nums text-parchment outline-none transition-colors placeholder:text-parchment-dim/30 focus:border-gold disabled:opacity-30"
-        />
-        <select
-          aria-label={`Suggestions de points pour ${fighter?.name ?? 'ce combattant'}`}
-          value=""
-          disabled={disabled}
-          onChange={(e) => {
-            if (e.target.value) onChange(e.target.value);
-          }}
-          className="w-6 cursor-pointer rounded border border-gold/20 bg-ink px-0.5 py-1 text-[0.625rem] text-gold outline-none transition-colors focus:border-gold disabled:opacity-30"
-        >
-          <option value="">▾</option>
-          {POINT_SUGGESTIONS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
+      <div className="flex w-[6.75rem] flex-none justify-end">
+        {forfeit ? (
+          <span
+            className={`text-[0.625rem] uppercase tracking-[0.1em] ${
+              isForfeitLoser ? 'text-blood' : 'text-gold-light'
+            }`}
+          >
+            {isForfeitLoser ? 'Forfait' : 'Vainqueur'}
+          </span>
+        ) : (
+          <ScoreSelect
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            label={`Points de ${fighter?.name ?? 'ce combattant'}`}
+            isWinner={isWinner}
+          />
+        )}
       </div>
     </div>
   );
@@ -881,21 +893,13 @@ function ForfeitControl({
       </label>
 
       {draft.forfeit && (
-        <select
-          aria-label="Combattant déclarant forfait"
-          value={draft.forfeitLoserId ?? ''}
-          onChange={(e) => patch({ forfeitLoserId: e.target.value ? Number(e.target.value) : null })}
-          className="rounded border border-blood/50 bg-ink px-2 py-1.5 text-xs text-parchment outline-none focus:border-blood"
-        >
-          <option value="">Qui déclare forfait ?</option>
-          {[match.a, match.b]
+        <ForfeitSelect
+          options={[match.a, match.b]
             .filter((f) => f != null)
-            .map((f) => (
-              <option key={f!.id} value={f!.id}>
-                {f!.name}
-              </option>
-            ))}
-        </select>
+            .map((f) => ({ value: f!.id, label: f!.name }))}
+          value={draft.forfeitLoserId}
+          onChange={(id) => patch({ forfeitLoserId: id })}
+        />
       )}
     </div>
   );

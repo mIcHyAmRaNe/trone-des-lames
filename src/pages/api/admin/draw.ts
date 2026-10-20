@@ -31,22 +31,23 @@ export const POST: APIRoute = async ({ cookies }) => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
-  const statements = [];
-  for (let i = 0; i < shuffled.length; i++) {
+  const statements: { sql: string; args: (string | number)[] }[] = [];
+  const byGroup = new Map<string, Fighter[]>();
+  shuffled.forEach((f, i) => {
     const grp = GROUPS[Math.floor(i / 4)];
     const seed = (i % 4) + 1;
     statements.push({
       sql: 'UPDATE fighters SET grp = ?, seed = ? WHERE id = ?',
-      args: [grp, seed, shuffled[i].id],
+      args: [grp, seed, f.id],
     });
-  }
+    const members = byGroup.get(grp) ?? [];
+    members.push({ ...f, grp, seed });
+    byGroup.set(grp, members);
+  });
 
   let slot = 1;
   for (const g of GROUPS) {
-    const members = shuffled
-      .map((f, i) => ({ ...f, grp: GROUPS[Math.floor(i / 4)], seed: (i % 4) + 1 }))
-      .filter((f) => f.grp === g);
-    for (const [a, b] of groupPairings(members as Fighter[], g)) {
+    for (const [a, b] of groupPairings(byGroup.get(g) ?? [], g)) {
       statements.push({
         sql: 'INSERT INTO matches (edition_id, phase, slot, grp, a_id, b_id) VALUES (?, ?, ?, ?, ?, ?)',
         args: [edition.id, 'group', slot++, g, a, b],
@@ -54,11 +55,12 @@ export const POST: APIRoute = async ({ cookies }) => {
     }
   }
 
-  statements.push({
-    sql: "UPDATE editions SET status = 'groups' WHERE id = ?",
-    args: [edition.id],
-  });
-
-  await d.batch(statements, 'write');
+  try {
+    await d.batch(statements, 'write');
+  } catch (e) {
+    // The unique index on (edition_id, phase, slot) rejects a concurrent draw.
+    if (String(e).includes('UNIQUE')) return json({ error: 'Le tirage a déjà eu lieu' }, 409);
+    throw e;
+  }
   return json({ ok: true });
 };

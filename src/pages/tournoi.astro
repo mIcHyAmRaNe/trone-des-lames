@@ -8,6 +8,9 @@ import { getTournamentState } from '../lib/state';
 
 export const prerender = false;
 
+// Results change only when an admin saves one: serve a briefly cached copy.
+Astro.response.headers.set('Cache-Control', 's-maxage=20, stale-while-revalidate=60');
+
 const state = await getTournamentState();
 const { edition } = state;
 const champion = edition.champion;
