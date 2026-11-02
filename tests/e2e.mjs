@@ -310,12 +310,38 @@ r = await req('/api/admin/session');
 check('session révoquée → 401', r.status === 401, `got ${r.status}`);
 
 // 17. public pages
-for (const page of ['/', '/tournoi', '/reglement', '/admin']) {
+for (const page of ['/', '/tournoi', '/tournoi?onglet=reglement', '/admin']) {
   const res = await fetch(BASE + page);
   const html = await res.text();
   check(`GET ${page} → 200`, res.status === 200, `got ${res.status}`);
   check(`${page} contient le titre`, html.includes('TRÔNE') || html.includes('Trône'), '');
 }
+
+// 17b. the rules are a tab of /tournoi; /reglement redirects to it
+const rulesTab = await fetch(BASE + '/tournoi?onglet=reglement');
+const rulesHtml = await rulesTab.text();
+check(
+  'onglet Règlement : contenu du règlement',
+  rulesHtml.includes('Règlement du tournoi') && rulesHtml.includes('Organisation générale'),
+);
+check(
+  'onglet Règlement : sommaire ancré',
+  rulesHtml.includes('href="#organisation"') && rulesHtml.includes('id="bilan"'),
+);
+check(
+  'onglet Règlement : liens d’onglets',
+  rulesHtml.includes('href="/tournoi"') && rulesHtml.includes('href="/tournoi?onglet=reglement"'),
+);
+
+const tournoiHtml = await (await fetch(BASE + '/tournoi')).text();
+check('onglet Tournoi : pas de contenu règlement', !tournoiHtml.includes('Règlement du tournoi'));
+check('onglet Tournoi : barre d’onglets', tournoiHtml.includes('href="/tournoi?onglet=reglement"'));
+
+const legacy = await fetch(BASE + '/reglement');
+const legacyHtml = await legacy.text();
+check('GET /reglement → 200 après redirection', legacy.status === 200, `got ${legacy.status}`);
+check('/reglement redirige vers l’onglet Règlement', legacy.url.includes('onglet=reglement'), legacy.url);
+check('/reglement affiche le règlement', legacyHtml.includes('Règlement du tournoi'));
 
 // 18. a second draw in flight cannot duplicate the matches
 r = await req('/api/admin/session', { method: 'POST', body: JSON.stringify({ password: PASSWORD }) });
@@ -349,6 +375,81 @@ for (let i = 0; i < 6; i++) {
   });
 }
 check('trop de tentatives → 429', r.status === 429, `got ${r.status}`);
+
+// 20. agenda events (random IP per run so the in-memory rate limit never
+// blocks a repeated test run)
+const evHeaders = { 'x-forwarded-for': `203.0.113.${Math.floor(Math.random() * 200) + 10}` };
+const evBody = {
+  title: 'Tournoi du Lion',
+  rkName: 'Sabdel',
+  city: 'Riva',
+  county: 'Comté de Riva',
+  forumUrl: 'https://forum.renaissancekingdoms.com/viewtopic.php?t=42',
+  startsOn: '2030-05-01',
+  endsOn: '2030-05-03',
+};
+
+r = await req('/api/events');
+check('GET /api/events → 200', r.status === 200, `got ${r.status}`);
+check('GET /api/events → tableau', Array.isArray(r.body?.events));
+
+r = await req('/api/events', {
+  method: 'POST',
+  body: JSON.stringify({ ...evBody, endsOn: '2030-04-01' }),
+  headers: evHeaders,
+});
+check('fin avant début refusée → 400', r.status === 400, `got ${r.status} ${JSON.stringify(r.body)}`);
+
+r = await req('/api/events', {
+  method: 'POST',
+  body: JSON.stringify({ ...evBody, forumUrl: 'pas-une-url' }),
+  headers: evHeaders,
+});
+check('lien forum invalide → 400', r.status === 400, `got ${r.status} ${JSON.stringify(r.body)}`);
+
+r = await req('/api/events', { method: 'POST', body: JSON.stringify(evBody), headers: evHeaders });
+check('proposition valide → 201', r.status === 201, `got ${r.status} ${JSON.stringify(r.body)}`);
+
+r = await req('/api/events');
+check(
+  'proposition en attente absente du public',
+  !r.body?.events?.some((e) => e.title === 'Tournoi du Lion'),
+);
+
+r = await req('/api/events', {
+  method: 'POST',
+  body: JSON.stringify({ ...evBody, title: 'Piège bot', website: 'http://spam.example' }),
+  headers: evHeaders,
+});
+check('honeypot rempli → 201', r.status === 201, `got ${r.status}`);
+
+r = await req('/api/events');
+check('honeypot non inséré', !r.body?.events?.some((e) => e.title === 'Piège bot'));
+
+r = await req('/api/admin/events');
+const pendingEvent = r.body?.events?.find((e) => e.title === 'Tournoi du Lion');
+check(
+  'admin voit la proposition en attente',
+  r.status === 200 && !!pendingEvent,
+  JSON.stringify(r.body),
+);
+
+if (pendingEvent) {
+  r = await req('/api/admin/events', {
+    method: 'PATCH',
+    body: JSON.stringify({ id: pendingEvent.id, status: 'approved' }),
+  });
+  check('approbation → 200', r.status === 200, `got ${r.status} ${JSON.stringify(r.body)}`);
+
+  r = await req('/api/events');
+  check('événement approuvé visible du public', r.body?.events?.some((e) => e.id === pendingEvent.id));
+
+  r = await req(`/api/admin/events?id=${pendingEvent.id}`, { method: 'DELETE' });
+  check('suppression → 200', r.status === 200, `got ${r.status}`);
+
+  r = await req('/api/events');
+  check('événement supprimé absent du public', !r.body?.events?.some((e) => e.id === pendingEvent.id));
+}
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

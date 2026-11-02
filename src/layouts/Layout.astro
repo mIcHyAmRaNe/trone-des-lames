@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import ThemeToggle from '../components/ThemeToggle.astro';
 
 interface Props {
   title?: string;
@@ -12,25 +13,68 @@ const {
 } = Astro.props;
 
 const path = Astro.url.pathname;
+
+// Le cookie est écrit par le toggle : il permet de rendre le bon thème dès le
+// HTML (avant JS, avant le CSS), donc plus de page qui démarre en sombre.
+// Les pages prérendues n'ont pas de requête : le script client lit le cookie.
+let cookieTheme: string | undefined;
+if (!Astro.isPrerendered) {
+  try {
+    cookieTheme = Astro.cookies.get('tdl-theme')?.value;
+  } catch {}
+}
+const theme = cookieTheme === 'light' || cookieTheme === 'dark' ? cookieTheme : 'dark';
 const links = [
   { href: '/', label: 'Accueil' },
   { href: '/tournoi', label: 'Tournoi' },
-  { href: '/reglement', label: 'Règlement' },
+  { href: '/agenda', label: 'Agenda' },
+  { href: '/seneschal', label: 'Sénéchal' },
+  { href: '/garde-robe', label: 'Garde-robe' },
+  { href: '/catalogue', label: 'Catalogue' },
 ];
 ---
 
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme={theme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" id="tdl-theme-color" content={theme === 'light' ? '#e8dcc2' : '#0d0b0a'} />
+    <script is:inline>
+      // Pose le thème avant le premier rendu : évite tout flash.
+      // localStorage peut être bloqué (navigation privée, iframe) : un cookie
+      // sert de secours, sinon le choix ne survivrait pas au changement de page.
+      (() => {
+        const html = document.documentElement;
+        // Le serveur a déjà posé le thème depuis le cookie : on ne l'écrase
+        // que si localStorage contient un choix explicite plus récent.
+        let theme = html.dataset.theme === 'light' ? 'light' : 'dark';
+        let explicit = false;
+        try {
+          const stored = localStorage.getItem('tdl-theme');
+          if (stored === 'light' || stored === 'dark') {
+            theme = stored;
+            explicit = true;
+          }
+        } catch {}
+        if (!explicit) {
+          try {
+            const m = document.cookie.match(/(?:^|;\s*)tdl-theme=(light|dark)/);
+            if (m) theme = m[1];
+          } catch {}
+        }
+        html.dataset.theme = theme;
+        const meta = document.getElementById('tdl-theme-color');
+        if (meta) meta.setAttribute('content', theme === 'light' ? '#e8dcc2' : '#0d0b0a');
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#0d0b0a" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -40,7 +84,7 @@ const links = [
   </head>
   <body class="flex min-h-screen flex-col">
     <header class="sticky top-0 z-50 border-b border-gold/25 bg-ink/85 backdrop-blur-md">
-      <div class="container-tdl flex h-16 items-center justify-between gap-3">
+      <div class="container-tdl flex h-16 flex-wrap content-center items-center justify-between gap-x-2 gap-y-0 sm:gap-x-3 lg:flex-nowrap">
         <a href="/" class="group flex min-w-0 items-center gap-2.5" aria-label="Le Trône des Lames, accueil">
           <svg viewBox="0 0 24 24" class="h-6 w-6 flex-none text-gold transition-transform group-hover:rotate-6" fill="currentColor" aria-hidden="true">
             <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zm4.4 10h11.2l1-6.2L16 12 12 5.8 8 12 5.4 10.8l1 6.2zM6 20h12v2H6v-2z"/>
@@ -50,17 +94,19 @@ const links = [
           </span>
         </a>
 
-        <nav aria-label="Navigation principale" class="flex-none">
-          <ul class="flex items-center gap-0.5 sm:gap-2">
+        <ThemeToggle class="order-2 h-8 w-8 lg:order-3 lg:h-9 lg:w-9" />
+
+        <nav aria-label="Navigation principale" class="order-3 ml-auto w-full flex-none lg:order-2 lg:w-auto">
+          <ul class="flex items-center justify-between gap-0 sm:justify-center sm:gap-1 lg:justify-end lg:gap-2">
             {links.map((l) => {
               const active = l.href === '/' ? path === '/' : path.startsWith(l.href);
               return (
-                <li>
+                <li class:list={[l.href === '/' && 'hidden sm:block']}>
                   <a
                     href={l.href}
                     aria-current={active ? 'page' : undefined}
                     class:list={[
-                      'block px-1.5 py-2 text-[0.625rem] font-semibold uppercase tracking-[0.1em] transition-colors sm:px-3 sm:text-[0.6875rem] sm:tracking-[0.16em]',
+                      'block px-1 py-2 text-[0.5625rem] font-semibold uppercase tracking-[0.08em] transition-colors sm:px-2 sm:text-[0.625rem] sm:tracking-[0.12em] lg:px-3 lg:text-[0.6875rem] lg:tracking-[0.16em]',
                       active ? 'text-gold' : 'text-parchment-dim hover:text-parchment',
                     ]}
                   >
@@ -85,7 +131,7 @@ const links = [
         </svg>
         <p class="font-display text-xs tracking-[0.24em] text-gold">LE TRÔNE DES LAMES</p>
         <p class="max-w-md text-xs leading-relaxed text-parchment-dim">
-          Tournoi de combat Renaissance Kingdoms. Résultats officiels gérés par l’organisation.
+          Tournoi &amp; agenda des animations Renaissance Kingdoms. Résultats et animations validés par l’organisation.
         </p>
       </div>
     </footer>

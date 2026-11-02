@@ -1,0 +1,348 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { SENESCHAL_CATEGORIES } from "../../lib/seneschal";
+
+export const prerender = true;
+
+const ROMAN = ["I", "II", "III", "IV"];
+
+const categories = SENESCHAL_CATEGORIES.map((category) => ({
+  ...category,
+  total: category.tools.length,
+  available: category.tools.filter((tool) => tool.status === "available").length,
+}));
+
+const totalAvailable = categories.reduce((sum, category) => sum + category.available, 0);
+
+const rules = [
+  {
+    title: "Traite tous les 3 jours",
+    text: "1 bouteille × (1 + INT/20) par vache et par traite.",
+  },
+  {
+    title: "Seau 20 · Couteau 5",
+    text: "Utilisations avant casse, comptées dans le calcul.",
+  },
+  {
+    title: "2e champ −15 %",
+    text: "Rendement réduit sur le lait comme sur les carcasses.",
+  },
+  {
+    title: "Mortalité dès J10",
+    text: "Table officielle : 1 % à 10 jours, 35 % après 21.",
+  },
+];
+---
+
+<Layout
+  title="Le Sénéchal — Les comptes du domaine · Le Trône des Lames"
+  description="Les outils des champs et des échoppes de Renaissance Kingdoms : rendements, coûts et bénéfices calculés d’après les règles à jour."
+>
+  <section class="relative overflow-hidden border-b border-gold/15">
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_35%_0%,rgba(201,162,39,0.13),transparent_72%)]"
+      aria-hidden="true"
+    >
+    </div>
+    <div
+      class="pointer-events-none absolute inset-0 opacity-[0.04]"
+      aria-hidden="true"
+      style="background-image: repeating-linear-gradient(90deg, var(--color-parchment) 0 1px, transparent 1px 92px)"
+    >
+    </div>
+
+    <div class="container-tdl relative py-14 sm:py-20">
+      <p class="label-caps reveal">Renaissance Kingdoms · Les comptes du domaine</p>
+
+      <h1
+        class="reveal mt-4 font-display text-[2.35rem] font-black leading-[1.03] tracking-[0.07em] text-parchment sm:text-5xl lg:text-6xl"
+      >
+        Le{" "}
+        <span class="bg-gradient-to-b from-gold-light via-gold to-gold-dim bg-clip-text text-transparent">
+          Sénéchal
+        </span>
+      </h1>
+
+      <div class="rule-gold reveal my-6 w-32"></div>
+
+      <p class="reveal max-w-xl text-balance leading-relaxed text-parchment-dim">
+        Le sénéchal tient les comptes du domaine : les outils des champs et des
+        échoppes, réglés sur les règles actuelles de Renaissance Kingdoms. Un
+        champ, un cycle, une marge — les chiffres avant l’achat.
+      </p>
+
+      <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <a href="/seneschal/champs/elevage-de-vaches" class="btn-gold w-full justify-center sm:w-auto">
+          Ouvrir l’élevage de vaches
+        </a>
+        <a href="/seneschal/champs" class="btn-ghost w-full justify-center sm:w-auto">
+          Voir les champs
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-b border-gold/15 bg-ink-2/40" aria-label="Le registre en chiffres">
+    <div class="container-tdl grid grid-cols-2 py-8 sm:grid-cols-3 sm:py-10">
+      <div class="pr-4 sm:pr-6">
+        <p class="font-display text-3xl font-bold tracking-[0.06em] text-gold">
+          {categories.length}
+        </p>
+        <p class="mt-1 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
+          Registres
+        </p>
+      </div>
+      <div class="border-l border-gold/15 pl-4 sm:pl-6">
+        <p class="font-display text-3xl font-bold tracking-[0.06em] text-gold">
+          {totalAvailable}
+        </p>
+        <p class="mt-1 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
+          Outil disponible
+        </p>
+      </div>
+      <div class="col-span-2 mt-6 border-t border-gold/15 pt-5 sm:col-span-1 sm:mt-0 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+        <p class="font-display text-3xl font-bold tracking-[0.06em] text-gold">Oct. 2026</p>
+        <p class="mt-1 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
+          Règles à jour
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-tdl py-16 sm:py-20" aria-labelledby="registres-titre">
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <p class="label-caps">Les registres</p>
+        <h2
+          id="registres-titre"
+          class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl"
+        >
+          Deux livres,
+          <br class="hidden sm:block" /> tenus en parallèle
+        </h2>
+      </div>
+      <p class="max-w-sm text-sm leading-relaxed text-parchment-dim lg:text-right">
+        Le registre des champs pour les paysans, celui des échoppes pour les
+        artisans. Chaque outil s’ouvre sur un calcul complet, du coût d’achat à
+        la marge finale.
+      </p>
+    </div>
+
+    <div class="mt-10 grid items-start gap-5 md:grid-cols-2">
+      {categories.map((category, index) => (
+        <article class="pillar card-dark texture-noise relative p-6 sm:p-8">
+          <span
+            class="pointer-events-none absolute right-5 top-4 font-display text-6xl font-black leading-none text-gold/10"
+            aria-hidden="true"
+          >
+            {ROMAN[index]}
+          </span>
+
+          <span class="inline-flex h-12 w-12 items-center justify-center border border-gold/25 bg-ink/50 text-gold/80">
+            {category.slug === "champs" ? (
+              <svg
+                viewBox="0 0 24 24"
+                class="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 22V6" />
+                <path d="M12 9c1.8 0 3.2-1.2 3.6-3.2C13.6 5.6 12.2 6.8 12 9Z" />
+                <path d="M12 9c-1.8 0-3.2-1.2-3.6-3.2C10.4 5.6 11.8 6.8 12 9Z" />
+                <path d="M12 13.2c1.8 0 3.2-1.2 3.6-3.2-2 0-3.4 1.2-3.6 3.2Z" />
+                <path d="M12 13.2c-1.8 0-3.2-1.2-3.6-3.2 2 0 3.4 1.2 3.6 3.2Z" />
+                <path d="M12 17.4c1.8 0 3.2-1.2 3.6-3.2-2 0-3.4 1.2-3.6 3.2Z" />
+                <path d="M12 17.4c-1.8 0-3.2-1.2-3.6-3.2 2 0 3.4 1.2 3.6 3.2Z" />
+                <path d="M12 6c0-1.7.9-3 2.4-3.8C14.6 3.9 13.7 5.2 12 6Z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" class="h-7 w-7" fill="currentColor" aria-hidden="true">
+                <path d="M3 7h11.4l6.6 1.6-6.6 1.6H3V7Z" />
+                <path d="M9.6 10.2h4.2l1.4 4.9H8.2l1.4-4.9Z" />
+                <path d="M7 15.1h10l2.1 4.2H4.9L7 15.1Z" />
+              </svg>
+            )}
+          </span>
+
+          <p class="label-caps mt-5">{category.kicker}</p>
+          <h3 class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment">
+            {category.name}
+          </h3>
+          <p class="mt-3 max-w-md text-sm leading-relaxed text-parchment-dim">
+            {category.description}
+          </p>
+
+          <p class="mt-5 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
+            {category.total} outils
+            <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>
+            {category.available > 0
+              ? `${category.available} disponible${category.available > 1 ? "s" : ""}`
+              : "Aucun disponible"}
+          </p>
+
+          <a href={`/seneschal/${category.slug}`} class="link-arrow mt-6">
+            Ouvrir le registre
+            <svg
+              viewBox="0 0 24 24"
+              class="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </a>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="border-y border-gold/15 bg-ink-2/60" aria-labelledby="outil-titre">
+    <div class="container-tdl py-16 sm:py-20">
+      <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div>
+          <p class="label-caps">L’outil du moment</p>
+          <h2
+            id="outil-titre"
+            class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
+          >
+            Élevage de vaches
+          </h2>
+        </div>
+        <span class="border border-gold/40 px-2.5 py-1 text-[0.5rem] font-semibold uppercase tracking-[0.16em] text-gold">
+          Disponible
+        </span>
+      </div>
+
+      <div class="rule-gold mt-5 w-full opacity-70"></div>
+
+      <div class="card-dark texture-noise mt-6 grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
+        <div>
+          <p class="max-w-xl text-sm leading-relaxed text-parchment-dim sm:text-base">
+            Traite, croissance, abattage et rentabilité : le pré des vaches se
+            calcule du premier jour d’achat au dernier coup de couteau. Quatre
+            bêtes, un cycle, un bénéfice net.
+          </p>
+
+          <dl class="mt-6 grid gap-4 sm:grid-cols-3">
+            <div class="border-t border-gold/20 pt-3">
+              <dt class="text-[0.5625rem] uppercase tracking-[0.16em] text-gold">Lait</dt>
+              <dd class="mt-1.5 text-xs leading-relaxed text-parchment-dim">
+                1 bouteille × (1 + INT/20) par vache et par traite.
+              </dd>
+            </div>
+            <div class="border-t border-gold/20 pt-3">
+              <dt class="text-[0.5625rem] uppercase tracking-[0.16em] text-gold">Carcasses</dt>
+              <dd class="mt-1.5 text-xs leading-relaxed text-parchment-dim">
+                0 à 8 quintaux selon la corpulence de la bête.
+              </dd>
+            </div>
+            <div class="border-t border-gold/20 pt-3">
+              <dt class="text-[0.5625rem] uppercase tracking-[0.16em] text-gold">Outils</dt>
+              <dd class="mt-1.5 text-xs leading-relaxed text-parchment-dim">
+                Seau de 20 traites, couteau de 5 abattages.
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="flex flex-col gap-3 sm:flex-row lg:flex-col">
+          <a
+            href="/seneschal/champs/elevage-de-vaches"
+            class="btn-gold w-full justify-center sm:w-auto"
+          >
+            Calculer mon troupeau
+          </a>
+          <a href="/seneschal/champs" class="btn-ghost w-full justify-center sm:w-auto">
+            Le registre des champs
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-tdl py-16 sm:py-20" aria-labelledby="regles-titre">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+      <div>
+        <p class="label-caps">Règles à jour</p>
+        <h2
+          id="regles-titre"
+          class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
+        >
+          Ce que le calcul retient
+        </h2>
+      </div>
+      <p class="text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
+        Vérifié en octobre 2026
+      </p>
+    </div>
+
+    <div class="rule-gold mt-5 w-full opacity-70"></div>
+
+    <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {rules.map((rule, index) => (
+        <li class="card-dark texture-noise p-5">
+          <p class="font-display text-xs tracking-[0.16em] text-gold/60" aria-hidden="true">
+            {ROMAN[index]}
+          </p>
+          <p class="mt-2 font-display text-sm leading-snug tracking-[0.04em] text-parchment">
+            {rule.title}
+          </p>
+          <p class="mt-1.5 text-xs leading-relaxed text-parchment-dim">{rule.text}</p>
+        </li>
+      ))}
+    </ul>
+
+    <p class="mt-8 max-w-2xl border-l border-gold/25 pl-4 text-xs leading-relaxed text-parchment-dim/80">
+      Les calculs sont des estimations : les rendements réels du jeu peuvent
+      varier selon la croissance des bêtes, les aléas de mortalité et le moment
+      de l’abattage.
+    </p>
+  </section>
+</Layout>
+
+<style>
+  .link-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-gold);
+    transition: color 0.15s ease;
+  }
+  .link-arrow:hover {
+    color: var(--color-gold-light);
+  }
+  .link-arrow svg {
+    transition: transform 0.15s ease;
+  }
+  .link-arrow:hover svg {
+    transform: translateX(3px);
+  }
+
+  .pillar {
+    transition: border-color 0.2s ease;
+  }
+  .pillar:hover {
+    border-color: color-mix(in oklab, var(--color-gold) 38%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .link-arrow,
+    .link-arrow svg,
+    .pillar {
+      transition: none;
+    }
+    .link-arrow:hover svg {
+      transform: none;
+    }
+  }
+</style>

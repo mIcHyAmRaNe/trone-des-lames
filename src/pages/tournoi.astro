@@ -4,6 +4,7 @@ import StatusBadge from '../components/StatusBadge.astro';
 import GroupTables from '../components/GroupTables.astro';
 import GroupMatches from '../components/GroupMatches.astro';
 import Bracket from '../components/Bracket.astro';
+import ReglementContent from '../components/ReglementContent.astro';
 import { getTournamentState } from '../lib/state';
 
 export const prerender = false;
@@ -11,15 +12,29 @@ export const prerender = false;
 // Results change only when an admin saves one: serve a briefly cached copy.
 Astro.response.headers.set('Cache-Control', 's-maxage=20, stale-while-revalidate=60');
 
+const isRules = Astro.url.searchParams.get('onglet') === 'reglement';
+
 const state = await getTournamentState();
 const { edition } = state;
 const champion = edition.champion;
 
 const totalPlayed = state.matches.filter((m) => m.played).length;
 const totalMatches = state.matches.length || 31;
+
+const pageTitle = isRules
+  ? 'Règlement du tournoi — Le Trône des Lames'
+  : 'Tournoi — Le Trône des Lames';
+const pageDescription = isRules
+  ? 'Règlement du tournoi Le Trône des Lames : organisation, phase de poules, classement, qualification, phase finale, forfaits et validation des résultats.'
+  : 'Classements des groupes, duels de poules et phase finale du tournoi Le Trône des Lames. Résultats officiels mis à jour par l’organisation.';
+
+const tabs = [
+  { href: '/tournoi', label: 'Tournoi', active: !isRules },
+  { href: '/tournoi?onglet=reglement', label: 'Règlement', active: isRules },
+];
 ---
 
-<Layout title="Tournoi — Le Trône des Lames">
+<Layout title={pageTitle} description={pageDescription}>
   <section class="border-b border-gold/15 bg-ink-2/40">
     <div class="container-tdl py-14">
       <p class="label-caps">Édition {edition.name}</p>
@@ -29,14 +44,16 @@ const totalMatches = state.matches.length || 31;
             Le Tournoi
           </h1>
           <div class="rule-gold my-5 w-28"></div>
-          <p class="text-sm text-parchment-dim">
-            {totalPlayed} / {totalMatches} duels enregistrés
+          <p class="max-w-lg text-sm leading-relaxed text-parchment-dim">
+            {isRules
+              ? 'Les règles de la compétition, des poules au sacre.'
+              : `${totalPlayed} / ${totalMatches} duels enregistrés`}
           </p>
         </div>
         <StatusBadge state={state} />
       </div>
 
-      {champion && (
+      {!isRules && champion && (
         <div class="mt-8 flex flex-wrap items-center gap-4 border border-gold/40 bg-gold/[0.06] px-6 py-4">
           <svg viewBox="0 0 24 24" class="h-8 w-8 text-gold" fill="currentColor" aria-hidden="true">
             <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zM6 20h12v2H6v-2z" />
@@ -52,29 +69,65 @@ const totalMatches = state.matches.length || 31;
     </div>
   </section>
 
-  <div class="container-tdl space-y-20 py-16">
-    <section aria-labelledby="classements">
-      <div class="mb-6 flex items-center gap-4">
-        <h2 id="classements" class="font-display text-xl tracking-[0.08em] text-parchment">Classements des groupes</h2>
-        <div class="rule-gold hidden flex-1 sm:block"></div>
-      </div>
-      <GroupTables state={state} />
-    </section>
+  <nav aria-label="Sections du tournoi" class="border-b border-gold/15 bg-ink-2/40">
+    <div class="container-tdl flex items-stretch gap-1 sm:gap-2">
+      {tabs.map((tab) => (
+        <a
+          href={tab.href}
+          aria-current={tab.active ? 'page' : undefined}
+          class:list={[
+            'relative inline-flex items-center gap-2 px-3 py-4 text-[0.6875rem] font-bold uppercase tracking-[0.12em] transition-colors sm:px-5 sm:tracking-[0.18em]',
+            tab.active
+              ? 'bg-gold/[0.05] text-gold'
+              : 'text-parchment-dim hover:bg-gold/[0.03] hover:text-parchment',
+          ]}
+        >
+          <span
+            class:list={[
+              'h-1 w-1 rotate-45',
+              tab.active ? 'bg-gold' : 'bg-gold/30',
+            ]}
+            aria-hidden="true"
+          ></span>
+          {tab.label}
+          {tab.active && (
+            <span
+              class="absolute inset-x-2 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent"
+              aria-hidden="true"
+            ></span>
+          )}
+        </a>
+      ))}
+    </div>
+  </nav>
 
-    <section aria-labelledby="duels">
-      <div class="mb-6 flex items-center gap-4">
-        <h2 id="duels" class="font-display text-xl tracking-[0.08em] text-parchment">Duels de poules</h2>
-        <div class="rule-gold hidden flex-1 sm:block"></div>
-      </div>
-      <GroupMatches state={state} />
-    </section>
+  {isRules ? (
+    <ReglementContent />
+  ) : (
+    <div class="container-tdl space-y-20 py-16">
+      <section aria-labelledby="classements">
+        <div class="mb-6 flex items-center gap-4">
+          <h2 id="classements" class="font-display text-xl tracking-[0.08em] text-parchment">Classements des groupes</h2>
+          <div class="rule-gold hidden flex-1 sm:block"></div>
+        </div>
+        <GroupTables state={state} />
+      </section>
 
-    <section aria-labelledby="phase-finale">
-      <div class="mb-6 flex items-center gap-4">
-        <h2 id="phase-finale" class="font-display text-xl tracking-[0.08em] text-parchment">Phase finale</h2>
-        <div class="rule-gold hidden flex-1 sm:block"></div>
-      </div>
-      <Bracket state={state} />
-    </section>
-  </div>
+      <section aria-labelledby="duels">
+        <div class="mb-6 flex items-center gap-4">
+          <h2 id="duels" class="font-display text-xl tracking-[0.08em] text-parchment">Duels de poules</h2>
+          <div class="rule-gold hidden flex-1 sm:block"></div>
+        </div>
+        <GroupMatches state={state} />
+      </section>
+
+      <section aria-labelledby="phase-finale">
+        <div class="mb-6 flex items-center gap-4">
+          <h2 id="phase-finale" class="font-display text-xl tracking-[0.08em] text-parchment">Phase finale</h2>
+          <div class="rule-gold hidden flex-1 sm:block"></div>
+        </div>
+        <Bracket state={state} />
+      </section>
+    </div>
+  )}
 </Layout>

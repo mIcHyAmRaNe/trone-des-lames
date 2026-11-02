@@ -1,0 +1,128 @@
+---
+// Toggle light / dark : icônes soleil/lune, pas de flash, persiste dans localStorage.
+// Design cohérent (or, hairlines) ; 32-36px ; accessible (label, aria-pressed, title).
+interface Props {
+  class?: string;
+}
+const { class: cls = '' } = Astro.props;
+---
+
+<button
+  id="tdl-theme-btn"
+  type="button"
+  aria-label="Passer au thème clair"
+  aria-pressed="false"
+  title="Changer de thème"
+  class:list={[
+    'group relative inline-flex h-8 w-8 flex-none items-center justify-center rounded-full border border-gold/20 bg-ink-3/70 text-gold transition-colors hover:border-gold/50 hover:bg-gold/10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 lg:h-9 lg:w-9',
+    cls,
+  ]}
+>
+  <!-- Soleil (visible par défaut ; caché en thème clair) -->
+  <svg
+    class="tdl-icon-sun pointer-events-none h-[1.05rem] w-[1.05rem] lg:h-[1.15rem] lg:w-[1.15rem]"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4.5" />
+    <line x1="12" y1="1.5" x2="12" y2="3.5" />
+    <line x1="12" y1="20.5" x2="12" y2="22.5" />
+    <line x1="3.5" y1="12" x2="1.5" y2="12" />
+    <line x1="22.5" y1="12" x2="20.5" y2="12" />
+    <line x1="5.6" y1="5.6" x2="4.2" y2="4.2" />
+    <line x1="19.8" y1="19.8" x2="18.4" y2="18.4" />
+    <line x1="5.6" y1="18.4" x2="4.2" y2="19.8" />
+    <line x1="19.8" y1="4.2" x2="18.4" y2="5.6" />
+  </svg>
+  <!-- Lune (visible en thème clair) -->
+  <svg
+    class="tdl-icon-moon pointer-events-none hidden h-[1.05rem] w-[1.05rem] lg:h-[1.15rem] lg:w-[1.15rem]"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    aria-hidden="true"
+  >
+    <path d="M21 12.79A9 9 1 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+</button>
+
+<script is:inline>
+(() => {
+  const btn = document.getElementById('tdl-theme-btn');
+  if (!btn || btn.dataset.themeReady === '1') return;
+  btn.dataset.themeReady = '1';
+
+  const html = document.documentElement;
+
+  // Le <head> a déjà posé le thème avant le premier rendu : on le lit ici,
+  // jamais on ne le réécrit depuis les préférences système (sinon un choix
+  // utilisateur est perdu au changement de page quand le stockage est bloqué).
+  function current() {
+    return html.dataset.theme === 'light' ? 'light' : 'dark';
+  }
+
+  function stored() {
+    try {
+      const v = localStorage.getItem('tdl-theme');
+      if (v === 'light' || v === 'dark') return v;
+    } catch {}
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)tdl-theme=(light|dark)/);
+      if (m) return m[1];
+    } catch {}
+    return current();
+  }
+
+  function persist(theme) {
+    try { localStorage.setItem('tdl-theme', theme); } catch {}
+    try {
+      document.cookie = `tdl-theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch {}
+  }
+
+  function apply(theme) {
+    html.dataset.theme = theme;
+    const light = theme === 'light';
+    btn.setAttribute('aria-label', light ? 'Passer au thème sombre' : 'Passer au thème clair');
+    btn.setAttribute('aria-pressed', light ? 'true' : 'false');
+    btn.setAttribute('title', light ? 'Thème sombre' : 'Thème clair');
+    btn.querySelector('.tdl-icon-sun')?.classList.toggle('hidden', light);
+    btn.querySelector('.tdl-icon-moon')?.classList.toggle('hidden', !light);
+    document.getElementById('tdl-theme-color')?.setAttribute(
+      'content', light ? '#e8dcc2' : '#0d0b0a'
+    );
+  }
+
+  apply(current());
+
+  btn.addEventListener('click', () => {
+    const next = current() === 'light' ? 'dark' : 'light';
+    persist(next);
+    apply(next);
+  });
+
+  // Synchronise entre onglets (localStorage change ailleurs)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'tdl-theme' && (e.newValue === 'light' || e.newValue === 'dark')) {
+      apply(e.newValue);
+    }
+  });
+
+  // Retour depuis le cache de navigation : relit le choix persistant.
+  window.addEventListener('pageshow', () => apply(stored()));
+})();
+</script>
+
+<style>
+  /* Icônes : soleil visible en sombre (défaut), lune visible en clair. */
+  html[data-theme="light"] .tdl-icon-sun { display: none; }
+  html[data-theme="light"] .tdl-icon-moon { display: inline-block; }
+  html[data-theme="dark"] .tdl-icon-sun { display: inline-block; }
+  html[data-theme="dark"] .tdl-icon-moon { display: none; }
+</style>

@@ -1,0 +1,38 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CatalogTable from '../components/catalogue/CatalogTable';
+
+export const prerender = true;
+---
+
+<Layout
+  title="Catalogue de la garde-robe — Le Trône des Lames"
+  description="Catalogue complet des objets de garde-robe de Renaissance Kingdoms : emplacements, sexes, déclinaisons et calques. Recherchez en français comme en anglais."
+>
+  <section class="relative overflow-hidden border-b border-gold/15 bg-ink-2/40">
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_60%_at_72%_0%,rgba(201,162,39,0.13),transparent_70%)]"
+      aria-hidden="true"
+    ></div>
+
+    <div class="container-tdl relative py-14 sm:py-16">
+      <p class="label-caps reveal">Archives de la garde-robe</p>
+      <h1 class="reveal mt-3 font-display text-4xl font-bold tracking-[0.05em] text-parchment sm:text-5xl">
+        Catalogue
+      </h1>
+      <div class="rule-gold reveal my-5 w-28"></div>
+      <p class="reveal max-w-xl text-sm leading-relaxed text-parchment-dim sm:text-base">
+        L’inventaire complet des objets que portent les combattants de Renaissance Kingdoms.
+        Filtrez par emplacement ou par sexe, ou cherchez un nom — en français comme en anglais.
+      </p>
+    </div>
+  </section>
+
+  <div class="container-tdl py-12 sm:py-16">
+    <div class="mb-6 flex items-center justify-between gap-4">
+      <div></div>
+      <a href="/submit" class="btn-gold px-4 py-2 text-xs uppercase tracking-[0.1em]">Soumettre un objet</a>
+    </div>
+    <CatalogTable client:load />
+  </div>
+</Layout>

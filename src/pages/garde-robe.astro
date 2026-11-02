@@ -1,0 +1,39 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Wardrobe from "../components/garde-robe/Wardrobe.tsx";
+
+// Coquille statique : l'îlot React s'hydrate côté client.
+export const prerender = true;
+---
+
+<Layout
+    title="Garde-robe — Le Trône des Lames"
+    description="Essayez les vêtements, armes et teintes de Renaissance Kingdoms sur votre personnage : fiche, essayage par emplacement, tenues conservées et export PNG."
+>
+    <section class="relative overflow-hidden border-b border-gold/15 bg-ink-2/40">
+        <div
+            class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_35%_0%,rgba(201,162,39,0.13),transparent_72%)]"
+            aria-hidden="true"
+        >
+        </div>
+
+        <div class="container-tdl relative py-14">
+            <p class="label-caps">Renaissance Kingdoms · Essayage</p>
+            <h1 class="mt-3 font-display text-3xl font-bold tracking-[0.06em] text-parchment sm:text-5xl">
+                La Garde-robe
+            </h1>
+            <div class="rule-gold my-5 w-28"></div>
+            <p class="max-w-lg text-sm leading-relaxed text-parchment-dim">
+                La garde-robe lit la fiche de votre personnage et habille son
+                portrait à votre guise : vêtements, armes, teintes, tenues
+                conservées. L'essayage reste dans votre navigateur — aucune
+                modification n'est enregistrée dans le jeu.
+            </p>
+        </div>
+    </section>
+
+    <div class="container-tdl py-8 sm:py-10">
+        <script is:inline src="/vendor/midas.js"></script>
+        <Wardrobe client:load />
+    </div>
+</Layout>

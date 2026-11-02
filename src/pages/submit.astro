@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SubmitForm from '../components/SubmitForm';
+import { readRkSession } from '../lib/rk-session';
+
+const rk = readRkSession(Astro.cookies);
+---
+
+<Layout title="Soumettre un objet — Catalogue" description="Proposez un nouvel objet pour le catalogue de la garde-robe.">
+  <main class="min-h-screen">
+    <div class="mx-auto w-full max-w-2xl px-4 py-10 sm:py-14">
+      <p class="label-caps reveal">Contributions</p>
+      <h1 class="reveal mt-2 font-display text-3xl font-bold tracking-[0.05em] text-parchment">Soumettre un objet</h1>
+      <div class="rule-gold reveal my-4 w-20"></div>
+      <p class="reveal text-sm leading-relaxed text-parchment-dim">
+        Vous pouvez proposer un nouvel objet pour enrichir le catalogue. Votre soumission sera examinée par un administrateur avant publication.
+      </p>
+
+      {!rk ? (
+        <div class="card-dark texture-noise mt-6 rounded-lg p-6 text-center">
+          <p class="text-sm text-parchment-dim">
+            Connectez-vous sur la <a href="/garde-robe" class="font-medium text-gold hover:underline">Garde-robe</a> d’abord pour soumettre un objet.
+          </p>
+        </div>
+      ) : (
+        <div class="mt-6">
+          <SubmitForm client:load player={rk.login} />
+        </div>
+      )}
+    </div>
+  </main>
+</Layout>

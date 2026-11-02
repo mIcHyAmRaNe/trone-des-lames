@@ -1,0 +1,505 @@
+/* Scoped under the island root: keeps the ported rules off other pages and above Tailwind utilities. */
+  /* ---- Filters ---- */
+  [data-agenda] .filter-btn {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-parchment-dim);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  [data-agenda] .filter-btn:hover {
+    color: var(--color-parchment);
+    background: color-mix(in oklab, var(--color-gold) 8%, transparent);
+  }
+  [data-agenda] .filter-btn[aria-pressed='true'] {
+    color: var(--color-on-gold);
+    background: linear-gradient(180deg, var(--color-gold-light), var(--color-gold));
+  }
+
+  /* ---- Frame ornaments ---- */
+  [data-agenda] .corner {
+    position: absolute;
+    z-index: 6;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    opacity: 0.55;
+  }
+  [data-agenda] .corner-tl { top: 5px; left: 5px; border-top: 1px solid var(--color-gold); border-left: 1px solid var(--color-gold); }
+  [data-agenda] .corner-tr { top: 5px; right: 5px; border-top: 1px solid var(--color-gold); border-right: 1px solid var(--color-gold); }
+  [data-agenda] .corner-bl { bottom: 5px; left: 5px; border-bottom: 1px solid var(--color-gold); border-left: 1px solid var(--color-gold); }
+  [data-agenda] .corner-br { bottom: 5px; right: 5px; border-bottom: 1px solid var(--color-gold); border-right: 1px solid var(--color-gold); }
+
+  /* ---- Ruler ---- */
+  [data-agenda] .ruler-label {
+    position: sticky;
+    left: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 0.625rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--color-gold) 80%, var(--color-parchment));
+    white-space: nowrap;
+  }
+
+  [data-agenda] .today-flag {
+    position: absolute;
+    bottom: 3px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 1px 3px;
+    background: var(--color-ink-2);
+    font-size: 0.5625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-gold-light);
+    white-space: nowrap;
+    transform: translateX(6px);
+  }
+  [data-agenda] .today-flag[data-side='left'] {
+    transform: translateX(calc(-100% - 6px));
+  }
+  [data-agenda] .today-flag-dot {
+    width: 4px;
+    height: 4px;
+    background: var(--color-gold-light);
+    transform: rotate(45deg);
+  }
+
+  /* ---- Lanes ---- */
+  [data-agenda] .lanes {
+    background-image: repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(var(--lane-h) - 1px),
+      color-mix(in oklab, var(--color-parchment) 4.5%, transparent) calc(var(--lane-h) - 1px) var(--lane-h)
+    );
+  }
+  [data-agenda] .month-cell {
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(25% - 1px),
+      color-mix(in oklab, var(--color-gold) 7%, transparent) calc(25% - 1px) 25%
+    );
+  }
+  [data-agenda] .month-cell:nth-child(even) {
+    background-color: color-mix(in oklab, var(--color-parchment) 1.2%, transparent);
+  }
+
+  [data-agenda] .today-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 0;
+    border-left: 1px dashed color-mix(in oklab, var(--color-gold-light) 60%, transparent);
+    pointer-events: none;
+  }
+  [data-agenda] .today-line::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 5px;
+    height: 5px;
+    background: var(--color-gold-light);
+    transform: rotate(45deg);
+  }
+
+  /* ---- Ribbons ---- */
+  [data-agenda] .ribbon {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 7.5rem;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 45%, transparent);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-gold) 28%, transparent),
+        color-mix(in oklab, var(--color-gold) 12%, transparent)
+      );
+    color: var(--color-parchment);
+    text-align: left;
+    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-gold-light) 30%, transparent);
+    container-type: inline-size;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  [data-agenda] .ribbon:hover {
+    border-color: var(--color-gold-light);
+    filter: brightness(1.15);
+  }
+  [data-agenda] .ribbon[aria-pressed='true'] {
+    border-color: var(--color-gold-light);
+    background: linear-gradient(180deg, var(--color-gold-light), var(--color-gold));
+    color: var(--color-on-gold);
+    box-shadow: 0 4px 18px color-mix(in oklab, var(--color-gold) 35%, transparent), 0 0 0 1px color-mix(in oklab, var(--color-gold-light) 45%, transparent);
+  }
+  [data-agenda] .ribbon[data-state='past'] {
+    border-color: color-mix(in oklab, var(--color-parchment-dim) 30%, transparent);
+    background: color-mix(in oklab, var(--color-ink-3) 85%, transparent);
+    color: var(--color-parchment-dim);
+    box-shadow: none;
+  }
+  [data-agenda] .ribbon[data-state='past']:hover {
+    border-color: var(--color-parchment-dim);
+    color: var(--color-parchment);
+  }
+  [data-agenda] .ribbon[data-state='past'][aria-pressed='true'] {
+    background: linear-gradient(180deg, var(--color-parchment), var(--color-parchment-dim));
+    color: var(--color-ink);
+  }
+  [data-agenda] .ribbon[data-state='ongoing'] {
+    border-left: 2px solid var(--color-blood);
+  }
+  [data-agenda] .ribbon[data-compact='true'] {
+    padding: 0 0.4rem;
+  }
+  [data-agenda] .ribbon-body {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+  }
+  [data-agenda] .ribbon-title {
+    overflow: hidden;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  [data-agenda] .ribbon-sub {
+    overflow: hidden;
+    font-size: 0.5625rem;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    color: color-mix(in oklab, var(--color-gold-light) 70%, transparent);
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  [data-agenda] .ribbon[aria-pressed='true'] .ribbon-sub {
+    color: color-mix(in oklab, var(--color-on-gold) 62%, transparent);
+  }
+  [data-agenda] .ribbon[data-state='past'] .ribbon-sub {
+    color: color-mix(in oklab, var(--color-parchment-dim) 70%, transparent);
+  }
+  [data-agenda] .ribbon[data-state='past'][aria-pressed='true'] .ribbon-sub {
+    color: color-mix(in oklab, var(--color-ink) 62%, transparent);
+  }
+  [data-agenda] .ribbon[data-compact='true'] .ribbon-title {
+    font-size: 0.5625rem;
+  }
+  @container (max-width: 150px) {
+    [data-agenda] .ribbon-sub {
+      display: none;
+    }
+  }
+  [data-agenda] .ribbon-pulse {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--color-blood);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-blood) 25%, transparent);
+  }
+
+  /* ---- Scroll ---- */
+  [data-agenda] .chronicle-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-gold-dim) transparent;
+    overscroll-behavior-x: contain;
+  }
+  [data-agenda] .chronicle-scroll::-webkit-scrollbar {
+    height: 7px;
+  }
+  [data-agenda] .chronicle-scroll::-webkit-scrollbar-track {
+    background: color-mix(in oklab, var(--color-ink) 55%, transparent);
+  }
+  [data-agenda] .chronicle-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-gold-dim);
+  }
+
+  [data-agenda] .scroll-fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 4;
+    width: 2rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  [data-agenda] .scroll-fade-left {
+    left: 0;
+    background: linear-gradient(90deg, var(--color-ink-2), transparent);
+  }
+  [data-agenda] .scroll-fade-right {
+    right: 0;
+    background: linear-gradient(270deg, var(--color-ink-2), transparent);
+  }
+  [data-agenda] [data-scroll-frame][data-can-left] .scroll-fade-left,
+  [data-agenda] [data-scroll-frame][data-can-right] .scroll-fade-right {
+    opacity: 1;
+  }
+
+  [data-agenda] .scroll-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.875rem;
+    min-width: 1.875rem;
+    padding: 0 0.4rem;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 35%, transparent);
+    color: var(--color-gold-light);
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  }
+  [data-agenda] .scroll-btn:hover:not(:disabled) {
+    border-color: var(--color-gold);
+    background: color-mix(in oklab, var(--color-gold) 12%, transparent);
+  }
+  [data-agenda] .scroll-btn:disabled {
+    opacity: 0.28;
+    cursor: not-allowed;
+  }
+
+  /* ---- Period navigator ---- */
+  [data-agenda] .period-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  [data-agenda] .period-label {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 0.25rem;
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--color-gold) 70%, var(--color-parchment-dim));
+    white-space: nowrap;
+  }
+  [data-agenda] .period-label::before {
+    content: '◆';
+    margin-right: 0.3rem;
+    font-size: 0.5rem;
+    color: var(--color-gold);
+    opacity: 0.65;
+  }
+  [data-agenda] .period-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  [data-agenda] .period-field {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  [data-agenda] .period-select {
+    appearance: none;
+    height: 1.875rem;
+    max-width: 12rem;
+    padding: 0 1.7rem 0 0.6rem;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 40%, transparent);
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-ink-3) 92%, transparent),
+      color-mix(in oklab, var(--color-ink) 92%, transparent)
+    );
+    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-gold-light) 12%, transparent);
+    color: var(--color-gold-light);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  [data-agenda] .period-select:hover {
+    border-color: var(--color-gold);
+  }
+  [data-agenda] .period-select option {
+    background: var(--color-ink-2);
+    color: var(--color-parchment);
+    font-family: var(--font-body);
+    letter-spacing: normal;
+  }
+  [data-agenda] .period-select-sm {
+    height: 1.75rem;
+    max-width: 10.5rem;
+    font-size: 0.625rem;
+  }
+  [data-agenda] .period-chevron {
+    position: absolute;
+    right: 0.45rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    color: var(--color-gold);
+    pointer-events: none;
+  }
+  [data-agenda] .period-today {
+    padding: 0 0.6rem;
+  }
+
+  /* ---- Month page: day scale, grid and clipped ribbons ---- */
+  [data-agenda] .day-tick {
+    position: absolute;
+    top: 0.5rem;
+    padding-left: 0.3rem;
+    font-size: 0.5625rem;
+    letter-spacing: 0.08em;
+    color: color-mix(in oklab, var(--color-gold) 75%, var(--color-parchment-dim));
+    font-variant-numeric: tabular-nums;
+  }
+  [data-agenda] .day-tick-last {
+    padding-right: 0.3rem;
+    padding-left: 0;
+    text-align: right;
+    transform: translateX(-100%);
+  }
+  [data-agenda] .day-grid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1px solid color-mix(in oklab, var(--color-gold) 9%, transparent);
+  }
+  [data-agenda] .ribbon[data-clip='start']::before,
+  [data-agenda] .ribbon[data-clip='end']::after,
+  [data-agenda] .ribbon[data-clip='both']::before,
+  [data-agenda] .ribbon[data-clip='both']::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 7px;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      115deg,
+      transparent 0 3px,
+      color-mix(in oklab, currentColor 40%, transparent) 3px 4px
+    );
+  }
+  [data-agenda] .ribbon[data-clip='start']::before,
+  [data-agenda] .ribbon[data-clip='both']::before {
+    left: 0;
+  }
+  [data-agenda] .ribbon[data-clip='end']::after,
+  [data-agenda] .ribbon[data-clip='both']::after {
+    right: 0;
+  }
+
+  /* ---- Phone list ---- */
+  [data-agenda] .list-item {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 0.9rem 1rem;
+    text-align: left;
+    transition: background 0.15s ease;
+  }
+  [data-agenda] .list-item:hover {
+    background: color-mix(in oklab, var(--color-gold) 6%, transparent);
+  }
+  [data-agenda] .list-item[aria-pressed='true'] {
+    background: color-mix(in oklab, var(--color-gold) 10%, transparent);
+    box-shadow: inset 2px 0 0 var(--color-gold);
+  }
+  [data-agenda] .list-date {
+    display: flex;
+    flex: none;
+    width: 2.75rem;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 25%, transparent);
+    padding: 0.2rem 0;
+    background: color-mix(in oklab, var(--color-ink) 45%, transparent);
+  }
+  [data-agenda] .list-date-day {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--color-gold-light);
+    font-variant-numeric: tabular-nums;
+  }
+  [data-agenda] .list-date-word {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gold-light);
+  }
+  [data-agenda] .list-date-end {
+    font-size: 0.5rem;
+    letter-spacing: 0.06em;
+    color: var(--color-parchment-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  [data-agenda] .is-off {
+    display: none;
+  }
+
+  /* ---- Detail plate ---- */
+  [data-agenda] .detail-shell {
+    outline: none;
+  }
+  [data-agenda] .detail-top-rule {
+    display: block;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-gold-dim), var(--color-gold), var(--color-gold-dim), transparent);
+    opacity: 0.7;
+  }
+  [data-agenda] .detail-key {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--color-gold) 75%, var(--color-parchment-dim));
+  }
+  [data-agenda] .detail-val {
+    margin-top: 0.2rem;
+    font-size: 0.875rem;
+    color: var(--color-parchment);
+  }
+
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-agenda] .ribbon,
+    [data-agenda] .scroll-fade,
+    [data-agenda] .scroll-btn,
+    [data-agenda] .filter-btn,
+    [data-agenda] .list-item,
+    [data-agenda] .period-select {
+      transition: none;
+    }
+    [data-agenda] .chronicle-scroll {
+      scroll-behavior: auto;
+    }
+  }

@@ -1,0 +1,10 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Admin from '../../components/admin/Admin';
+---
+
+<Layout title="Catalogue — Administration">
+  <div class="container-tdl py-14">
+    <Admin view="catalog" client:only="react" />
+  </div>
+</Layout>

@@ -1,0 +1,373 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import CowCalculator from "../../../components/seneschal/CowCalculator";
+import { formatPoints } from "../../../lib/format";
+import {
+  COW_RULES,
+  COW_SIZES,
+  SENESCHAL_CATEGORIES,
+  cowCumulativeMortality,
+  cowDailyMortality,
+  type SeneschalCategory,
+  type SeneschalTool,
+} from "../../../lib/seneschal";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  return SENESCHAL_CATEGORIES.flatMap((category) =>
+    category.tools
+      .filter((tool) => tool.status === "available")
+      .map((tool) => ({
+        params: { category: category.slug, tool: tool.slug },
+        props: { category, tool },
+      })),
+  );
+}
+
+interface Props {
+  category: SeneschalCategory;
+  tool: SeneschalTool;
+}
+
+const { category, tool } = Astro.props;
+const isCowTool = tool.slug === "elevage-de-vaches";
+
+const percent = (value: number) => `${formatPoints(Math.round(value * 10) / 10)} %`;
+
+const mortality = [...Array.from({ length: 12 }, (_, i) => 10 + i), 22].map((age) => ({
+  age,
+  label: age > 21 ? "22 et +" : `${age} jours`,
+  daily: cowDailyMortality(age),
+  cumulative: cowCumulativeMortality(age),
+}));
+
+const rules = [
+  {
+    title: `Achat ${formatPoints(COW_RULES.price)} écus`,
+    text: `${formatPoints(COW_RULES.conservationPrice)} écus avec la vertu Conservation et le bonus majeur.`,
+  },
+  {
+    title: "Quatre bêtes",
+    text: `${COW_RULES.maxCows} vaches maximum par champ ; l’achat groupé est autorisé.`,
+  },
+  {
+    title: "Nourrir chaque jour",
+    text: "Gratuit. Une chance sur 16 de croissance par jour nourri, départ décharné.",
+  },
+  {
+    title: "Traite tous les 3 jours",
+    text: "1 bouteille × (1 + INT/20) par vache et par traite. L’Intelligence plafonne à 20.",
+  },
+  {
+    title: "Abattage, 1 par jour",
+    text: `Un couteau tient ${COW_RULES.knifeDurability} abattages, un seau ${COW_RULES.bucketDurability} traites.`,
+  },
+  {
+    title: "Second champ −15 %",
+    text: "Lait et carcasses réduits de 15 % sur le champ secondaire.",
+  },
+];
+
+const sources = [
+  { label: "Vache", href: "https://wiki.renaissancekingdoms.com/fr/Vache" },
+  { label: "Champ de vaches", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_vaches" },
+  { label: "Bouteille de lait", href: "https://wiki.renaissancekingdoms.com/fr/Bouteille_de_lait" },
+  { label: "Seau cerclé", href: "https://wiki.renaissancekingdoms.com/fr/Seau_cercl%C3%A9" },
+  { label: "Couteau", href: "https://wiki.renaissancekingdoms.com/fr/Couteau" },
+];
+
+const inspiration = {
+  label: "L’Office des Boutonneux",
+  href: "http://www.le317.fr/boutonneux/index.php?metier=eleveurvaches",
+};
+---
+
+<Layout
+  title={`${tool.name} — Le Sénéchal · Le Trône des Lames`}
+  description={`${tool.summary} Calcul du cycle complet : traite, croissance, abattage, coûts et bénéfice net.`}
+>
+  <nav aria-label="Fil d’Ariane" class="border-b border-gold/10 bg-ink-2/30">
+    <ol
+      class="container-tdl flex flex-wrap items-center gap-2 py-3 text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim"
+    >
+      <li><a href="/seneschal" class="transition-colors hover:text-gold">Le Sénéchal</a></li>
+      <li aria-hidden="true" class="text-gold/40">/</li>
+      <li>
+        <a href={`/seneschal/${category.slug}`} class="transition-colors hover:text-gold">
+          {category.name}
+        </a>
+      </li>
+      <li aria-hidden="true" class="text-gold/40">/</li>
+      <li aria-current="page" class="text-parchment">{tool.name}</li>
+    </ol>
+  </nav>
+
+  <section class="relative overflow-hidden border-b border-gold/15">
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_60%_at_72%_0%,rgba(201,162,39,0.13),transparent_70%)]"
+      aria-hidden="true"
+    >
+    </div>
+    <div
+      class="pointer-events-none absolute inset-0 opacity-[0.04]"
+      aria-hidden="true"
+      style="background-image: repeating-linear-gradient(90deg, var(--color-parchment) 0 1px, transparent 1px 92px)"
+    >
+    </div>
+
+    <div class="container-tdl relative py-12 sm:py-16">
+      <p class="label-caps reveal">{category.name} · Élevage</p>
+      <h1
+        class="reveal mt-3 font-display text-4xl font-bold tracking-[0.05em] text-parchment sm:text-5xl"
+      >
+        {tool.name}
+      </h1>
+      <div class="rule-gold reveal my-5 w-28"></div>
+      <p class="reveal max-w-xl text-sm leading-relaxed text-parchment-dim sm:text-base">
+        Traite, croissance, abattage : les comptes du pré, d’après les règles à
+        jour.
+      </p>
+
+      <div class="reveal mt-6 flex flex-wrap gap-2">
+        <span class="border border-gold/30 bg-gold/5 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-gold">
+          Règles à jour · octobre 2026
+        </span>
+        <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">
+          {COW_RULES.maxCows} vaches maximum
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <div class="container-tdl py-10 sm:py-14">
+    <div class="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div>
+        <p class="label-caps">Le calcul</p>
+        <h2 class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment">
+          Le cycle complet
+        </h2>
+      </div>
+      <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
+        Estimations en écus
+      </p>
+    </div>
+
+    {isCowTool ? (
+      <CowCalculator client:load />
+    ) : (
+      <p class="card-dark texture-noise p-6 text-sm text-parchment-dim">
+        Cet outil n’est pas encore disponible.
+      </p>
+    )}
+  </div>
+
+  <section class="border-y border-gold/15 bg-ink-2/60" aria-labelledby="regles-titre">
+    <div class="container-tdl py-14 sm:py-16">
+      <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div>
+          <p class="label-caps">Le champ de vaches</p>
+          <h2
+            id="regles-titre"
+            class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
+          >
+            Les règles du champ
+          </h2>
+        </div>
+        <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
+          Wiki officiel · octobre 2026
+        </p>
+      </div>
+
+      <div class="rule-gold mt-5 w-full opacity-70"></div>
+
+      <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {rules.map((rule) => (
+          <li class="card-dark texture-noise p-5">
+            <p class="font-display text-sm leading-snug tracking-[0.04em] text-gold-light">
+              {rule.title}
+            </p>
+            <p class="mt-1.5 text-xs leading-relaxed text-parchment-dim">{rule.text}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="container-tdl py-14 sm:py-16" aria-labelledby="tables-titre">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div>
+        <p class="label-caps">Les tables</p>
+        <h2
+          id="tables-titre"
+          class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
+        >
+          Mortalité & rendements
+        </h2>
+      </div>
+      <p class="max-w-sm text-xs leading-relaxed text-parchment-dim/80 lg:text-right">
+        La mortalité court dès le 10<sup>e</sup> jour ; les carcasses dépendent
+        de la corpulence au moment de l’abattage.
+      </p>
+    </div>
+
+    <div class="mt-6 grid items-start gap-5 lg:grid-cols-2">
+      <section class="card-dark texture-noise overflow-hidden" aria-labelledby="mortalite-titre">
+        <div class="border-b border-gold/15 px-5 py-4">
+          <h3 id="mortalite-titre" class="label-caps">Mortalité des vaches</h3>
+        </div>
+
+        <div class="overflow-x-auto px-5 pb-1">
+          <table class="w-full border-collapse text-left">
+            <thead>
+              <tr class="border-b border-gold/15">
+                <th
+                  scope="col"
+                  class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0 last:pr-0"
+                >
+                  Âge
+                </th>
+                <th
+                  scope="col"
+                  class="whitespace-nowrap px-3 py-2.5 text-right text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0 last:pr-0"
+                >
+                  Risque / jour
+                </th>
+                <th
+                  scope="col"
+                  class="whitespace-nowrap px-3 py-2.5 text-right text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0 last:pr-0"
+                >
+                  Cumulé
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gold/10">
+              {mortality.map((row) => (
+                <tr>
+                  <th
+                    scope="row"
+                    class="whitespace-nowrap px-3 py-2 text-left font-display text-xs tabular-nums tracking-[0.06em] text-parchment first:pl-0 last:pr-0"
+                  >
+                    {row.label}
+                  </th>
+                  <td class="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-parchment-dim first:pl-0 last:pr-0">
+                    {percent(row.daily)}
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-parchment-dim first:pl-0 last:pr-0">
+                    {percent(row.cumulative)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p class="border-t border-gold/10 px-5 py-3 text-[0.6875rem] leading-relaxed text-parchment-dim/80">
+          Une vache morte de vieillesse ne rapporte aucune carcasse.
+        </p>
+      </section>
+
+      <section class="card-dark texture-noise overflow-hidden" aria-labelledby="rendements-titre">
+        <div class="border-b border-gold/15 px-5 py-4">
+          <h3 id="rendements-titre" class="label-caps">Rendements</h3>
+        </div>
+
+        <div class="overflow-x-auto px-5 pb-1">
+          <table class="w-full border-collapse text-left">
+            <thead>
+              <tr class="border-b border-gold/15">
+                <th
+                  scope="col"
+                  class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0 last:pr-0"
+                >
+                  Corpulence
+                </th>
+                <th
+                  scope="col"
+                  class="whitespace-nowrap px-3 py-2.5 text-right text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0 last:pr-0"
+                >
+                  Quintaux
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gold/10">
+              {COW_SIZES.map((size) => (
+                <tr>
+                  <th
+                    scope="row"
+                    class="whitespace-nowrap px-3 py-2 text-left text-xs font-normal text-parchment first:pl-0 last:pr-0"
+                  >
+                    {size.label}
+                  </th>
+                  <td class="whitespace-nowrap px-3 py-2 text-right font-display text-sm tabular-nums text-parchment-dim first:pl-0 last:pr-0">
+                    {size.carcasses}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p class="border-t border-gold/10 px-5 py-3 text-[0.6875rem] leading-relaxed text-parchment-dim/80">
+          Sur un second champ, le rendement est réduit de 15 % : les quintaux
+          sont arrondis à l’inférieur.
+        </p>
+      </section>
+    </div>
+  </section>
+
+  <section class="border-t border-gold/15 bg-ink-2/40" aria-labelledby="sources-titre">
+    <div class="container-tdl py-12 sm:py-14">
+      <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div>
+          <p class="label-caps">Sources</p>
+          <h2 id="sources-titre" class="mt-2 font-display text-xl tracking-[0.05em] text-parchment">
+            Vérifié sur le wiki officiel
+          </h2>
+        </div>
+        <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
+          Dernière vérification : octobre 2026
+        </p>
+      </div>
+
+      <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+        {sources.map((source) => (
+          <li>
+            <a
+              href={source.href}
+              target="_blank"
+              rel="noreferrer"
+              class="group inline-flex items-center gap-1.5 text-xs text-parchment-dim underline decoration-gold/25 underline-offset-4 transition-colors hover:text-gold"
+            >
+              {source.label}
+              <svg
+                viewBox="0 0 24 24"
+                class="h-3 w-3 flex-none text-gold/50 transition-colors group-hover:text-gold"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                aria-hidden="true"
+              >
+                <path d="M8 16 16 8M9 8h7v7" />
+              </svg>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <p class="mt-6 max-w-2xl text-[0.6875rem] leading-relaxed text-parchment-dim/70">
+        Inspiration pour la feuille de calcul :{" "}
+        <a
+          href={inspiration.href}
+          target="_blank"
+          rel="noreferrer"
+          class="text-parchment-dim underline decoration-gold/25 underline-offset-4 transition-colors hover:text-gold"
+        >
+          {inspiration.label}
+        </a>
+        . Les calculs restent des estimations : les rendements réels du jeu
+        peuvent varier.
+      </p>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,139 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AgendaChronicle from '../components/agenda/AgendaChronicle';
+import SubmissionForm from '../components/agenda/SubmissionForm.astro';
+import { listEvents } from '../lib/events';
+import { formatRange, todayISO } from '../components/agenda/dates';
+
+export const prerender = false;
+
+// Same brief cache as the other public pages: submissions appear within seconds.
+Astro.response.headers.set('Cache-Control', 's-maxage=20, stale-while-revalidate=60');
+
+const events = await listEvents({ status: 'approved' });
+const today = todayISO();
+
+// Optional period filter: ?periode=YYYY-MM. Anything malformed falls back to the whole chronicle.
+const periodParam = Astro.url.searchParams.get('periode');
+const period = periodParam && /^\d{4}-(0[1-9]|1[0-2])$/.test(periodParam) ? periodParam : null;
+
+const sorted = [...events].sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.id - b.id);
+const upcoming = sorted.filter((e) => e.endsOn >= today);
+const next = sorted.find((e) => e.startsOn > today);
+const ongoing = sorted.filter((e) => e.startsOn <= today && e.endsOn >= today);
+const counties = new Set(events.map((e) => e.county.trim().toLowerCase())).size;
+
+const ROMAN: Array<[number, string]> = [
+  [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+  [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+];
+function toRoman(value: number) {
+  let out = '';
+  let n = value;
+  for (const [amount, glyph] of ROMAN) {
+    while (n >= amount) {
+      out += glyph;
+      n -= amount;
+    }
+  }
+  return out;
+}
+const anno = toRoman(new Date().getUTCFullYear());
+---
+
+<Layout
+  title="Agenda des animations — Le Trône des Lames"
+  description="Chronique des animations des royaumes de Renaissance Kingdoms : fêtes, tournois, marchés et cérémonies classés par date. Proposez votre animation."
+>
+  <section class="relative overflow-hidden border-b border-gold/15">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_60%_at_72%_0%,rgba(201,162,39,0.13),transparent_70%)]"></div>
+    <div
+      class="pointer-events-none absolute inset-0 opacity-[0.04]"
+      aria-hidden="true"
+      style="background-image: repeating-linear-gradient(90deg, var(--color-parchment) 0 1px, transparent 1px 92px)"
+    >
+    </div>
+
+    <div class="container-tdl relative py-14 sm:py-20">
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div>
+          <p class="label-caps reveal">Chronique des royaumes<span class="hidden sm:inline"> · Anno {anno}</span></p>
+
+          <h1 class="reveal mt-4 font-display text-4xl font-bold leading-[1.04] tracking-[0.05em] text-parchment sm:text-5xl lg:text-6xl">
+            Agenda des
+            <br />
+            <span class="bg-gradient-to-b from-gold-light via-gold to-gold-dim bg-clip-text text-transparent">
+              animations
+            </span>
+          </h1>
+
+          <div class="rule-gold reveal my-6 w-32"></div>
+
+          <p class="reveal max-w-xl text-sm leading-relaxed text-parchment-dim sm:text-base">
+            Fêtes, tournois et cérémonies des royaumes de Renaissance Kingdoms, réunis sur un même
+            registre. Parcourez la chronique, ouvrez une animation, puis inscrivez la vôtre.
+          </p>
+
+          <p class="reveal mt-6 hidden flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/70 sm:flex">
+            <span>{events.length} animation{events.length > 1 ? 's' : ''} au registre</span>
+            <span class="text-gold/40" aria-hidden="true">◆</span>
+            <span>{upcoming.length} à venir</span>
+            {ongoing.length > 0 && (
+              <>
+                <span class="text-gold/40" aria-hidden="true">◆</span>
+                <span class="text-gold-light">{ongoing.length} en cours</span>
+              </>
+            )}
+            <span class="text-gold/40" aria-hidden="true">◆</span>
+            <span>{counties} comté{counties > 1 ? 's' : ''}</span>
+            {next && (
+              <>
+                <span class="text-gold/40" aria-hidden="true">◆</span>
+                <span>
+                  Prochaine :{' '}
+                  <span class="normal-case tracking-normal text-gold-light">
+                    {formatRange(next.startsOn, next.endsOn)}
+                  </span>
+                </span>
+              </>
+            )}
+          </p>
+        </div>
+
+        <div class="hidden lg:block" aria-hidden="true">
+          <div class="relative flex h-44 w-44 items-center justify-center">
+            <svg
+              viewBox="0 0 200 200"
+              class="absolute inset-0 h-full w-full text-gold/40"
+              fill="none"
+              stroke="currentColor"
+            >
+              <circle cx="100" cy="100" r="80" stroke-width="1" />
+              <circle cx="100" cy="100" r="72" stroke-width="0.4" stroke-dasharray="1 6" />
+              <circle cx="100" cy="100" r="54" stroke-width="0.6" />
+              <path d="M100 12l4.5 8-4.5 8-4.5-8 4.5-8z" fill="currentColor" stroke="none" />
+              <path d="M100 172l4.5 8-4.5 8-4.5-8 4.5-8z" fill="currentColor" stroke="none" opacity="0.6" />
+              <path d="M12 100l8-4.5 8 4.5-8 4.5-8-4.5z" fill="currentColor" stroke="none" opacity="0.6" />
+              <path d="M172 100l8-4.5 8 4.5-8 4.5-8-4.5z" fill="currentColor" stroke="none" opacity="0.6" />
+              <path d="M100 20v14M100 166v14M20 100h14M166 100h14" stroke-width="0.6" opacity="0.5" />
+            </svg>
+            <div class="relative text-center">
+              <p class="font-display text-[0.5rem] tracking-[0.32em] text-gold/60">REGISTRE</p>
+              <p class="mt-1.5 font-display text-2xl font-bold tracking-[0.1em] text-gold">{anno}</p>
+              <p class="mt-2 text-[0.4375rem] uppercase leading-relaxed tracking-[0.22em] text-parchment-dim/55">
+                Renaissance
+                <br />
+                Kingdoms
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container-tdl py-12 sm:py-16">
+    <AgendaChronicle client:load events={events} initialPeriod={period} today={today} />
+    <SubmissionForm />
+  </div>
+</Layout>

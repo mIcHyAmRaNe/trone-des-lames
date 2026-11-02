@@ -3,6 +3,8 @@ import type { TournamentState } from '../../lib/state';
 import { parsePoints } from '../../lib/format';
 import { GROUPS } from '../../lib/tournament';
 import { ForfeitSelect, ScoreSelect } from './ScoreSelect';
+import CatalogAdmin from '../catalogue/CatalogAdmin';
+import type { AgendaEvent } from '../../lib/events';
 
 type Match = TournamentState['matches'][number];
 
@@ -75,7 +77,16 @@ function payload(match: Match, draft: Draft) {
   };
 }
 
-export default function Admin() {
+type AdminView = 'tournoi' | 'agenda' | 'catalog';
+
+const ADMIN_TABS = [
+  { view: 'tournoi', href: '/admin', label: 'Tournoi' },
+  { view: 'agenda', href: '/admin/agenda', label: 'Agenda' },
+  { view: 'catalog', href: '/admin/catalog', label: 'Catalogue' },
+] as const;
+
+export default function Admin({ view }: { view: AdminView }) {
+  const isTournoi = view === 'tournoi';
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [state, setState] = useState<TournamentState | null>(null);
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
@@ -86,8 +97,9 @@ export default function Admin() {
   }, []);
 
   const refresh = useCallback(async () => {
+    if (!isTournoi) return;
     setState((await api('/api/tournament?slug=classique')) as TournamentState);
-  }, []);
+  }, [isTournoi]);
 
   useEffect(() => {
     api('/api/admin/session')
@@ -138,7 +150,9 @@ export default function Admin() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="label-caps">Espace administrateur</p>
-          <h1 className="mt-1 font-display text-2xl tracking-[0.06em] text-parchment">Gestion du tournoi</h1>
+          <h1 className="mt-1 font-display text-2xl tracking-[0.06em] text-parchment">
+            {isTournoi ? 'Gestion du tournoi' : 'Gestion de l’agenda'}
+          </h1>
         </div>
         <button
           type="button"
@@ -154,11 +168,46 @@ export default function Admin() {
         </button>
       </div>
 
-      {state && <Fighters state={state} run={run} />}
-      {state && <DrawPanel state={state} run={run} />}
-      {state && <DuelPanel state={state} run={run} phase="group" />}
-      {state && <DuelPanel state={state} run={run} phase="bracket" />}
-      {state && <ResetPanel run={run} />}
+      <nav aria-label="Sections de l’administration" className="flex gap-1 border-b border-gold/15">
+        {ADMIN_TABS.map((tab) => (
+          <a
+            key={tab.view}
+            href={tab.href}
+            aria-current={tab.view === view ? 'page' : undefined}
+            className={`relative inline-flex items-center gap-2 px-3 py-3 text-[0.6875rem] font-bold uppercase tracking-[0.12em] transition-colors sm:px-5 sm:tracking-[0.18em] ${
+              tab.view === view
+                ? 'bg-gold/[0.05] text-gold'
+                : 'text-parchment-dim hover:bg-gold/[0.03] hover:text-parchment'
+            }`}
+          >
+            <span
+              className={`h-1 w-1 rotate-45 ${tab.view === view ? 'bg-gold' : 'bg-gold/30'}`}
+              aria-hidden="true"
+            />
+            {tab.label}
+            {tab.view === view && (
+              <span
+                className="absolute inset-x-2 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent"
+                aria-hidden="true"
+              />
+            )}
+          </a>
+        ))}
+      </nav>
+
+      {view === 'catalog' ? (
+        <CatalogAdmin />
+      ) : isTournoi ? (
+        <>
+          {state && <Fighters state={state} run={run} />}
+          {state && <DrawPanel state={state} run={run} />}
+          {state && <DuelPanel state={state} run={run} phase="group" />}
+          {state && <DuelPanel state={state} run={run} phase="bracket" />}
+          {state && <ResetPanel run={run} />}
+        </>
+      ) : (
+        <Agenda run={run} />
+      )}
 
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
@@ -462,7 +511,7 @@ function Fighters({ state, run }: { state: TournamentState; run: Run }) {
                       <button
                         type="button"
                         aria-label={`Supprimer ${f.name}`}
-                        className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-blood transition-colors hover:text-red-400"
+                        className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-blood transition-colors hover:text-blood-light"
                         onClick={() =>
                           void run(
                             () => api(`/api/admin/fighters?id=${f.id}`, { method: 'DELETE' }),
@@ -902,6 +951,227 @@ function ForfeitControl({
         />
       )}
     </div>
+  );
+}
+
+const EMPTY_EVENT_FORM = {
+  title: '',
+  rkName: '',
+  city: '',
+  county: '',
+  forumUrl: '',
+  startsOn: '',
+  endsOn: '',
+};
+
+function fmtRange(startsOn: string, endsOn: string) {
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' };
+  const start = new Date(`${startsOn}T00:00:00Z`).toLocaleDateString('fr-FR', opts);
+  return startsOn === endsOn
+    ? start
+    : `${start} – ${new Date(`${endsOn}T00:00:00Z`).toLocaleDateString('fr-FR', opts)}`;
+}
+
+function Agenda({ run }: { run: Run }) {
+  const [events, setEvents] = useState<AgendaEvent[] | null>(null);
+  const [form, setForm] = useState(EMPTY_EVENT_FORM);
+  const [error, setError] = useState('');
+
+  const refreshEvents = useCallback(async () => {
+    const data = (await api('/api/admin/events')) as { events: AgendaEvent[] };
+    setEvents(data.events);
+  }, []);
+
+  useEffect(() => {
+    refreshEvents().catch(() => setEvents([]));
+  }, [refreshEvents]);
+
+  // run() refreshes the tournament state; the agenda list needs its own refresh.
+  const act = useCallback(
+    (fn: () => Promise<unknown>, okMsg: string) =>
+      run(async () => {
+        await fn();
+        await refreshEvents();
+      }, okMsg),
+    [run, refreshEvents],
+  );
+
+  const sorted = useMemo(() => {
+    const list = events ?? [];
+    return [...list].sort((a, b) => (a.status === b.status ? 0 : a.status === 'pending' ? -1 : 1));
+  }, [events]);
+
+  const upd = (k: keyof typeof EMPTY_EVENT_FORM) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+    setError('');
+  };
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await api('/api/admin/events', { method: 'POST', body: JSON.stringify(form) });
+      setForm(EMPTY_EVENT_FORM);
+      setError('');
+      await act(async () => {}, 'Événement publié');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Création impossible');
+    }
+  }
+
+  const inputCls =
+    'w-full rounded border bg-ink px-3 py-2 text-sm text-parchment outline-none transition-colors placeholder:text-parchment-dim/40 focus:border-gold aria-invalid:border-blood';
+
+  return (
+    <Section
+      title="Agenda"
+      meta={events ? `${events.length} événement${events.length > 1 ? 's' : ''}` : undefined}
+    >
+      <form onSubmit={submit} className="mb-5 grid gap-2 sm:grid-cols-2">
+        <input
+          value={form.title}
+          onChange={upd('title')}
+          placeholder="Nom de l’animation"
+          maxLength={100}
+          required
+          aria-label="Nom de l’animation"
+          aria-invalid={error ? true : undefined}
+          className={`${inputCls} sm:col-span-2`}
+        />
+        <input
+          value={form.rkName}
+          onChange={upd('rkName')}
+          placeholder="Nom du joueur"
+          maxLength={60}
+          required
+          aria-label="Nom du joueur"
+          className={inputCls}
+        />
+        <input
+          value={form.city}
+          onChange={upd('city')}
+          placeholder="Ville"
+          maxLength={60}
+          required
+          aria-label="Ville"
+          className={inputCls}
+        />
+        <input
+          value={form.county}
+          onChange={upd('county')}
+          placeholder="Comté"
+          maxLength={60}
+          required
+          aria-label="Comté"
+          className={inputCls}
+        />
+        <input
+          value={form.startsOn}
+          onChange={upd('startsOn')}
+          type="date"
+          required
+          aria-label="Date de début"
+          className={inputCls}
+        />
+        <input
+          value={form.endsOn}
+          onChange={upd('endsOn')}
+          type="date"
+          required
+          aria-label="Date de fin"
+          className={inputCls}
+        />
+        <input
+          value={form.forumUrl}
+          onChange={upd('forumUrl')}
+          type="url"
+          placeholder="Lien du sujet forum"
+          maxLength={500}
+          required
+          aria-label="Lien du sujet forum"
+          className={`${inputCls} sm:col-span-2`}
+        />
+        {error && (
+          <p role="alert" className="flex items-start gap-1.5 text-xs text-blood sm:col-span-2">
+            <span aria-hidden="true">⚠</span>
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn-gold sm:col-span-2">
+          Publier l’événement
+        </button>
+      </form>
+
+      {events === null ? (
+        <p className="py-4 text-center text-sm text-parchment-dim">Chargement…</p>
+      ) : sorted.length === 0 ? (
+        <p className="py-4 text-center text-sm text-parchment-dim">Aucun événement pour l’instant.</p>
+      ) : (
+        <ul className="space-y-2">
+          {sorted.map((ev) => (
+            <li
+              key={ev.id}
+              className="flex flex-wrap items-center gap-2 rounded border border-gold/10 bg-ink/40 px-3 py-2"
+            >
+              <span
+                className={`flex-none rounded-sm border px-1.5 py-0.5 text-[0.5rem] font-bold uppercase tracking-wider ${
+                  ev.status === 'pending' ? 'border-blood/60 text-blood' : 'border-gold/40 text-gold'
+                }`}
+              >
+                {ev.status === 'pending' ? 'En attente' : 'Publié'}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm text-parchment">{ev.title}</span>
+              <span className="flex-none text-[0.6875rem] text-parchment-dim">
+                {fmtRange(ev.startsOn, ev.endsOn)}
+              </span>
+              <span className="flex-none text-[0.6875rem] text-parchment-dim">
+                {ev.city} · {ev.county}
+              </span>
+              <span className="flex-none text-[0.6875rem] text-parchment-dim">RK : {ev.rkName}</span>
+              <a
+                href={ev.forumUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-gold hover:underline"
+              >
+                Forum
+              </a>
+              {ev.status === 'pending' && (
+                <button
+                  type="button"
+                  className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-gold"
+                  onClick={() =>
+                    void act(
+                      () =>
+                        api('/api/admin/events', {
+                          method: 'PATCH',
+                          body: JSON.stringify({ id: ev.id, status: 'approved' }),
+                        }),
+                      'Événement approuvé',
+                    )
+                  }
+                >
+                  Approuver
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label={`Supprimer ${ev.title}`}
+                className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-blood transition-colors hover:text-blood-light"
+                onClick={() => {
+                  if (!window.confirm(`Supprimer « ${ev.title} » ?`)) return;
+                  void act(
+                    () => api(`/api/admin/events?id=${ev.id}`, { method: 'DELETE' }),
+                    'Événement supprimé',
+                  );
+                }}
+              >
+                Suppr.
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
 

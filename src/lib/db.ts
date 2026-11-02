@@ -38,6 +38,19 @@ async function init() {
       )`,
       `CREATE INDEX IF NOT EXISTS idx_matches_edition ON matches (edition_id, phase, slot)`,
       `CREATE INDEX IF NOT EXISTS idx_fighters_edition ON fighters (edition_id)`,
+      `CREATE TABLE IF NOT EXISTS events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        rk_name TEXT NOT NULL,
+        city TEXT NOT NULL,
+        county TEXT NOT NULL,
+        forum_url TEXT NOT NULL,
+        starts_on TEXT NOT NULL,
+        ends_on TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_events_status ON events (status, starts_on)`,
     ],
     'write',
   );

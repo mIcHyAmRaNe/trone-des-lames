@@ -1,0 +1,398 @@
+---
+---
+
+<section id="proposer" class="mt-20 scroll-mt-24" aria-labelledby="proposer-titre">
+  <div class="card-dark texture-noise relative overflow-hidden">
+    <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" aria-hidden="true"></span>
+
+    <div class="grid gap-10 px-6 py-9 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:py-12">
+      <div>
+        <p class="label-caps">Proposer</p>
+        <h2 id="proposer-titre" class="mt-2 font-display text-2xl leading-snug tracking-[0.05em] text-parchment sm:text-3xl">
+          Inscrire une animation au registre
+        </h2>
+        <div class="rule-gold my-5 w-20"></div>
+        <p class="max-w-md text-sm leading-relaxed text-parchment-dim">
+          Fête, tournoi, marché, cérémonie : annoncez votre animation pour qu’elle figure dans la
+          chronique des royaumes. Les dates sont incluses dans la durée.
+        </p>
+
+        <div class="mt-6 flex gap-3 border-l-2 border-gold/50 pl-4">
+          <svg viewBox="0 0 24 24" class="mt-0.5 h-4 w-4 flex-none text-gold" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M12 3l7 3v6c0 4.2-3 7.4-7 9-4-1.6-7-4.8-7-9V6l7-3z" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+          <p class="text-xs leading-relaxed text-parchment-dim">
+            Toute proposition est relue par l’organisation. L’animation n’apparaît dans l’agenda
+            qu’après validation.
+          </p>
+        </div>
+
+        <ol class="mt-8 hidden space-y-4 sm:block">
+          {[
+            { n: 'I', t: 'Vous inscrivez l’animation', d: 'Nom, ville, comté, dates et lien du forum.' },
+            { n: 'II', t: 'L’organisation vérifie', d: 'Les dates et le sujet du forum sont contrôlés.' },
+            { n: 'III', t: 'L’animation rejoint la chronique', d: 'Elle apparaît dans l’agenda à sa date.' },
+          ].map((step) => (
+            <li class="flex gap-3">
+              <span class="step-num">{step.n}</span>
+              <span class="min-w-0">
+                <span class="block text-xs font-semibold text-parchment">{step.t}</span>
+                <span class="mt-0.5 block text-xs leading-relaxed text-parchment-dim/80">{step.d}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div>
+        <form data-agenda-form class="grid gap-5 sm:grid-cols-2">
+          <div class="sm:col-span-2">
+            <label for="ev-title" class="field-label">
+              Nom de l’animation <span class="text-gold" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="ev-title"
+              name="title"
+              type="text"
+              required
+              minlength="3"
+              maxlength="100"
+              autocomplete="off"
+              placeholder="Foire de la Saint-Martin"
+              class="field"
+              aria-describedby="ev-title-hint"
+            />
+            <p id="ev-title-hint" class="field-hint">3 à 100 caractères.</p>
+          </div>
+
+          <div>
+            <label for="ev-rk" class="field-label">
+              Votre nom sur RK <span class="text-gold" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="ev-rk"
+              name="rkName"
+              type="text"
+              required
+              minlength="2"
+              maxlength="60"
+              autocomplete="nickname"
+              class="field"
+              aria-describedby="ev-rk-hint"
+            />
+            <p id="ev-rk-hint" class="field-hint">Le nom du joueur qui organise.</p>
+          </div>
+
+          <div>
+            <label for="ev-city" class="field-label">
+              Ville <span class="text-gold" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="ev-city"
+              name="city"
+              type="text"
+              required
+              minlength="2"
+              maxlength="60"
+              autocomplete="off"
+              class="field"
+              aria-describedby="ev-city-hint"
+            />
+            <p id="ev-city-hint" class="field-hint">Ville où se tient l’animation.</p>
+          </div>
+
+          <div>
+            <label for="ev-county" class="field-label">
+              Comté <span class="text-gold" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="ev-county"
+              name="county"
+              type="text"
+              required
+              minlength="2"
+              maxlength="60"
+              autocomplete="off"
+              class="field"
+              aria-describedby="ev-county-hint"
+            />
+            <p id="ev-county-hint" class="field-hint">Comté ou duché de la ville.</p>
+          </div>
+
+          <div>
+            <label for="ev-url" class="field-label">
+              Lien du forum <span class="text-gold" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="ev-url"
+              name="forumUrl"
+              type="url"
+              required
+              maxlength="500"
+              inputmode="url"
+              autocomplete="url"
+              placeholder="https://…"
+              class="field"
+              aria-describedby="ev-url-hint"
+            />
+            <p id="ev-url-hint" class="field-hint">Sujet officiel sur le forum RK.</p>
+          </div>
+
+          <div class="sm:col-span-2">
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="ev-start" class="field-label">
+                  Début <span class="text-gold" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="ev-start"
+                  name="startsOn"
+                  type="date"
+                  required
+                  class="field [color-scheme:dark]"
+                  aria-describedby="ev-dates-hint"
+                />
+              </div>
+              <div>
+                <label for="ev-end" class="field-label">
+                  Fin <span class="text-gold" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="ev-end"
+                  name="endsOn"
+                  type="date"
+                  required
+                  class="field [color-scheme:dark]"
+                  aria-describedby="ev-dates-hint"
+                />
+              </div>
+            </div>
+            <p id="ev-dates-hint" class="field-hint">Dates incluses, un an maximum.</p>
+          </div>
+
+          <!-- Honeypot: invisible to humans, must stay empty. -->
+          <div class="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+            <label for="ev-website">Site internet</label>
+            <input id="ev-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <p data-form-status role="alert" hidden class="form-status"></p>
+
+            <div class="mt-1 flex flex-wrap items-center gap-4">
+              <button type="submit" class="btn-gold" data-submit>
+                <span data-submit-label>Envoyer la proposition</span>
+              </button>
+              <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/60">
+                <span class="text-gold" aria-hidden="true">*</span> Champs obligatoires
+              </p>
+            </div>
+          </div>
+        </form>
+
+        <div data-form-success hidden tabindex="-1" class="outline-none">
+          <div class="flex items-center gap-3">
+            <span class="seal-check">
+              <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            </span>
+            <p class="label-caps">Proposition transmise</p>
+          </div>
+          <h3 class="mt-4 font-display text-xl tracking-[0.04em] text-parchment">
+            L’animation est entre les mains de l’organisation
+          </h3>
+          <div class="rule-gold my-4 w-16"></div>
+          <p class="max-w-lg text-sm leading-relaxed text-parchment-dim">
+            Merci. Votre proposition sera relue avant publication : elle apparaîtra dans la chronique
+            une fois validée, à la date indiquée.
+          </p>
+          <button type="button" class="btn-ghost mt-6" data-form-again>
+            Proposer une autre animation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .field-label {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--color-gold) 80%, var(--color-parchment-dim));
+  }
+  .field {
+    display: block;
+    width: 100%;
+    margin-top: 0.4rem;
+    padding: 0.6rem 0.7rem;
+    background: color-mix(in oklab, var(--color-ink) 55%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-gold) 22%, transparent);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--color-parchment);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .field::placeholder {
+    color: color-mix(in oklab, var(--color-parchment-dim) 55%, transparent);
+  }
+  .field:hover {
+    border-color: color-mix(in oklab, var(--color-gold) 38%, transparent);
+  }
+  .field:focus-visible {
+    border-color: var(--color-gold);
+    background: color-mix(in oklab, var(--color-ink) 80%, transparent);
+  }
+  .field-hint {
+    margin-top: 0.3rem;
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    color: color-mix(in oklab, var(--color-parchment-dim) 75%, transparent);
+  }
+  .form-status {
+    margin-bottom: 1rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid color-mix(in oklab, var(--color-blood) 65%, transparent);
+    background: color-mix(in oklab, var(--color-blood) 12%, transparent);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--color-parchment);
+  }
+  .seal-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 55%, transparent);
+    border-radius: 999px;
+    color: var(--color-gold-light);
+  }
+  .step-num {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid color-mix(in oklab, var(--color-gold) 28%, transparent);
+    font-family: var(--font-display);
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    color: var(--color-gold);
+  }
+</style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-agenda-form]');
+  const success = document.querySelector<HTMLElement>('[data-form-success]');
+  const againButton = document.querySelector<HTMLButtonElement>('[data-form-again]');
+
+  if (form && success) {
+    const status = form.querySelector<HTMLElement>('[data-form-status]');
+    const submit = form.querySelector<HTMLButtonElement>('[data-submit]');
+    const submitLabel = form.querySelector<HTMLElement>('[data-submit-label]');
+    const startsOn = form.elements.namedItem('startsOn') as HTMLInputElement | null;
+    const endsOn = form.elements.namedItem('endsOn') as HTMLInputElement | null;
+
+    const showStatus = (message: string) => {
+      if (!status) return;
+      status.textContent = message;
+      status.hidden = false;
+    };
+
+    const validateDates = () => {
+      if (!startsOn || !endsOn) return;
+      endsOn.min = startsOn.value;
+      if (!startsOn.value || !endsOn.value) {
+        endsOn.setCustomValidity('');
+        return;
+      }
+      const days =
+        (Date.parse(`${endsOn.value}T00:00:00Z`) - Date.parse(`${startsOn.value}T00:00:00Z`)) /
+          86_400_000 +
+        1;
+      if (endsOn.value < startsOn.value) {
+        endsOn.setCustomValidity('La date de fin doit suivre la date de début.');
+      } else if (days > 366) {
+        endsOn.setCustomValidity('Une animation ne peut pas durer plus d’un an.');
+      } else {
+        endsOn.setCustomValidity('');
+      }
+    };
+
+    startsOn?.addEventListener('change', validateDates);
+    endsOn?.addEventListener('change', validateDates);
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      validateDates();
+      if (!form.reportValidity()) return;
+
+      if (status) status.hidden = true;
+      if (submit) submit.disabled = true;
+      if (submitLabel) submitLabel.textContent = 'Envoi en cours…';
+
+      const payload = Object.fromEntries(new FormData(form));
+
+      try {
+        const response = await fetch('/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          form.reset();
+          if (endsOn) endsOn.min = '';
+          if (endsOn) endsOn.setCustomValidity('');
+          form.hidden = true;
+          success.hidden = false;
+          success.focus();
+          return;
+        }
+
+        let message =
+          'La proposition n’a pas pu être envoyée. Vérifiez les informations et réessayez.';
+
+        if (response.status === 429) {
+          message = 'Trop de propositions envoyées coup sur coup. Réessayez dans quelques minutes.';
+        } else if (response.status === 400) {
+          const body = (await response.json().catch(() => null)) as
+            | { error?: unknown; message?: unknown }
+            | null;
+          const detail =
+            typeof body?.error === 'string'
+              ? body.error
+              : typeof body?.message === 'string'
+                ? body.message
+                : '';
+          message =
+            detail ||
+            'Certaines informations sont incomplètes ou invalides. Vérifiez les champs et les dates.';
+        }
+
+        showStatus(message);
+      } catch {
+        showStatus('Connexion impossible. Vérifiez votre réseau, puis réessayez.');
+      } finally {
+        if (submit) submit.disabled = false;
+        if (submitLabel) submitLabel.textContent = 'Envoyer la proposition';
+      }
+    });
+
+    againButton?.addEventListener('click', () => {
+      success.hidden = true;
+      form.hidden = false;
+      form.reset();
+      if (status) status.hidden = true;
+      const firstField = form.querySelector<HTMLInputElement>('input[name="title"]');
+      firstField?.focus();
+    });
+  }
+</script>

@@ -9,6 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "catalog": "node scripts/catalog.mjs bootstrap",
+    "catalog:refresh": "node scripts/catalog.mjs refresh",
     "astro": "astro"
   },
   "dependencies": {
