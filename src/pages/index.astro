@@ -1,40 +1,111 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import StatusBadge from "../components/StatusBadge.astro";
-import { getTournamentState } from "../lib/state";
-import { listEvents } from "../lib/events";
-import { dayNumber, formatRange, monthShortLabel, todayISO } from "../components/agenda/dates";
 
-export const prerender = false;
+export const prerender = true;
 
-// Results and published animations change only when the organisation saves them.
-Astro.response.headers.set('Cache-Control', 's-maxage=20, stale-while-revalidate=60');
+type Tool = {
+    numeral: string;
+    href: string;
+    eyebrow: string;
+    title: string;
+    description: string;
+    cta: string;
+    paths: string[];
+    primary?: boolean;
+    featured?: boolean;
+    span?: string;
+    tags?: string[];
+    link?: { href: string; label: string };
+};
 
-const state = await getTournamentState();
-const { edition } = state;
-const champion = edition.champion;
-const fighters = state.fighters;
-const registered = fighters.length;
-const played = state.matches.filter((m) => m.played).length;
-const totalMatches = state.matches.length || 31;
-
-const events = await listEvents({ status: 'approved' });
-const today = todayISO();
-const upcoming = events
-    .filter((e) => e.endsOn >= today)
-    .sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.id - b.id);
-const nextEvents = upcoming.slice(0, 3);
-const nextEvent = nextEvents[0];
-const comingCount = upcoming.length;
-const counties = new Set(events.map((e) => e.county.trim().toLowerCase())).size;
-
-const monthOf = (iso: string) => monthShortLabel(iso.slice(0, 7)).split(' ')[0];
-const pct = (n: number, of: number) => Math.min(100, Math.round((n / of) * 100));
+const tools: Tool[] = [
+    {
+        numeral: 'I',
+        href: '/tournoi',
+        eyebrow: 'La lice',
+        title: 'Le tournoi',
+        description:
+            'Seize combattants, quatre groupes, une couronne. Suivez les poules, les classements et la phase finale, duel après duel.',
+        cta: 'Entrer dans le tournoi',
+        primary: true,
+        featured: true,
+        span: 'sm:col-span-2 lg:col-span-3',
+        tags: ['Poules', 'Phase finale', 'Palmarès'],
+        paths: [
+            'M3 8l4 2.6L12 5l5 5.6L21 8l-1.8 10.5H4.8L3 8Z',
+            'M6 21h12',
+        ],
+        link: { href: '/tournoi?onglet=reglement', label: 'Lire le règlement' },
+    },
+    {
+        numeral: 'II',
+        href: '/agenda',
+        eyebrow: 'La chronique',
+        title: 'L’agenda des royaumes',
+        description:
+            'Fêtes, marchés et cérémonies des royaumes, relus par l’organisation avant publication. Les prochaines dates, comté par comté.',
+        cta: 'Ouvrir l’agenda',
+        featured: true,
+        span: 'lg:col-span-3',
+        tags: ['Fêtes', 'Marchés', 'Cérémonies'],
+        paths: [
+            'M4 6.5h16V20H4V6.5Z',
+            'M8 3.5v5M16 3.5v5M4 11h16',
+        ],
+        link: { href: '/agenda#proposer', label: 'Proposer une animation' },
+    },
+    {
+        numeral: 'III',
+        href: '/seneschal',
+        eyebrow: 'Les comptes',
+        title: 'Le Sénéchal',
+        description:
+            'Rendements, coûts et marges des champs et des échoppes, calculés sur les règles à jour du jeu.',
+        cta: 'Ouvrir le Sénéchal',
+        span: 'lg:col-span-2',
+        paths: [
+            'M12 21V8',
+            'M12 12c-2.6 0-4.2-1.6-4.2-4.2 2.6 0 4.2 1.6 4.2 4.2Z',
+            'M12 12c2.6 0 4.2-1.6 4.2-4.2-2.6 0-4.2 1.6-4.2 4.2Z',
+            'M12 17.2c-2.6 0-4.2-1.6-4.2-4.2 2.6 0 4.2 1.6 4.2 4.2Z',
+            'M12 17.2c2.6 0 4.2-1.6 4.2-4.2-2.6 0-4.2 1.6-4.2 4.2Z',
+        ],
+        link: { href: '/seneschal/champs/elevage-de-vaches', label: 'Élevage de vaches' },
+    },
+    {
+        numeral: 'IV',
+        href: '/garde-robe',
+        eyebrow: 'L’atelier',
+        title: 'La garde-robe',
+        description:
+            'Vêtements, armes et teintes : essayez-les sur votre personnage et exportez le rendu en PNG. Rien n’est enregistré dans le jeu.',
+        cta: 'Ouvrir la garde-robe',
+        span: 'lg:col-span-2',
+        paths: [
+            'M9 4l3 1.6L15 4l4.5 2.6-1.9 3.4-2.6-1.3V20H9V8.7L6.4 10 4.5 6.6 9 4Z',
+        ],
+    },
+    {
+        numeral: 'V',
+        href: '/catalogue',
+        eyebrow: 'Le registre',
+        title: 'Le catalogue',
+        description:
+            'Tous les objets de garde-robe : emplacements, sexes et déclinaisons. La recherche fonctionne en français comme en anglais.',
+        cta: 'Parcourir le catalogue',
+        span: 'lg:col-span-2',
+        paths: [
+            'M5 4.5A1.5 1.5 0 0 1 6.5 3H19v18H6.5A1.5 1.5 0 0 1 5 19.5v-15Z',
+            'M8.5 7.5h6M8.5 11.5h4',
+        ],
+        link: { href: '/submit', label: 'Contribuer au catalogue' },
+    },
+];
 ---
 
 <Layout
-    title="Le Trône des Lames — Tournoi & agenda des animations"
-    description="Le Trône des Lames réunit le tournoi de combat et l’agenda des animations des royaumes de Renaissance Kingdoms : duels, classements, fêtes et cérémonies."
+    title="Le Trône des Lames — Les outils du royaume"
+    description="Les outils des joueurs de Renaissance Kingdoms : tournoi, agenda des animations, calculateurs du Sénéchal, garde-robe et catalogue d’objets."
 >
     <!-- HERO -->
     <section class="relative overflow-hidden border-b border-gold/15">
@@ -46,11 +117,11 @@ const pct = (n: number, of: number) => Math.min(100, Math.round((n / of) * 100))
         >
         </div>
 
-        <div class="container-tdl relative grid gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center lg:gap-16 lg:py-24">
+        <div class="container-tdl relative grid gap-10 py-14 sm:py-20 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center lg:gap-16 lg:py-24">
             <div>
-                <p class="label-caps reveal">Renaissance Kingdoms · Tournoi & chronique</p>
+                <p class="label-caps reveal">Renaissance Kingdoms · Outils de jeu</p>
 
-                <h1 class="reveal mt-5 font-display text-[2.35rem] leading-[1.03] font-black tracking-[0.07em] text-parchment sm:text-5xl lg:text-6xl">
+                <h1 class="reveal mt-5 font-display text-[2.35rem] leading-[1.03] font-black tracking-[0.07em] text-parchment sm:text-5xl lg:text-6xl" style="animation-delay:0.05s">
                     LE TRÔNE
                     <br />
                     <span class="bg-gradient-to-b from-gold-light via-gold to-gold-dim bg-clip-text text-transparent">
@@ -58,18 +129,17 @@ const pct = (n: number, of: number) => Math.min(100, Math.round((n / of) * 100))
                     </span>
                 </h1>
 
-                <div class="rule-gold reveal my-6 w-32"></div>
+                <div class="rule-gold reveal my-6 w-32" style="animation-delay:0.1s"></div>
 
-                <p class="reveal max-w-lg text-balance leading-relaxed text-parchment-dim">
-                    Le Trône des Lames tient deux registres : le tournoi de combat
-                    et l’agenda des animations des royaumes. D’un côté la lice et
-                    ses duels, de l’autre les fêtes, marchés et cérémonies qui
-                    font vivre Renaissance Kingdoms.
+                <p class="reveal max-w-lg text-balance leading-relaxed text-parchment-dim" style="animation-delay:0.15s">
+                    Combattre en lice, suivre les fêtes des royaumes, calculer
+                    la marge d’un champ, essayer une tenue : les outils des
+                    joueurs de Renaissance Kingdoms, réunis au même endroit.
                 </p>
 
-                <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap" style="animation-delay:0.2s">
                     <a href="/tournoi" class="btn-gold w-full justify-center sm:w-auto">
-                        Voir le tournoi
+                        Entrer dans le tournoi
                     </a>
                     <a href="/agenda" class="btn-ghost w-full justify-center sm:w-auto">
                         Ouvrir l’agenda
@@ -77,336 +147,168 @@ const pct = (n: number, of: number) => Math.min(100, Math.round((n / of) * 100))
                 </div>
             </div>
 
-            <aside
-                class="card-dark texture-noise reveal relative"
-                aria-labelledby="apercu-titre"
-                style="animation-delay:0.12s"
+            <div
+                class="reveal relative mx-auto hidden w-full max-w-[19rem] sm:block lg:max-w-[22rem]"
+                style="animation-delay:0.14s"
+                aria-hidden="true"
             >
-                <span class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" aria-hidden="true"></span>
-
-                <div class="border-b border-gold/20 px-5 py-4 sm:px-6">
-                    <h2 id="apercu-titre" class="label-caps">En ce moment</h2>
-                </div>
-
-                <div class="divide-y divide-gold/15">
-                    <div class="px-5 py-5 sm:px-6">
-                        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                            <p class="text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-parchment-dim">À l’agenda</p>
-                            {comingCount > 0 && (
-                                <p class="text-[0.625rem] tabular-nums text-parchment-dim/70">
-                                    {comingCount} animation{comingCount > 1 ? 's' : ''} à venir
-                                </p>
-                            )}
-                        </div>
-
-                        {nextEvent ? (
-                            <div class="mt-2.5">
-                                <p class="font-display text-base leading-snug tracking-[0.03em] text-parchment">
-                                    {nextEvent.title}
-                                </p>
-                                <p class="mt-1.5 font-display text-xs tracking-[0.08em] text-gold-light">
-                                    {formatRange(nextEvent.startsOn, nextEvent.endsOn)}
-                                </p>
-                                <p class="mt-1 text-xs text-parchment-dim">
-                                    {nextEvent.city} · {nextEvent.county}
-                                </p>
-                            </div>
-                        ) : (
-                            <p class="mt-2.5 text-sm leading-relaxed text-parchment-dim">
-                                Aucune animation annoncée. Les propositions validées
-                                apparaîtront ici.
-                            </p>
-                        )}
-
-                        <a href="/agenda" class="link-arrow mt-4">
-                            Ouvrir l’agenda
-                            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path d="M5 12h14M13 6l6 6-6 6" />
-                            </svg>
-                        </a>
-                    </div>
-
-                    <div class="px-5 py-5 sm:px-6">
-                        <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                            <p class="text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-parchment-dim">Le tournoi</p>
-                            <StatusBadge state={state} />
-                        </div>
-
-                        {champion ? (
-                            <div class="mt-3 flex items-center gap-2.5">
-                                <svg viewBox="0 0 24 24" class="h-7 w-7 flex-none text-gold" fill="currentColor" aria-hidden="true">
-                                    <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zM6 20h12v2H6v-2z" />
-                                </svg>
-                                <div class="min-w-0">
-                                    <p class="text-[0.5625rem] uppercase tracking-[0.16em] text-parchment-dim">Champion</p>
-                                    <p class="champion-shimmer truncate font-display text-lg font-bold tracking-[0.08em]">
-                                        {champion.name}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <p class="mt-3 text-sm text-parchment-dim">
-                                <span class="font-display text-lg tabular-nums text-parchment">{registered} / 16</span>
-                                combattants inscrits
-                            </p>
-                        )}
-
-                        <a href="/tournoi" class="link-arrow mt-4">
-                            Voir le tournoi
-                            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path d="M5 12h14M13 6l6 6-6 6" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            </aside>
+                <svg viewBox="0 0 320 320" class="h-auto w-full text-gold" fill="none" aria-hidden="true">
+                    <circle cx="160" cy="160" r="152" stroke="currentColor" stroke-opacity="0.14" />
+                    <circle
+                        cx="160"
+                        cy="160"
+                        r="126"
+                        stroke="currentColor"
+                        stroke-opacity="0.3"
+                        stroke-dasharray="1 8"
+                        stroke-linecap="round"
+                        class="sigil-ring"
+                    />
+                    <circle cx="160" cy="160" r="98" stroke="currentColor" stroke-opacity="0.2" />
+                    <circle cx="160" cy="160" r="88" stroke="currentColor" stroke-opacity="0.35" stroke-width="0.75" />
+                    <path
+                        d="M160 8v22M160 290v22M8 160h22M290 160h22"
+                        stroke="currentColor"
+                        stroke-opacity="0.4"
+                        stroke-width="1.5"
+                    />
+                    <path
+                        d="M160 58l10 82 82 10-82 10-10 82-10-82-82-10 82-10 10-82Z"
+                        fill="currentColor"
+                        fill-opacity="0.06"
+                    />
+                    <text
+                        x="160"
+                        y="158"
+                        text-anchor="middle"
+                        dominant-baseline="central"
+                        font-family="Cinzel, serif"
+                        font-size="84"
+                        font-weight="700"
+                        letter-spacing="4"
+                        fill="currentColor"
+                        fill-opacity="0.9">V</text>
+                    <text
+                        x="160"
+                        y="224"
+                        text-anchor="middle"
+                        font-family="Inter, sans-serif"
+                        font-size="9"
+                        letter-spacing="4"
+                        fill="currentColor"
+                        fill-opacity="0.55">OUTILS</text>
+                </svg>
+            </div>
         </div>
     </section>
 
-    <!-- TWO PILLARS -->
-    <section class="container-tdl py-16 sm:py-20" aria-labelledby="piliers-titre">
-        <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <!-- TOOLS -->
+    <section class="container-tdl py-16 sm:py-20" aria-labelledby="outils-titre">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-                <p class="label-caps">Le domaine</p>
-                <h2 id="piliers-titre" class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl">
-                    Deux registres,
+                <p class="label-caps">Les outils</p>
+                <h2 id="outils-titre" class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl">
+                    Cinq outils,
                     <br class="hidden sm:block" /> un même royaume
                 </h2>
             </div>
             <p class="max-w-sm text-sm leading-relaxed text-parchment-dim lg:text-right">
-                La lice du tournoi et la chronique des animations. Deux façons
-                de suivre ce qui se joue à Renaissance Kingdoms.
+                Chaque outil a sa page. Règlement, propositions d’animations et
+                contributions au catalogue s’y trouvent aussi.
             </p>
         </div>
 
-        <div class="mt-10 grid items-start gap-5 md:grid-cols-2">
-            <article class="pillar card-dark texture-noise relative p-6 sm:p-8">
-                <span class="pointer-events-none absolute right-5 top-4 font-display text-6xl font-black leading-none text-gold/10" aria-hidden="true">
-                    I
-                </span>
-                <p class="label-caps">La lice</p>
-                <h3 class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment">Le tournoi</h3>
-                <p class="mt-3 max-w-md text-sm leading-relaxed text-parchment-dim">
-                    Seize combattants répartis en quatre groupes, puis une phase
-                    finale à élimination directe. Classements, duels et palmarès
-                    sont reportés par l’organisation au fil de la compétition.
-                </p>
-                <p class="mt-5 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
-                    16 combattants
-                    <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>
-                    31 duels
-                    <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>
-                    1 couronne
-                </p>
-                <a href="/tournoi" class="link-arrow mt-6">
-                    Voir le tournoi
-                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path d="M5 12h14M13 6l6 6-6 6" />
-                    </svg>
-                </a>
-            </article>
+        <div class="rule-gold mt-8 w-full opacity-60"></div>
 
-            <article class="pillar card-dark texture-noise relative p-6 sm:p-8 lg:mt-10">
-                <span class="pointer-events-none absolute right-5 top-4 font-display text-6xl font-black leading-none text-gold/10" aria-hidden="true">
-                    II
-                </span>
-                <p class="label-caps">La chronique</p>
-                <h3 class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment">L’agenda des royaumes</h3>
-                <p class="mt-3 max-w-md text-sm leading-relaxed text-parchment-dim">
-                    Fêtes, marchés, tournois et cérémonies proposés par les
-                    joueurs de Renaissance Kingdoms. Chaque animation est relue
-                    avant d’entrer au registre.
-                </p>
-                <p class="mt-5 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
-                    {events.length} animation{events.length > 1 ? 's' : ''}
-                    <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>
-                    {counties} comté{counties > 1 ? 's' : ''}
-                </p>
-                <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-                    <a href="/agenda" class="link-arrow">
-                        Ouvrir l’agenda
-                        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                            <path d="M5 12h14M13 6l6 6-6 6" />
-                        </svg>
-                    </a>
-                    <a
-                        href="/agenda#proposer"
-                        class="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-parchment-dim underline decoration-gold/30 underline-offset-4 transition-colors hover:text-parchment"
+        <div class="mt-8 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-6">
+            {tools.map((tool, i) => (
+                <article
+                    class:list={[
+                        'card-dark texture-noise group relative flex flex-col p-6 sm:p-7',
+                        tool.span,
+                    ]}
+                >
+                    {tool.featured && (
+                        <span
+                            class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent"
+                            aria-hidden="true"
+                        >
+                        </span>
+                    )}
+
+                    <span
+                        class="pointer-events-none absolute right-5 top-4 font-display text-5xl leading-none font-black text-gold/10 transition-colors group-hover:text-gold/20 sm:text-6xl"
+                        aria-hidden="true"
                     >
-                        Proposer une animation
-                    </a>
-                </div>
-            </article>
-        </div>
-    </section>
+                        {tool.numeral}
+                    </span>
 
-    <!-- NEXT ANIMATIONS -->
-    <section class="border-y border-gold/15 bg-ink-2/60" aria-labelledby="prochaines-titre">
-        <div class="container-tdl py-16 sm:py-20">
-            <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-                <div>
-                    <p class="label-caps">Chronique</p>
-                    <h2 id="prochaines-titre" class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl">
-                        Prochaines animations
-                    </h2>
-                </div>
-                <a href="/agenda" class="link-arrow">
-                    Tout l’agenda
-                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path d="M5 12h14M13 6l6 6-6 6" />
-                    </svg>
-                </a>
-            </div>
+                    <div class="reveal" style={`animation-delay:${0.05 + i * 0.05}s`}>
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-11 w-11 flex-none items-center justify-center border border-gold/25 bg-ink/30 text-gold">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    {tool.paths.map((d) => <path d={d} />)}
+                                </svg>
+                            </span>
+                            <p class="label-caps">{tool.eyebrow}</p>
+                        </div>
 
-            <div class="rule-gold mt-5 w-full opacity-70"></div>
+                        <h3
+                            class:list={[
+                                'mt-5 font-display tracking-[0.05em] text-parchment transition-colors group-hover:text-gold-light',
+                                tool.featured ? 'text-2xl' : 'text-xl',
+                            ]}
+                        >
+                            {tool.title}
+                        </h3>
 
-            {nextEvents.length > 0 ? (
-                <ul class="card-dark texture-noise mt-6 divide-y divide-gold/10">
-                    {nextEvents.map((e) => (
-                        <li>
-                            <a
-                                href="/agenda"
-                                class="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 transition-colors hover:bg-gold/[0.05] sm:px-6 sm:py-5"
-                            >
-                                <span class="flex w-14 flex-none flex-col items-center border border-gold/25 bg-ink/40 py-1.5">
-                                    <span class="font-display text-lg font-bold leading-none tabular-nums text-gold-light">
-                                        {dayNumber(e.startsOn)}
-                                    </span>
-                                    <span class="mt-1 text-[0.5rem] uppercase tracking-[0.08em] text-parchment-dim">
-                                        {monthOf(e.startsOn)}
-                                    </span>
-                                </span>
+                        <p class="mt-3 text-sm leading-relaxed text-parchment-dim">
+                            {tool.description}
+                        </p>
 
-                                <span class="min-w-0">
-                                    <span class="block truncate font-display text-sm tracking-[0.03em] text-parchment sm:text-base">
-                                        {e.title}
+                        {tool.tags && (
+                            <p class="mt-4 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
+                                {tool.tags.map((tag, index) => (
+                                    <span class="whitespace-nowrap">
+                                        {index > 0 && <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>}
+                                        {tag}
                                     </span>
-                                    <span class="mt-1 block font-display text-xs tracking-[0.08em] text-gold-light">
-                                        {formatRange(e.startsOn, e.endsOn)}
-                                    </span>
-                                    <span class="mt-1 block text-xs text-parchment-dim">
-                                        {e.city} · {e.county}
-                                    </span>
-                                    <span class="mt-1 block text-[0.5625rem] uppercase tracking-[0.16em] text-parchment-dim/70">
-                                        Proposé par {e.rkName}
-                                    </span>
-                                </span>
+                                ))}
+                            </p>
+                        )}
+                    </div>
 
-                                <svg viewBox="0 0 24 24" class="h-4 w-4 flex-none text-gold/40 transition-colors group-hover:text-gold" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-                                    <path d="M9 5l7 7-7 7" />
+                    <div class="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 pt-6">
+                        <a
+                            href={tool.href}
+                            class:list={[
+                                tool.primary ? 'btn-gold' : 'btn-ghost',
+                                'card-link w-full justify-center sm:w-auto',
+                            ]}
+                        >
+                            {tool.cta}
+                        </a>
+
+                        {tool.link && (
+                            <a href={tool.link.href} class="link-arrow relative z-10">
+                                {tool.link.label}
+                                <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path d="M5 12h14M13 6l6 6-6 6" />
                                 </svg>
                             </a>
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <div class="card-dark texture-noise mt-6 flex flex-col items-center px-6 py-12 text-center">
-                    <svg viewBox="0 0 24 24" class="h-8 w-8 text-gold/60" fill="currentColor" aria-hidden="true">
-                        <path d="M12 2l2.4 6.2L21 10l-5 4.6L17.2 21 12 17.6 6.8 21 8 14.6 3 10l6.6-1.8L12 2z" />
-                    </svg>
-                    <p class="mt-4 font-display text-lg tracking-[0.06em] text-parchment">
-                        Le registre attend ses premières animations
-                    </p>
-                    <p class="mt-2 max-w-md text-sm leading-relaxed text-parchment-dim">
-                        Les animations validées par l’organisation apparaîtront
-                        ici, classées par date.
-                    </p>
-                    <a href="/agenda" class="btn-ghost mt-6">Ouvrir l’agenda</a>
-                </div>
-            )}
-        </div>
-    </section>
-
-    <!-- TOURNAMENT AT A GLANCE -->
-    <section class="container-tdl py-16 sm:py-20" aria-labelledby="lice-titre">
-        <div class="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center lg:gap-16">
-            <div>
-                <p class="label-caps">Le tournoi</p>
-                <h2 id="lice-titre" class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl">
-                    Seize combattants,
-                    <br class="hidden sm:block" /> une couronne
-                </h2>
-                <div class="rule-gold my-6 w-24"></div>
-                <p class="max-w-xl leading-relaxed text-parchment-dim">
-                    Quatre groupes de quatre pour les poules, puis une phase
-                    finale à élimination directe. Chaque duel désigne un
-                    vainqueur ; les résultats officiels sont reportés ici.
-                </p>
-
-                <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {[
-                        { n: '16', l: 'Combattants' },
-                        { n: '24', l: 'Duels de poules' },
-                        { n: '8', l: 'Qualifiés' },
-                        { n: '31', l: 'Duels au total' },
-                    ].map((s) => (
-                        <div class="card-dark texture-noise px-4 py-4">
-                            <p class="font-display text-2xl font-bold tracking-[0.06em] text-gold">{s.n}</p>
-                            <p class="mt-1 text-[0.625rem] uppercase leading-relaxed tracking-[0.12em] text-parchment-dim">{s.l}</p>
-                        </div>
-                    ))}
-                </div>
-
-                <a href="/tournoi" class="btn-ghost mt-8">Voir le tournoi</a>
-            </div>
-
-            <div class="card-dark texture-noise p-6 sm:p-7">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <p class="label-caps">Édition {edition.name}</p>
-                    <StatusBadge state={state} />
-                </div>
-
-                <dl class="mt-6 space-y-5">
-                    <div>
-                        <div class="flex items-baseline justify-between gap-3">
-                            <dt class="text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim">Inscriptions</dt>
-                            <dd class="font-display text-sm tabular-nums text-parchment">{registered} / 16</dd>
-                        </div>
-                        <div class="mt-2 h-1 w-full bg-ink" aria-hidden="true">
-                            <div class="h-full bg-gradient-to-r from-gold-dim to-gold" style={`width:${pct(registered, 16)}%`}></div>
-                        </div>
+                        )}
                     </div>
-                    <div>
-                        <div class="flex items-baseline justify-between gap-3">
-                            <dt class="text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim">Duels enregistrés</dt>
-                            <dd class="font-display text-sm tabular-nums text-parchment">{played} / {totalMatches}</dd>
-                        </div>
-                        <div class="mt-2 h-1 w-full bg-ink" aria-hidden="true">
-                            <div class="h-full bg-gradient-to-r from-gold-dim to-gold" style={`width:${pct(played, totalMatches)}%`}></div>
-                        </div>
-                    </div>
-                </dl>
-
-                <p class="mt-6 text-[0.6875rem] leading-relaxed text-parchment-dim/70">
-                    Résultats officiels mis à jour par l’organisation.
-                </p>
-
-                <a href="/tournoi" class="link-arrow mt-4">
-                    Classements & phase finale
-                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path d="M5 12h14M13 6l6 6-6 6" />
-                    </svg>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- RULES -->
-    <section class="border-t border-gold/15 bg-ink-2/40" aria-labelledby="reglement-titre">
-        <div class="container-tdl flex flex-col items-start justify-between gap-6 py-12 sm:flex-row sm:items-center sm:py-14">
-            <div>
-                <p class="label-caps">Avant d’entrer en lice</p>
-                <h2 id="reglement-titre" class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl">
-                    Le règlement officiel
-                </h2>
-                <p class="mt-2 max-w-xl text-sm leading-relaxed text-parchment-dim">
-                    Format des duels, tenue des combats, conduite des
-                    participants : l’essentiel tient en une page.
-                </p>
-            </div>
-            <a href="/tournoi?onglet=reglement" class="btn-gold w-full flex-none justify-center sm:w-auto">
-                Lire le règlement
-            </a>
+                </article>
+            ))}
         </div>
     </section>
 </Layout>
@@ -433,17 +335,28 @@ const pct = (n: number, of: number) => Math.min(100, Math.round((n / of) * 100))
         transform: translateX(3px);
     }
 
-    .pillar {
-        transition: border-color 0.2s ease;
+    /* Toute la carte ouvre son outil : l'ombre du bouton recouvre la carte. */
+    .card-link::after {
+        content: "";
+        position: absolute;
+        inset: 0;
     }
-    .pillar:hover {
-        border-color: color-mix(in oklab, var(--color-gold) 38%, transparent);
+
+    @media (prefers-reduced-motion: no-preference) {
+        .sigil-ring {
+            transform-origin: 160px 160px;
+            animation: sigil-spin 90s linear infinite;
+        }
+    }
+    @keyframes sigil-spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     @media (prefers-reduced-motion: reduce) {
         .link-arrow,
-        .link-arrow svg,
-        .pillar {
+        .link-arrow svg {
             transition: none;
         }
         .link-arrow:hover svg {
