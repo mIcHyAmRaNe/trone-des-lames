@@ -219,3 +219,12 @@ html[data-theme="light"] .card-dark {
 html[data-theme="light"] .bg-blood.text-parchment {
   color: var(--color-ink-3);
 }
+
+/* Midas canvas: scale down to fit container (e.g., when changeSize > 1 makes canvas taller than 480px).
+   The canvas keeps its intrinsic resolution for export quality. */
+.apercu_personnage_rar__calque {
+  max-height: 100%;
+  max-width: 100%;
+  height: auto;
+  width: auto;
+}

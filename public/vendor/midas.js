@@ -137,12 +137,28 @@
 					resolution = 1;
 			}
 
+			// Base dimensions (1x resolution)
+			const BASE_WIDTH = 256;
+			const BASE_HEIGHT = 512;
+
+			// Determine max scale from changeSize alterations to size canvas appropriately
+			let maxScale = 1;
+			if (infosContexte.alterationsMidas) {
+				for (let alteration of infosContexte.alterationsMidas) {
+					if (alteration.Type === "changeSize" && typeof alteration.Value === "number") {
+						maxScale = Math.max(maxScale, alteration.Value);
+					}
+				}
+			}
+
 			let canvas = document.createElement("canvas");
 			let context = canvas.getContext("2d");
 			canvas.classList.add("apercu_personnage_rar__calque");
-			canvas.width = resolution * 256;
-			canvas.height = resolution * 512;
+			canvas.width = resolution * BASE_WIDTH * maxScale;
+			canvas.height = resolution * BASE_HEIGHT * maxScale;
 			context.midasResolution = resolution;
+			// Store base height for consistent scaling in dessineCanvas
+			context.midasBaseHeight = resolution * BASE_HEIGHT;
 			return this.dessineCanvas(canvas, context, infosContexte);
 		}
 
@@ -223,9 +239,10 @@
 							}
 						}
 
-						// Compute size and draw image
-						let newWidth = canvas.width * tailleModificateur;
-						let newHeight = canvas.height * tailleModificateur;
+						// Compute size and draw image using base height for consistent scaling
+						const baseHeight = context.midasBaseHeight ?? canvas.height;
+						let newWidth = baseHeight * tailleModificateur * (canvas.width / canvas.height); // maintain aspect
+						let newHeight = baseHeight * tailleModificateur;
 
 						let posX = (canvas.width - newWidth) * 0.5 + calque.posX * context.midasResolution; // *0.5 pour centrer
 						let posY = (canvas.height - newHeight) + calque.posY * context.midasResolution; // en bas
