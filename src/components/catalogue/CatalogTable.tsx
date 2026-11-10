@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  CATEGORIES,
   type Catalog,
   type CatalogItem,
   SEXE_LABEL,
+  categoryLabel,
+  categoryOf,
   itemHaystack,
   itemLabel,
   loadCatalog,
-  slotLabel,
 } from '../../lib/wardrobe';
 
 const PER_PAGE = 80;
@@ -17,7 +19,7 @@ type SexeFilter = '' | SexeValue;
 interface Row {
   id: string;
   name: string;
-  slot: string;
+  category: string;
   sexe: SexeValue;
   zIndex: string;
   variants: number;
@@ -43,7 +45,7 @@ function buildRows(catalog: Catalog): Row[] {
     rows.push({
       id,
       name: itemLabel(item),
-      slot: item.slot,
+      category: categoryOf(item),
       sexe: pair.m && pair.f ? 'Mixte' : pair.m ? 'M' : 'F',
       zIndex: item.zIndex.join(', '),
       variants: item.declinaisons.length || 1,
@@ -91,7 +93,7 @@ export default function CatalogTable() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [slot, setSlot] = useState('');
+  const [category, setCategory] = useState('');
   const [sexe, setSexe] = useState<SexeFilter>('');
   const [page, setPage] = useState(1);
 
@@ -108,48 +110,46 @@ export default function CatalogTable() {
 
   const rows = useMemo(() => (catalog ? buildRows(catalog) : []), [catalog]);
 
-  const slots = useMemo(
-    () =>
-      [...new Set(rows.map((r) => r.slot))].sort((a, b) =>
-        slotLabel(a).localeCompare(slotLabel(b), 'fr'),
-      ),
-    [rows],
-  );
+  // Catégories du jeu présentes dans le catalogue, dans leur ordre d'armoire.
+  const categories = useMemo(() => {
+    const present = new Set(rows.map((r) => r.category));
+    return CATEGORIES.map((c) => c.key).filter((key) => present.has(key));
+  }, [rows]);
 
   const needle = query.trim().toLowerCase();
   const filtered = useMemo(
     () =>
       rows.filter(
         (r) =>
-          (!slot || r.slot === slot) &&
+          (!category || r.category === category) &&
           (!sexe || r.sexe === sexe) &&
           (!needle || r.haystack.includes(needle)),
       ),
-    [rows, slot, sexe, needle],
+    [rows, category, sexe, needle],
   );
 
   const stats = useMemo(
     () => ({
       items: rows.length,
-      slots: slots.length,
+      categories: categories.length,
       variants: rows.reduce((n, r) => n + r.variants, 0),
     }),
-    [rows, slots],
+    [rows, categories],
   );
 
   // Retour à la première page dès qu'un filtre change.
   useEffect(() => {
     setPage(1);
-  }, [query, slot, sexe]);
+  }, [query, category, sexe]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const current = Math.min(page, pageCount);
   const pageRows = filtered.slice((current - 1) * PER_PAGE, current * PER_PAGE);
-  const hasFilter = needle !== '' || slot !== '' || sexe !== '';
+  const hasFilter = needle !== '' || category !== '' || sexe !== '';
 
   const reset = () => {
     setQuery('');
-    setSlot('');
+    setCategory('');
     setSexe('');
   };
 
@@ -199,7 +199,7 @@ export default function CatalogTable() {
         {(
           [
             [stats.items, 'Objets référencés'],
-            [stats.slots, 'Emplacements'],
+            [stats.categories, 'Catégories'],
             [stats.variants, 'Déclinaisons'],
           ] as const
         ).map(([value, label]) => (
@@ -238,20 +238,20 @@ export default function CatalogTable() {
           </div>
 
           <div className="sm:w-52">
-            <label htmlFor="catalogue-slot" className="label-caps">
-              Emplacement
+            <label htmlFor="catalogue-category" className="label-caps">
+              Catégorie
             </label>
             <div className="relative mt-1.5">
               <select
-                id="catalogue-slot"
-                value={slot}
-                onChange={(e) => setSlot(e.target.value)}
+                id="catalogue-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
                 className="w-full appearance-none border border-gold/25 bg-ink/60 py-2.5 pl-3 pr-9 text-sm text-parchment focus:border-gold/60 focus:outline-none [&>option]:bg-ink-2 [&>option]:text-parchment"
               >
-                <option value="">Tous</option>
-                {slots.map((s) => (
-                  <option key={s} value={s}>
-                    {slotLabel(s)}
+                <option value="">Toutes</option>
+                {categories.map((key) => (
+                  <option key={key} value={key}>
+                    {categoryLabel(key)}
                   </option>
                 ))}
               </select>
@@ -324,7 +324,7 @@ export default function CatalogTable() {
                     Nom
                   </th>
                   <th scope="col" className="px-4 py-3 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-gold">
-                    Emplacement
+                    Catégorie
                   </th>
                   <th scope="col" className="px-4 py-3 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-gold">
                     Sexe
@@ -346,7 +346,7 @@ export default function CatalogTable() {
                     <td className="px-4 py-2.5 font-medium text-parchment">{r.name}</td>
                     <td className="px-4 py-2.5">
                       <span className="inline-block border border-gold/20 px-2 py-0.5 text-[0.6875rem] text-parchment-dim">
-                        {slotLabel(r.slot)}
+                        {categoryLabel(r.category)}
                       </span>
                     </td>
                     <td className={r.sexe === 'Mixte' ? 'px-4 py-2.5 text-gold-light/90' : 'px-4 py-2.5 text-parchment-dim'}>

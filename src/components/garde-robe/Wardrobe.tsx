@@ -7,6 +7,7 @@ import {
   useState,
   type FormEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import Select from "react-select";
 import { dotStyles, selectClassNames } from "./selectTheme";
@@ -16,20 +17,21 @@ import {
   type EquipEntry,
   type Loadout,
   type Sexe,
-  MULTI_SLOTS,
-  SECTIONS,
+  CATEGORIES,
+  FAMILIES,
   SEXE_LABEL,
+  categoryLabel,
+  categoryOf,
   countEquipped,
+  entriesInCategory,
   entryFrom,
-  indexBySlot,
+  indexByCategory,
+  isMultiCategory,
   itemHaystack,
   itemLabel,
   loadCatalog,
-  multiSlotsOf,
-  orphanSlots,
-  removeEntry,
+  removeCategory,
   shadeColor,
-  slotLabel,
   toLoadout,
   upsert,
 } from "../../lib/wardrobe";
@@ -53,61 +55,6 @@ type Status = "idle" | "logging-in" | "ready" | "error";
 /** Aperçu au survol : jamais engagé avant le clic. */
 type Hover = { slot: string; id: string; declinaison: number } | null;
 
-interface SectionDef {
-  title: string;
-  slots: string[];
-  hidden?: boolean;
-}
-
-/**
- * Familles d'onglets : les 16 sections de SECTIONS atterrissent chacune dans
- * exactement un onglet, y compris les trois marquées `hidden` (Mains,
- * Familiers, Outils) — désormais toujours visibles dans leur onglet. L'onglet
- * par défaut est « Habits », celui qui sert le plus.
- */
-const TAB_DEFS: { id: string; label: string; sectionTitles: string[] }[] = [
-  {
-    id: "corps",
-    label: "Corps",
-    sectionTitles: ["IX · Visage", "II · Corps"],
-  },
-  {
-    id: "accessoires",
-    label: "Armes et Accessoires",
-    sectionTitles: [
-      "I · Chapeaux & Casques",
-      "IV · Chaussures & Sous-Vêtements",
-      "V · Bijoux",
-      "XIII · Gants, Ceinture & Cou",
-      "VIII · Armes",
-      "XV · Boucliers",
-      "VI · Mains",
-    ],
-  },
-  {
-    id: "habits",
-    label: "Habits",
-    sectionTitles: [
-      "III · Tabliers & Gilets",
-      "IV · Braies & Jupes",
-      "XI · Bustiers & Chemises",
-      "X · Capes & Mantels",
-      "XII · Panoplies",
-    ],
-  },
-  { id: "familiers",
-    label: "Familiers & outils",
-    sectionTitles: ["VII · Familiers", "XVI · Outils"],
-  },
-  { id: "decors", label: "Décors", sectionTitles: ["XIV · Cadres & Fonds"] },
-];
-const OTHERS_TITLE = "Autres emplacements";
-// Filet de sécurité : si un titre de SECTIONS dérive, la section ne doit pas
-// disparaître — elle rejoint l'onglet « Autres ».
-const UNCLAIMED_TITLES = SECTIONS.filter(
-  (s) => !TAB_DEFS.some((t) => t.sectionTitles.includes(s.title)),
-).map((s) => s.title);
-
 interface ShadeOpt {
   value: number;
   label: string;
@@ -125,6 +72,141 @@ const ghostSm =
 const tabBaseCls =
   "flex flex-none cursor-pointer items-center gap-1.5 whitespace-nowrap border px-3 py-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] transition-colors";
 
+const arrowCls =
+  "grid h-7 w-7 flex-none cursor-pointer place-items-center border border-gold/25 text-gold-light transition-colors hover:border-gold hover:bg-gold/10 disabled:pointer-events-none disabled:border-gold/10 disabled:text-parchment-dim/30";
+
+/**
+ * Rangée de navigation qui peut déborder : défilement horizontal avec deux
+ * flèches et un fondu de bord. Les flèches n'apparaissent que si la rangée
+ * déborde (sinon elles ne servent à rien) et se désactivent aux extrémités,
+ * pour qu'aucun onglet ni aucune puce ne reste caché sans indice.
+ */
+function ArrowScroller({
+  label,
+  className,
+  children,
+}: {
+  /** Nom lu par les flèches : « Faire défiler <label> vers la droite ». */
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const prevRef = useRef<HTMLButtonElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+  const [edges, setEdges] = useState({ start: true, end: true, full: true });
+
+  const sync = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const start = el.scrollLeft <= 1;
+    const end = el.scrollLeft >= max - 1;
+    const full = max <= 1;
+    setEdges((prev) =>
+      prev.start === start && prev.end === end && prev.full === full
+        ? prev
+        : { start, end, full },
+    );
+    // Un bouton qui se désactive alors qu'il a le focus le renvoie au <body> :
+    // on garde le focus dans la paire de flèches.
+    if (end && document.activeElement === nextRef.current) prevRef.current?.focus();
+    if (start && document.activeElement === prevRef.current) nextRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", sync, { passive: true });
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", sync);
+    };
+  }, [sync]);
+
+  // Le contenu change (famille, sexe, recherche) : on remesure après le rendu.
+  useEffect(sync);
+
+  function nudge(dir: -1 | 1) {
+    const el = trackRef.current;
+    if (!el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollBy({
+      left: dir * Math.max(120, Math.round(el.clientWidth * 0.8)),
+      behavior: reduce ? "auto" : "smooth",
+    });
+  }
+
+  return (
+    <div className={"flex min-w-0 items-center gap-1 " + (className ?? "")}>
+      {!edges.full && (
+        <button
+          type="button"
+          ref={prevRef}
+          onClick={() => nudge(-1)}
+          disabled={edges.start}
+          aria-label={`Faire défiler ${label} vers la gauche`}
+          className={arrowCls}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </button>
+      )}
+      <div className="relative min-w-0 flex-1">
+        <div
+          ref={trackRef}
+          className="flex items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {children}
+        </div>
+        {!edges.full && !edges.start && (
+          <span
+            className="pointer-events-none absolute inset-y-1 left-0 w-6 bg-gradient-to-r from-ink to-transparent"
+            aria-hidden="true"
+          />
+        )}
+        {!edges.full && !edges.end && (
+          <span
+            className="pointer-events-none absolute inset-y-1 right-0 w-6 bg-gradient-to-l from-ink to-transparent"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+      {!edges.full && (
+        <button
+          type="button"
+          ref={nextRef}
+          onClick={() => nudge(1)}
+          disabled={edges.end}
+          aria-label={`Faire défiler ${label} vers la droite`}
+          className={arrowCls}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function Wardrobe() {
   const [status, setStatus] = useState<Status>("idle");
   const [login, setLogin] = useState("");
@@ -136,13 +218,14 @@ export default function Wardrobe() {
   const [loadout, setLoadout] = useState<Loadout>({});
   const [hover, setHover] = useState<Hover>(null);
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("habits");
+  const [activeFamily, setActiveFamily] = useState(FAMILIES[0].key);
   const [outfits, setOutfits] = useState<Record<string, Loadout>>({});
   const [outfitName, setOutfitName] = useState("");
   const [who, setWho] = useState("");
   const [seen, setSeen] = useState<string[]>([]);
   const [engineReady, setEngineReady] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadCatalog()
@@ -184,15 +267,8 @@ export default function Wardrobe() {
 
   const sexe: Sexe = avatar?.sexe === "F" ? "F" : "M";
   const items = catalog?.sexes[sexe] ?? [];
-  const index = useMemo(() => indexBySlot(items), [items]);
-
-  // Slots qui se cumulent : tout ce que ce personnage porte déjà en plusieurs
-  // exemplaires, plus l'ensemble explicite connu. Sans cela, un personnage à
-  // cinq familiers en perdrait quatre silencieusement au chargement.
-  const multi = useMemo(
-    () => new Set([...multiSlotsOf(avatar?.equipement), ...MULTI_SLOTS]),
-    [avatar],
-  );
+  const index = useMemo(() => indexByCategory(items), [items]);
+  const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
   // L'aperçu est lissé : le survol rapide ne repeint pas à chaque pixel.
   const deferredHover = useDeferredValue(hover);
@@ -201,10 +277,10 @@ export default function Wardrobe() {
   // pointeur : explorer la liste ne modifie jamais rien.
   const shown = useMemo<Loadout>(() => {
     if (!deferredHover) return loadout;
-    const item = (index.get(deferredHover.slot) ?? []).find((i) => i.id === deferredHover.id);
+    const item = byId.get(deferredHover.id);
     if (!item) return loadout;
-    return upsert(loadout, deferredHover.slot, entryFrom(item, deferredHover.declinaison));
-  }, [loadout, deferredHover, index]);
+    return upsert(loadout, item.slot, entryFrom(item, deferredHover.declinaison));
+  }, [loadout, deferredHover, byId]);
 
   // Rendu DÉCLARATIF. Une version impérative (peindre depuis le gestionnaire
   // de connexion) s'exécutait avant que la branche montrant la scène n'existe :
@@ -226,135 +302,87 @@ export default function Wardrobe() {
   }, [avatar, shown, engineReady]);
 
   const needle = query.trim().toLowerCase();
-  const searching = needle.length > 0;
   const matches = useCallback(
-    (slot: string) => {
-      const all = index.get(slot) ?? [];
+    (category: string) => {
+      const all = index.get(category) ?? [];
       if (!needle) return all;
       return all.filter((it) => itemHaystack(it).includes(needle));
     },
     [index, needle],
   );
 
-  // Toutes les sections à montrer, sections orphelines comprises.
-  const allSections = useMemo<SectionDef[]>(() => {
-    const orphans = orphanSlots(index.keys());
-    return orphans.length ? [...SECTIONS, { title: OTHERS_TITLE, slots: orphans }] : SECTIONS;
-  }, [index]);
-
-  // Onglets : les familles fixes, plus un onglet « Autres » si des sections
-  // orphelines ou non réclamées existent.
-  const tabs = useMemo(() => {
-    const orphans = orphanSlots(index.keys());
-    const extra = [...UNCLAIMED_TITLES];
-    if (orphans.length) extra.push(OTHERS_TITLE);
-    return extra.length
-      ? [...TAB_DEFS, { id: "autres", label: "Autres", sectionTitles: extra }]
-      : TAB_DEFS;
-  }, [index]);
-  const currentTab = tabs.some((t) => t.id === activeTab) ? activeTab : "habits";
-
-  const sectionsOfTab = useCallback(
-    (tabId: string) => {
-      const tab = tabs.find((t) => t.id === tabId);
-      if (!tab) return [];
-      const titles = new Set(tab.sectionTitles);
-      return allSections.filter(
-        (s) => titles.has(s.title) && s.slots.some((slot) => matches(slot).length > 0),
-      );
-    },
-    [tabs, allSections, matches],
+  // Onglets = familles d'objets, dans un ordre fixe. Une catégorie vide pour ce
+  // sexe ne produit pas de carte ; une famille sans aucune catégorie pleine ne
+  // produit pas d'onglet.
+  const tabs = useMemo(
+    () =>
+      FAMILIES.map((f) => ({
+        id: f.key,
+        label: f.label,
+        categories: f.categories.filter((key) => (index.get(key) ?? []).length > 0),
+      })).filter((t) => t.categories.length > 0),
+    [index],
   );
+  const currentTab = tabs.some((t) => t.id === activeFamily)
+    ? activeFamily
+    : (tabs[0]?.id ?? FAMILIES[0].key);
+  const tabCategories = tabs.find((t) => t.id === currentTab)?.categories ?? [];
 
-  const wornInTab = (tabId: string) => {
-    const tab = tabs.find((t) => t.id === tabId);
-    if (!tab) return 0;
-    const titles = new Set(tab.sectionTitles);
-    return allSections
-      .filter((s) => titles.has(s.title))
-      .reduce((n, s) => n + s.slots.reduce((m, slot) => m + (loadout[slot]?.length ?? 0), 0), 0);
-  };
-
-  const resultsInTab = (tabId: string) => {
-    const tab = tabs.find((t) => t.id === tabId);
-    if (!tab) return 0;
-    const titles = new Set(tab.sectionTitles);
-    return allSections
-      .filter((s) => titles.has(s.title))
-      .reduce((n, s) => n + s.slots.reduce((m, slot) => m + matches(slot).length, 0), 0);
-  };
+  const categoriesIn = (tabId: string) =>
+    tabs.find((t) => t.id === tabId)?.categories ?? [];
+  const wornInTab = (tabId: string) =>
+    categoriesIn(tabId).reduce((n, key) => n + entriesInCategory(loadout, key).length, 0);
+  const resultsInTab = (tabId: string) =>
+    categoriesIn(tabId).reduce((n, key) => n + matches(key).length, 0);
 
   // Recherche globale : quand un filtre est actif, on balaie toutes les
-  // familles — l'utilisateur cherche un objet par son nom, pas par le tiroir
+  // catégories — l'utilisateur cherche un objet par son nom, pas par le tiroir
   // où le jeu le range ; rien n'est jamais caché par l'onglet affiché.
-  const searchSections = needle
-    ? allSections.filter((s) => s.slots.some((slot) => matches(slot).length > 0))
+  const searchCategories = needle
+    ? CATEGORIES.map((c) => c.key).filter((key) => matches(key).length > 0)
     : [];
-  const totalResults = searchSections.reduce(
-    (n, s) => n + s.slots.reduce((m, slot) => m + matches(slot).length, 0),
-    0,
-  );
+  const totalResults = searchCategories.reduce((n, key) => n + matches(key).length, 0);
 
-  function entryFor(slot: string, id: string, declinaison?: number): EquipEntry | null {
-    const item = (index.get(slot) ?? []).find((it) => it.id === id);
+  function entryFor(id: string, declinaison?: number): EquipEntry | null {
+    const item = byId.get(id);
     if (!item) return null;
     // Re-choisir le même objet garde sa teinte ; sinon première variante.
-    const worn = loadout[slot]?.find((e) => e.idItem === id);
-    const d = declinaison ?? (item.id === worn?.idItem ? worn.declinaison : item.declinaisons[0]) ?? 0;
+    const worn = entriesInCategory(loadout, categoryOf(item)).find((e) => e.idItem === id);
+    const d = declinaison ?? worn?.declinaison ?? item.declinaisons[0] ?? 0;
     return entryFrom(item, d);
   }
 
-  function commit(slot: string, id: string | null, declinaison?: number) {
+  function commit(category: string, id: string | null, declinaison?: number) {
     setHover(null);
     if (!id) {
-      // Retirer la dernière ligne d'un sélecteur vide ne touche à rien d'autre
-      // dans un slot cumulable ; le retrait par idItem suffit.
-      const only = loadout[slot]?.length === 1 ? loadout[slot][0].idItem : undefined;
-      if (only) setLoadout((l) => removeEntry(l, slot, only));
+      setLoadout((l) => removeCategory(l, category));
       return;
     }
-    const entry = entryFor(slot, id, declinaison);
+    const entry = entryFor(id, declinaison);
     if (!entry) return;
-    // Slot à capacité un : poser autre chose remplace ce qui s'y trouvait.
-    if (!multi.has(slot)) {
-      const list = (loadout[slot] ?? []).filter((e) => e.idItem !== id);
-      setLoadout((l) => upsert({ ...l, [slot]: list }, slot, entry));
-      return;
-    }
-    setLoadout((l) => upsert(l, slot, entry));
+    setLoadout((l) =>
+      // Catégorie à capacité un : poser autre chose remplace ce qui s'y trouvait.
+      upsert(isMultiCategory(category) ? l : removeCategory(l, category), entry.slot, entry),
+    );
   }
 
-  function commitMulti(slot: string, id: string, declinaison?: number) {
-    setHover(null);
-    const entry = entryFor(slot, id, declinaison);
-    if (!entry) return;
-    // Slot cumulable : re-choisir (changement de teinte) ou ajouter — jamais
-    // de contrôle supplémentaire, les puces du multi portent tout.
-    setLoadout((l) => upsert(l, slot, entry));
-  }
-
-  function syncMulti(slot: string, ids: string[]) {
+  function syncMulti(category: string, ids: string[]) {
     setHover(null);
     setLoadout((l) => {
-      const prev = l[slot] ?? [];
-      const keep = prev.filter((e) => ids.includes(e.idItem));
+      const keep = entriesInCategory(l, category).filter((e) => ids.includes(e.idItem));
       const have = new Set(keep.map((e) => e.idItem));
       const additions: EquipEntry[] = [];
       for (const id of ids) {
         if (have.has(id)) continue;
-        const entry = entryFor(slot, id);
+        const entry = entryFor(id);
         if (entry) {
           additions.push(entry);
           have.add(id);
         }
       }
-      const list = [...keep, ...additions];
-      if (!list.length) {
-        const next = { ...l };
-        delete next[slot];
-        return next;
-      }
-      return { ...l, [slot]: list };
+      let next = removeCategory(l, category);
+      for (const entry of [...keep, ...additions]) next = upsert(next, entry.slot, entry);
+      return next;
     });
   }
 
@@ -520,6 +548,7 @@ export default function Wardrobe() {
   function onTablistKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (needle) return;
     const ids = tabs.map((t) => t.id);
+    if (!ids.length) return;
     const at = ids.indexOf(currentTab);
     let next = -1;
     if (e.key === "ArrowRight") next = (at + 1) % ids.length;
@@ -530,13 +559,32 @@ export default function Wardrobe() {
     e.preventDefault();
     const id = ids[next];
     setQuery("");
-    setActiveTab(id);
+    setActiveFamily(id);
     document.getElementById(`tab-${id}`)?.focus();
   }
 
-  /** Ligne d'un slot à capacité un : l'entrée portée, ou une ligne vide. */
-  function row(slot: string, entry: EquipEntry | null, key: string) {
-    const choices = matches(slot);
+  /** Puce d'ancrage : amène la carte de catégorie sous la barre collante. */
+  function jumpTo(category: string) {
+    const el = document.getElementById(`cat-${category}`);
+    if (!el) return;
+    const covered = barRef.current?.getBoundingClientRect().bottom ?? 0;
+    const top = el.getBoundingClientRect().top + window.scrollY - covered - 12;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
+    el.focus({ preventScroll: true });
+  }
+
+  /** Aperçu au survol : l'objet survolé, jamais celui actuellement porté. */
+  function preview(id: string | null, declinaison?: number) {
+    if (!id) return setHover(null);
+    const item = byId.get(id);
+    if (!item) return setHover(null);
+    setHover({ slot: item.slot, id, declinaison: declinaison ?? item.declinaisons[0] ?? 0 });
+  }
+
+  /** Ligne d'une catégorie à capacité un : l'entrée portée, ou une ligne vide. */
+  function row(category: string, entry: EquipEntry | null, key: string) {
+    const choices = matches(category);
     const current = choices.find((it) => it.id === entry?.idItem) ?? null;
     const variants = current && current.declinaisons.length > 1 ? current.declinaisons : [];
     return (
@@ -545,23 +593,17 @@ export default function Wardrobe() {
           <ItemPicker
             items={choices}
             value={entry?.idItem ?? ""}
-            id={`essai-${slot}-${key}`}
-            showSlot={multi.has(slot)}
-            onChange={(id, d) => commit(slot, id, d)}
-            onPreview={(id) => {
-              if (!id) return setHover(null);
-              // Aperçu de l'objet SURVOLÉ, avec sa propre première teinte —
-              // pas celle de l'objet actuellement porté.
-              const it = index.get(slot)?.find((x) => x.id === id);
-              setHover({ slot, id, declinaison: it?.declinaisons[0] ?? 0 });
-            }}
-            onPreviewColour={(id, d) => setHover({ slot, id, declinaison: d })}
+            id={`essai-${category}-${key}`}
+            showSlot
+            onChange={(id, d) => commit(category, id, d)}
+            onPreview={(id) => preview(id)}
+            onPreviewColour={(id, d) => preview(id, d)}
           />
         </div>
         {entry && variants.length > 0 && (
           <Select<ShadeOpt, false>
             unstyled
-            inputId={`teinte-${slot}-${key}`}
+            inputId={`teinte-${category}-${key}`}
             aria-label={`Teinte de ${current ? itemLabel(current) : "l'objet"}`}
             value={{
               value: entry.declinaison,
@@ -570,7 +612,7 @@ export default function Wardrobe() {
             }}
             options={variants.map((d) => ({ value: d, label: `#${d}`, color: shadeColor(d) }))}
             onChange={(o) => {
-              if (o) commit(slot, entry.idItem, o.value);
+              if (o) commit(category, entry.idItem, o.value);
             }}
             isSearchable={false}
             isClearable={false}
@@ -583,61 +625,50 @@ export default function Wardrobe() {
     );
   }
 
-  function slotBlock(slot: string) {
-    const worn = loadout[slot] ?? [];
-    const canStack = multi.has(slot);
+  /** Contenu d'une catégorie : un picker unique (multi si le jeu le permet). */
+  function categoryBlock(category: string) {
+    const worn = entriesInCategory(loadout, category);
     return (
-      <div key={slot} className="border-t border-gold/10 px-4 py-2.5 first-of-type:border-t-0">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-parchment-dim">
-            {slotLabel(slot)}
-          </span>
-          {canStack && (
-            <span className="text-[0.625rem] tabular-nums text-parchment-dim/60">
-              {worn.length || "—"}
-            </span>
-          )}
-        </div>
-        <div className="mt-1.5 space-y-1.5">
-          {canStack ? (
-            <ItemPicker
-              multi
-              items={matches(slot)}
-              value={worn.map((e) => e.idItem)}
-              id={`essai-${slot}-multi`}
-              showSlot
-              onChange={(id, d) => {
-                if (id) commitMulti(slot, id, d);
-              }}
-              onMultiChange={(ids) => syncMulti(slot, ids)}
-              onPreview={(id) => {
-                if (!id) return setHover(null);
-                const it = index.get(slot)?.find((x) => x.id === id);
-                setHover({ slot, id, declinaison: it?.declinaisons[0] ?? 0 });
-              }}
-              onPreviewColour={(id, d) => setHover({ slot, id, declinaison: d })}
-            />
-          ) : worn.length > 0 ? (
-            row(slot, worn[0], worn[0].idItem)
-          ) : (
-            row(slot, null, "vide")
-          )}
-        </div>
+      <div className="px-4 py-3">
+        {isMultiCategory(category) ? (
+          <ItemPicker
+            multi
+            items={matches(category)}
+            value={worn.map((e) => e.idItem)}
+            id={`essai-${category}-multi`}
+            showSlot
+            onChange={(id, d) => {
+              if (id) commit(category, id, d);
+            }}
+            onMultiChange={(ids) => syncMulti(category, ids)}
+            onPreview={(id) => preview(id)}
+            onPreviewColour={(id, d) => preview(id, d)}
+          />
+        ) : worn.length > 0 ? (
+          row(category, worn[0], worn[0].idItem)
+        ) : (
+          row(category, null, "vide")
+        )}
       </div>
     );
   }
 
-  /** Grille de cartes de section, rendu identique d'un onglet à l'autre. */
-  function sectionGrid(sections: SectionDef[]) {
+  /** Grille de cartes de catégorie, rendu identique d'un onglet à l'autre. */
+  function sectionGrid(categories: string[]) {
     return (
       <div className="grid items-start gap-4 sm:grid-cols-2">
-        {sections.map((section) => {
-          const wornHere = section.slots.reduce((n, s) => n + (loadout[s]?.length ?? 0), 0);
+        {categories.map((category) => {
+          const wornHere = entriesInCategory(loadout, category).length;
           return (
-            <section key={section.title} className="card-dark texture-noise self-start">
+            <section
+              key={category}
+              id={`cat-${category}`}
+              tabIndex={-1}
+              className="card-dark texture-noise self-start"
+            >
               <h3 className="flex items-center justify-between gap-2 border-b border-gold/15 px-4 py-2.5">
                 <span className="font-display text-sm font-semibold tracking-[0.08em] text-parchment">
-                  {section.title}
+                  {categoryLabel(category)}
                 </span>
                 {wornHere > 0 && (
                   <span className="flex-none border border-gold/30 px-1.5 py-0.5 text-[0.625rem] font-semibold tabular-nums text-gold-light">
@@ -645,7 +676,7 @@ export default function Wardrobe() {
                   </span>
                 )}
               </h3>
-              {section.slots.filter((s) => matches(s).length > 0).map((slot) => slotBlock(slot))}
+              {categoryBlock(category)}
             </section>
           );
         })}
@@ -659,7 +690,7 @@ export default function Wardrobe() {
       : "border-gold/15 bg-ink/40 text-parchment-dim"
   }`;
 
-  const tabSecs = sectionsOfTab(currentTab);
+  const tabHasItems = tabCategories.length > 0;
 
   return (
     <div className="w-full">
@@ -799,10 +830,14 @@ export default function Wardrobe() {
 
           {/* ---------------------------------------------------- colonne */}
           <div className="min-w-0">
-            {/* Barre collante unique : familles + recherche, sous l'en-tête.
-                Les menus react-select sont portés dans document.body en
-                z-70 : ils passent au-dessus de cette barre (z-20). */}
-            <div className="sticky top-16 z-20 mb-4 min-h-fit border border-gold/15 bg-ink/90 p-3 backdrop-blur-md">
+            {/* Barre collante unique : familles + recherche (+ puces de
+                catégorie pour les familles larges), sous l'en-tête. Les menus
+                react-select sont portés dans document.body en z-70 : ils
+                passent au-dessus de cette barre (z-20). */}
+            <div
+              ref={barRef}
+              className="sticky top-16 z-20 mb-4 min-h-fit border border-gold/15 bg-ink/90 p-3 backdrop-blur-md"
+            >
               <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-4">
                 <input
                   value={query}
@@ -811,51 +846,81 @@ export default function Wardrobe() {
                   aria-label="Filtrer les objets"
                   className={fieldCls + " lg:order-2 lg:w-64 lg:flex-none"}
                 />
-                <div
-                  role={needle ? "group" : "tablist"}
-                  aria-label={needle ? undefined : "Familles d'objets"}
-                  aria-orientation={needle ? undefined : "horizontal"}
-                  onKeyDown={needle ? undefined : onTablistKeyDown}
-                  className="flex flex-nowrap gap-1 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1.5 -my-1.5 px-1.5 py-1.5 lg:min-w-0 lg:flex-1 lg:order-1"
+                <ArrowScroller
+                  label="les familles d'objets"
+                  className="w-full lg:order-1 lg:w-auto lg:flex-1"
                 >
-                  {tabs.map((tab) => {
-                    const active = !needle && tab.id === currentTab;
-                    const worn = wornInTab(tab.id);
+                  <div
+                    role={needle ? "group" : "tablist"}
+                    aria-label={needle ? undefined : "Familles d'objets"}
+                    aria-orientation={needle ? undefined : "horizontal"}
+                    onKeyDown={needle ? undefined : onTablistKeyDown}
+                    className="flex w-max flex-none gap-1"
+                  >
+                    {tabs.map((tab) => {
+                      const active = !needle && tab.id === currentTab;
+                      const worn = wornInTab(tab.id);
+                      return (
+                        <button
+                          key={tab.id}
+                          role={needle ? undefined : "tab"}
+                          id={`tab-${tab.id}`}
+                          aria-selected={needle ? undefined : active}
+                          aria-controls={active ? `panel-${tab.id}` : undefined}
+                          tabIndex={needle ? 0 : (active ? 0 : -1)}
+                          onClick={() => {
+                            setQuery("");
+                            setActiveFamily(tab.id);
+                          }}
+                          className={
+                            tabBaseCls +
+                            (active
+                              ? " border-gold bg-gold/10 text-gold-light"
+                              : " border-transparent text-parchment-dim hover:border-gold/30 hover:text-parchment")
+                          }
+                        >
+                          <span>{tab.label}</span>
+                          {worn > 0 && (
+                            <span className="border border-gold/30 bg-gold/10 px-1 text-[0.625rem] tabular-nums text-gold-light">
+                              {worn}
+                            </span>
+                          )}
+                          {needle && (
+                            <span className="border border-gold/15 px-1 text-[0.625rem] tabular-nums text-parchment-dim">
+                              {resultsInTab(tab.id)}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ArrowScroller>
+              </div>
+              {/* Sommaire de la famille affichée : une puce par catégorie, qui
+                  amène sa carte sous la barre. Les familles d'une seule carte
+                  n'en ont pas besoin. */}
+              {!needle && tabCategories.length > 1 && (
+                <ArrowScroller label="les catégories" className="mt-2 w-full">
+                  <span className="label-caps mr-0.5 flex-none text-[0.5625rem]">
+                    Aller à
+                  </span>
+                  {tabCategories.map((key) => {
+                    const worn = entriesInCategory(loadout, key).length;
                     return (
                       <button
-                        key={tab.id}
-                        role={needle ? undefined : "tab"}
-                        id={`tab-${tab.id}`}
-                        aria-selected={needle ? undefined : active}
-                        aria-controls={active ? `panel-${tab.id}` : undefined}
-                        tabIndex={needle ? -1 : (active ? 0 : -1)}
-                        onClick={() => {
-                          setQuery("");
-                          setActiveTab(tab.id);
-                        }}
-                        className={
-                          tabBaseCls +
-                          (active
-                            ? " border-gold bg-gold/10 text-gold-light"
-                            : " border-transparent text-parchment-dim hover:border-gold/30 hover:text-parchment")
-                        }
+                        key={key}
+                        onClick={() => jumpTo(key)}
+                        className="flex flex-none cursor-pointer items-center gap-1 whitespace-nowrap border border-gold/15 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-parchment-dim transition-colors hover:border-gold/40 hover:bg-gold/[0.06] hover:text-parchment"
                       >
-                        <span>{tab.label}</span>
+                        {categoryLabel(key)}
                         {worn > 0 && (
-                          <span className="border border-gold/30 bg-gold/10 px-1 text-[0.625rem] tabular-nums text-gold-light">
-                            {worn}
-                          </span>
-                        )}
-                        {needle && (
-                          <span className="border border-gold/15 px-1 text-[0.625rem] tabular-nums text-parchment-dim">
-                            {resultsInTab(tab.id)}
-                          </span>
+                          <span className="tabular-nums text-gold-light">{worn}</span>
                         )}
                       </button>
                     );
                   })}
-                </div>
-              </div>
+                </ArrowScroller>
+              )}
               <p className="mt-2 text-xs text-parchment-dim" role="status">
                 {message}
                 {hover && (
@@ -868,8 +933,8 @@ export default function Wardrobe() {
               <div role="region" aria-label="Résultats de la recherche">
                 <p className="mb-3 text-xs text-parchment-dim">
                   Recherche menée sur toutes les familles — {totalResults} objet
-                  {totalResults > 1 ? "s" : ""} dans {searchSections.length} section
-                  {searchSections.length > 1 ? "s" : ""}.{" "}
+                  {totalResults > 1 ? "s" : ""} dans {searchCategories.length} catégorie
+                  {searchCategories.length > 1 ? "s" : ""}.{" "}
                   <button
                     onClick={() => setQuery("")}
                     className="cursor-pointer underline decoration-gold/40 underline-offset-4 transition-colors hover:text-parchment"
@@ -877,7 +942,7 @@ export default function Wardrobe() {
                     Effacer la recherche
                   </button>
                 </p>
-                {searchSections.length === 0 ? (
+                {searchCategories.length === 0 ? (
                   <div className="card-dark texture-noise px-6 py-12 text-center">
                     <p className="font-display text-lg tracking-[0.05em] text-parchment">
                       Aucun objet ne correspond à « {query.trim()} »
@@ -891,7 +956,7 @@ export default function Wardrobe() {
                     </button>
                   </div>
                 ) : (
-                  sectionGrid(searchSections)
+                  sectionGrid(searchCategories)
                 )}
               </div>
             ) : (
@@ -900,18 +965,18 @@ export default function Wardrobe() {
                 id={`panel-${currentTab}`}
                 aria-labelledby={`tab-${currentTab}`}
               >
-                {tabSecs.length === 0 ? (
+                {!tabHasItems ? (
                   <div className="card-dark texture-noise px-6 py-12 text-center">
                     <p className="font-display text-lg tracking-[0.05em] text-parchment">
                       Rien à essayer dans cette famille
                     </p>
                     <p className="mt-2 text-sm text-parchment-dim">
-                      Aucun objet du catalogue n'occupe ces emplacements pour ce
+                      Aucun objet du catalogue dans cette famille pour ce
                       personnage.
                     </p>
                   </div>
                 ) : (
-                  sectionGrid(tabSecs)
+                  sectionGrid(tabCategories)
                 )}
               </div>
             )}

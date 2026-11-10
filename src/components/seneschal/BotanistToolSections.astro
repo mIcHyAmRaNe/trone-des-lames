@@ -1,0 +1,141 @@
+---
+import { BOTANIST_PLANTS, BOTANIST_SKILLS } from "../../lib/seneschal";
+---
+
+<section class="border-y border-gold/15 bg-ink-2/60" aria-labelledby="bot-regles-titre">
+  <div class="container-tdl py-14 sm:py-16">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div>
+        <p class="label-caps">L’échoppe du botaniste</p>
+        <h2 id="bot-regles-titre" class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl">
+          Les règles de l’échoppe
+        </h2>
+      </div>
+      <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">Wiki officiel · octobre 2026</p>
+    </div>
+
+    <div class="rule-gold mt-5 w-full opacity-70"></div>
+
+    <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {[
+        { title: "6 pots de culture", text: "Six cultures en parallèle dans la pépinière. Un pot casse après 5 cueillettes ; la maîtrise du pot préserve 15 %." },
+        { title: "Arroser 6 / 8 / 24 h", text: "Bouquets toutes les 6 h, buissons et épices toutes les 8 h, arbres toutes les 24 h." },
+        { title: "Récolte 1 à 5", text: "3 à 5 bouquets par pot, 1 arbre ou buisson, 2 épices (cannelle, cumin, safran)." },
+        { title: "INT 0 à 20 %", text: "255 points d’Intelligence réduisent le temps de production de 20 %." },
+        { title: "Don de soi 9,5 %", text: "Vertu de prédilection : jusqu’à 9,5 % de temps en moins." },
+        { title: "Jardinier −20 %", text: "Compétence Jardinier : taille des arbres et buissons réduite de 20 %." },
+      ].map((r) => (
+        <li class="card-dark texture-noise p-5">
+          <p class="font-display text-sm leading-snug tracking-[0.04em] text-gold-light">{r.title}</p>
+          <p class="mt-1.5 text-xs leading-relaxed text-parchment-dim">{r.text}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<section class="container-tdl py-14 sm:py-16" aria-labelledby="bot-cultures-titre">
+  <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+    <div>
+      <p class="label-caps">Cultures</p>
+      <h2 id="bot-cultures-titre" class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl">Arbres, buissons et fleurs</h2>
+    </div>
+    <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">Wiki officiel · octobre 2026</p>
+  </div>
+
+  <div class="rule-gold mt-5 w-full opacity-70"></div>
+
+  <div class="mt-6 overflow-x-auto">
+    <table class="w-full min-w-[30rem] border-collapse text-left">
+      <thead>
+        <tr class="border-b border-gold/15">
+          <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0">Plante</th>
+          <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Récolte</th>
+          <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Pousse</th>
+          <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Arrosage</th>
+          <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Compétence</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gold/10">
+        {BOTANIST_PLANTS.map((p) => (
+          <tr>
+            <th scope="row" class="whitespace-nowrap px-3 py-2 text-left text-xs font-normal text-parchment first:pl-0">{p.label}</th>
+            <td class="whitespace-nowrap px-3 py-2 text-sm tabular-nums text-parchment-dim">{p.yieldMin === p.yieldMax ? String(p.yieldMax) : `${p.yieldMin} à ${p.yieldMax}`}</td>
+            <td class="whitespace-nowrap px-3 py-2 text-sm tabular-nums text-parchment-dim">{p.hours} h</td>
+            <td class="whitespace-nowrap px-3 py-2 text-sm tabular-nums text-parchment-dim">Toutes les {p.waterEvery} h</td>
+            <td class="whitespace-nowrap px-3 py-2 text-sm tabular-nums text-parchment-dim">
+              {p.kind === "fleur" ? "Floriculteur" : p.kind === "buisson" ? "Pépiniériste" : p.kind === "arbre" ? "Pépiniériste / Jardinier" : "—"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-3 text-[0.6875rem] leading-relaxed text-parchment-dim/80">Les temps sont ceux du wiki ; le calculateur applique les compétences et l’Intelligence.</p>
+</section>
+
+<section class="border-t border-gold/15 bg-ink-2/40" aria-labelledby="bot-comp-titre">
+  <div class="container-tdl py-12 sm:py-14">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div>
+        <p class="label-caps">Compétences</p>
+        <h2 id="bot-comp-titre" class="mt-2 font-display text-xl tracking-[0.05em] text-parchment">L’arbre du botaniste</h2>
+      </div>
+    </div>
+    <div class="mt-5 overflow-x-auto">
+      <table class="w-full min-w-[28rem] border-collapse text-left">
+        <thead>
+          <tr class="border-b border-gold/15">
+            <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0">Compétence</th>
+            <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Effet</th>
+            <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Prérequis</th>
+            <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Coût</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gold/10">
+          {BOTANIST_SKILLS.map((s) => (
+            <tr>
+              <th scope="row" class="whitespace-nowrap px-3 py-2 text-left text-xs font-display tracking-[0.04em] text-parchment first:pl-0">{s.name}</th>
+              <td class="whitespace-nowrap px-3 py-2 text-xs text-parchment-dim">{s.effect}</td>
+              <td class="whitespace-nowrap px-3 py-2 text-xs text-parchment-dim">{s.prereq}</td>
+              <td class="whitespace-nowrap px-3 py-2 text-xs text-parchment-dim">{s.cost}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="border-t border-gold/15 bg-ink-2/40" aria-labelledby="bot-sources-titre">
+  <div class="container-tdl py-12 sm:py-14">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div>
+        <p class="label-caps">Sources</p>
+        <h2 id="bot-sources-titre" class="mt-2 font-display text-xl tracking-[0.05em] text-parchment">Vérifié sur le wiki officiel</h2>
+      </div>
+      <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">Dernière vérification : octobre 2026</p>
+    </div>
+    <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+      {[
+        { label: "Botaniste", href: "https://wiki.renaissancekingdoms.com/fr/Botaniste" },
+        { label: "Culture", href: "https://wiki.renaissancekingdoms.com/fr/Culture" },
+        { label: "Échoppe", href: "https://wiki.renaissancekingdoms.com/fr/%C3%89choppe" },
+        { label: "Pot de culture", href: "https://wiki.renaissancekingdoms.com/fr/Pot_de_culture" },
+        { label: "Doses de colorant", href: "https://wiki.renaissancekingdoms.com/fr/Doses_de_colorant" },
+      ].map((s) => (
+        <li>
+          <a href={s.href} target="_blank" rel="noreferrer" class="group inline-flex items-center gap-1.5 text-xs text-parchment-dim underline decoration-gold/25 underline-offset-4 transition-colors hover:text-gold">
+            {s.label}
+            <svg viewBox="0 0 24 24" class="h-3 w-3 flex-none text-gold/50 transition-colors group-hover:text-gold" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M8 16 16 8M9 8h7v7" />
+            </svg>
+          </a>
+        </li>
+      ))}
+    </ul>
+    <p class="mt-6 max-w-2xl text-[0.6875rem] leading-relaxed text-parchment-dim/70">
+      Les calculs sont des estimations : les prix du marché et les rendus réels peuvent varier. Le temps de pousse des cultures dépend de la fréquence d’arrosage et des compétences actives.
+    </p>
+  </div>
+</section>

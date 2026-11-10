@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type Catalog, orphanSlots } from "../../lib/wardrobe";
+import { CATEGORIES, type Catalog, categoryOf } from "../../lib/wardrobe";
 
 function when(iso: string | undefined): string {
   if (!iso) return "—";
@@ -24,8 +24,9 @@ export default function CatalogInfo({ catalog }: { catalog: Catalog | null }) {
   const male = catalog?.sexes.M.length ?? 0;
   const female = catalog?.sexes.F.length ?? 0;
   const total = merged.size;
-  const slots = new Set(all.map((i) => i.slot)).size;
-  const orphans = catalog ? orphanSlots(all.map((i) => i.slot)) : [];
+  const present = new Set(all.map(categoryOf));
+  const categories = CATEGORIES.filter((c) => present.has(c.key)).length;
+  const orphans = [...present].filter((k) => !CATEGORIES.some((c) => c.key === k));
   const variants = [...merged.values()].reduce(
     (n, i) => n + Math.max(i.declinaisons.length, 1),
     0,
@@ -77,8 +78,8 @@ export default function CatalogInfo({ catalog }: { catalog: Catalog | null }) {
               </b>
             </span>
             <span className="flex justify-between">
-              <span>Emplacements</span>
-              <b className="font-semibold tabular-nums text-parchment">{slots}</b>
+              <span>Catégories</span>
+              <b className="font-semibold tabular-nums text-parchment">{categories}</b>
             </span>
             <span className="flex justify-between">
               <span>Déclinaisons</span>
@@ -99,7 +100,7 @@ export default function CatalogInfo({ catalog }: { catalog: Catalog | null }) {
           </span>
           {orphans.length > 0 && (
             <span className="mt-1.5 block text-gold-light/80">
-              Emplacements hors sections : {orphans.join(", ")}
+              Catégories hors garde-robe : {orphans.join(", ")}
             </span>
           )}
         </span>

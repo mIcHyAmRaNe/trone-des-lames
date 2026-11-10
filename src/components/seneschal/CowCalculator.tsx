@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import Select from "react-select";
 import {
   COW_RULES,
   COW_SIZES,
@@ -9,9 +8,7 @@ import {
   cowMilkPerMilking,
 } from "../../lib/seneschal";
 import { formatPoints } from "../../lib/format";
-import { menuPortalStyle, selectClassNames } from "../garde-robe/selectTheme";
-
-type Option = { value: number; label: string };
+import { FieldSelect, MoneyField, Toggle, Line, Total, type Option } from "./controls";
 
 interface CowRow {
   enabled: boolean;
@@ -45,8 +42,8 @@ const createDefault = (): CalcState => ({
   intelligence: 20,
   secondField: false,
   cowPrice: String(COW_RULES.price),
-  bucketPrice: "50",
-  knifePrice: "20",
+  bucketPrice: "30",
+  knifePrice: "17",
   milkPrice: "10",
   carcassPrice: "30",
   milkingSalary: "0",
@@ -86,149 +83,6 @@ const milkOptions: Option[] = [
   { value: 4, label: "Tous les 4 jours" },
 ];
 
-function FieldSelect({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-  hint,
-}: {
-  id: string;
-  label: string;
-  value: number;
-  options: Option[];
-  onChange: (value: number) => void;
-  hint?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <label
-        htmlFor={id}
-        className="block text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim"
-      >
-        {label}
-      </label>
-      <Select<Option, false>
-        unstyled
-        inputId={id}
-        options={options}
-        value={options.find((option) => option.value === value) ?? null}
-        onChange={(option) => onChange(option?.value ?? value)}
-        isSearchable={false}
-        menuPlacement="auto"
-        menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
-        styles={{ menuPortal: menuPortalStyle }}
-        classNames={{ ...selectClassNames, container: () => "mt-1.5 min-w-0" }}
-        placeholder="—"
-      />
-      {hint ? (
-        <p className="mt-1 text-[0.625rem] leading-snug text-parchment-dim/70">{hint}</p>
-      ) : null}
-    </div>
-  );
-}
-
-function MoneyField({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="min-w-0">
-      <label
-        htmlFor={id}
-        className="block text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim"
-      >
-        {label}
-      </label>
-      <div className="relative mt-1.5">
-        <input
-          id={id}
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step={0.01}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-full border border-gold/20 bg-ink/60 py-1.5 pl-2.5 pr-11 text-sm tabular-nums text-parchment transition-colors [appearance:textfield] hover:border-gold/40 focus:border-gold [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-        />
-        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-[0.5rem] uppercase tracking-[0.12em] text-parchment-dim/60">
-          écus
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function Toggle({
-  id,
-  checked,
-  onChange,
-  label,
-  hint,
-}: {
-  id: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  label: string;
-  hint?: string;
-}) {
-  return (
-    <label htmlFor={id} className="flex cursor-pointer items-start gap-3">
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="peer sr-only"
-      />
-      <span
-        aria-hidden="true"
-        className="relative mt-0.5 h-5 w-9 flex-none border border-gold/30 bg-ink/60 transition-colors after:absolute after:left-[3px] after:top-[3px] after:h-3 after:w-3 after:bg-parchment-dim after:transition-all after:content-[''] peer-checked:border-gold peer-checked:bg-gold/15 peer-checked:after:translate-x-4 peer-checked:after:bg-gold peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-gold"
-      ></span>
-      <span className="min-w-0">
-        <span className="block text-xs font-semibold text-parchment">{label}</span>
-        {hint ? (
-          <span className="mt-0.5 block text-[0.625rem] leading-snug text-parchment-dim/70">
-            {hint}
-          </span>
-        ) : null}
-      </span>
-    </label>
-  );
-}
-
-function Line({ label, value, strong }: { label: ReactNode; value: number; strong?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="min-w-0 text-[0.6875rem] leading-snug text-parchment-dim">{label}</dt>
-      <dd
-        className={`flex-none font-display text-sm tabular-nums ${
-          strong ? "text-gold-light" : "text-parchment"
-        }`}
-      >
-        {formatPoints(value)}
-      </dd>
-    </div>
-  );
-}
-
-function Total({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="mt-2 flex items-baseline justify-between gap-3 border-t border-gold/10 pt-2">
-      <span className="text-[0.5rem] uppercase tracking-[0.14em] text-parchment-dim">{label}</span>
-      <span className="font-display text-sm tabular-nums text-parchment">{formatPoints(value)}</span>
-    </div>
-  );
-}
-
 export default function CowCalculator() {
   const [state, setState] = useState<CalcState>(createDefault);
 
@@ -248,7 +102,7 @@ export default function CowCalculator() {
     }));
 
   const activeCount = state.cows.filter((cow) => cow.enabled).length;
-  const lead = state.cows[0] ?? DEFAULT_COW;
+  const lead = state.cows.find((cow) => cow.enabled) ?? state.cows[0] ?? DEFAULT_COW;
 
   const setCount = (count: number) =>
     setState((current) => ({
@@ -256,26 +110,41 @@ export default function CowCalculator() {
       cows: current.cows.map((cow, i) => ({ ...cow, enabled: i < count })),
     }));
 
-  const result = useMemo(
-    () =>
-      computeCowCycle({
-        cows: state.cows,
-        milkEvery: state.milkEvery,
-        intelligence: state.intelligence,
-        secondField: state.secondField,
-        cowPrice: money(state.cowPrice),
-        bucketPrice: money(state.bucketPrice),
-        knifePrice: money(state.knifePrice),
-        milkPrice: money(state.milkPrice),
-        carcassPrice: money(state.carcassPrice),
-        milkingSalary: money(state.milkingSalary),
-        slaughterSalary: money(state.slaughterSalary),
-      }),
-    [state],
-  );
+  const result = useMemo(() => {
+    // Un seul abattage par jour : en mode synchronisé, on décale d'un jour par bête.
+    const base = state.cows.find((cow) => cow.enabled) ?? DEFAULT_COW;
+    let rank = 0;
+    const cows = state.synchronized
+      ? state.cows.map((cow) =>
+          cow.enabled
+            ? {
+                ...cow,
+                purchaseDay: base.purchaseDay,
+                size: base.size,
+                slaughterAge: base.slaughterAge + rank++,
+              }
+            : cow,
+        )
+      : state.cows;
+
+    return computeCowCycle({
+      cows,
+      milkEvery: state.milkEvery,
+      intelligence: state.intelligence,
+      secondField: state.secondField,
+      cowPrice: money(state.cowPrice),
+      bucketPrice: money(state.bucketPrice),
+      knifePrice: money(state.knifePrice),
+      milkPrice: money(state.milkPrice),
+      carcassPrice: money(state.carcassPrice),
+      milkingSalary: money(state.milkingSalary),
+      slaughterSalary: money(state.slaughterSalary),
+    });
+  }, [state]);
 
   const perMilking = cowMilkPerMilking(state.intelligence, state.secondField);
   const conservation = money(state.cowPrice) === COW_RULES.conservationPrice;
+  const conflicts = result.slaughterConflicts;
   const maxRisk = result.perCow.reduce((max, cow) => Math.max(max, cow.cumulativeRisk), 0);
   const totalFlow = result.revenue + result.costs;
   const revenueShare = totalFlow > 0 ? (result.revenue / totalFlow) * 100 : 0;
@@ -326,7 +195,7 @@ export default function CowCalculator() {
                 checked={state.synchronized}
                 onChange={(checked) => patch("synchronized", checked)}
                 label="Troupeau synchronisé"
-                hint="Même jour d’achat, âge et corpulence pour toutes les vaches."
+                hint="Même jour d’achat et corpulence ; abattages sur des jours consécutifs (1 par jour)."
               />
 
               {state.synchronized ? (
@@ -340,11 +209,11 @@ export default function CowCalculator() {
                   />
                   <FieldSelect
                     id="sync-age"
-                    label="Âge à l’abattage"
+                    label="Âge du 1er abattage"
                     value={lead.slaughterAge}
                     options={ageOptions}
                     onChange={(value) => patchAllCows({ slaughterAge: value })}
-                    hint={`Taille attendue si nourrie chaque jour : ${formatPoints(
+                    hint={`Taille attendue de la 1re vache si nourrie chaque jour : ${formatPoints(
                       round1(cowExpectedSize(lead.slaughterAge)),
                     )}`}
                   />
@@ -362,6 +231,24 @@ export default function CowCalculator() {
                     La traite s’applique à toutes les vaches : décalez les achats
                     et vous perdrez du lait. Le calcul reste une estimation.
                   </p>
+
+                  {conflicts.length > 0 ? (
+                    <p
+                      role="alert"
+                      className="border-l-2 border-blood bg-blood/10 px-3 py-2 text-[0.6875rem] leading-snug text-blood-light"
+                    >
+                      Un seul abattage par jour :{" "}
+                      {conflicts
+                        .map(
+                          (conflict) =>
+                            `J${conflict.day} (vaches ${conflict.indices
+                              .map((index) => index + 1)
+                              .join(", ")})`,
+                        )
+                        .join(" · ")}
+                      . Décalez un âge ou un jour d’achat.
+                    </p>
+                  ) : null}
 
                   {state.cows.map((cow, i) => (
                     <div key={i} className="border border-gold/15 bg-ink/40 p-3">
@@ -413,6 +300,28 @@ export default function CowCalculator() {
                   ))}
                 </div>
               )}
+              <div className="border-t border-gold/10 pt-4">
+                <p className="text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">
+                  Salaires
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <MoneyField
+                    id="salaire-traite"
+                    label="Traite (par passage)"
+                    value={state.milkingSalary}
+                    onChange={(value) => patch("milkingSalary", value)}
+                  />
+                  <MoneyField
+                    id="salaire-abattage"
+                    label="Abattage (par bête)"
+                    value={state.slaughterSalary}
+                    onChange={(value) => patch("slaughterSalary", value)}
+                  />
+                </div>
+                <p className="mt-2 text-[0.625rem] leading-snug text-parchment-dim/70">
+                  Laissez à 0 si vous travaillez vous-même.
+                </p>
+              </div>
             </div>
           </fieldset>
 
@@ -505,39 +414,6 @@ export default function CowCalculator() {
                   COW_RULES.price,
                 )}.`}
               />
-
-              <details className="group border-t border-gold/10 pt-4">
-                <summary className="flex cursor-pointer list-none items-center gap-2 text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim transition-colors hover:text-gold [&::-webkit-details-marker]:hidden">
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-3 w-3 flex-none transition-transform group-open:rotate-90"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    aria-hidden="true"
-                  >
-                    <path d="M9 5l7 7-7 7" />
-                  </svg>
-                  Avancé — salaires
-                </summary>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <MoneyField
-                    id="salaire-traite"
-                    label="Traite (par passage)"
-                    value={state.milkingSalary}
-                    onChange={(value) => patch("milkingSalary", value)}
-                  />
-                  <MoneyField
-                    id="salaire-abattage"
-                    label="Abattage (par bête)"
-                    value={state.slaughterSalary}
-                    onChange={(value) => patch("slaughterSalary", value)}
-                  />
-                </div>
-                <p className="mt-2 text-[0.625rem] leading-snug text-parchment-dim/70">
-                  Laissez à 0 si vous travaillez vous-même.
-                </p>
-              </details>
             </div>
           </fieldset>
         </div>

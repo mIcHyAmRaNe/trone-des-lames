@@ -34,6 +34,8 @@ export interface EquipEntry {
   declinaison: number;
   nom: string;
   slot: string;
+  /** Catégorie d'armoire du jeu (ex. « Armes ») — le jeu la fournit sur la fiche. */
+  slotGardeRobe?: string | null;
   miniature: string;
   declinaisons: number[];
   slotsMasques: string[];
@@ -54,34 +56,173 @@ export interface Avatar {
 }
 
 /**
- * Sections de la garde-robe, groupées par `slot` et non par le `slotGardeRobe`
- * du jeu : ce champ liste toutes les armoires où un objet *peut* être rangé
- * (un Mantel apparaît sous Capes, Gilets, Cou, Mantels et Panoplies), donc
- * many-to-many et inutilisable comme catégorie. L'ordre est celui d'affichage.
+ * Catégories de la garde-robe, identiques à celles du jeu (ordre des slots de
+ * `#onglet2Panel`, clé = `slotGardeRobe`). `single` reprend `data-limite="1"` :
+ * ces catégories n'acceptent qu'un objet à la fois ; les autres se cumulent.
  */
-export const SECTIONS: { title: string; slots: string[]; hidden?: boolean }[] = [
-  { title: 'I · Chapeaux & Casques', slots: ['Chapeau'] },
-  { title: 'II · Corps', slots: ['Coiffures'] },
-  { title: 'III · Tabliers & Gilets', slots: ['Tablier', 'Gilet'] },
-  { title: 'IV · Braies & Jupes', slots: ['Braies', 'Jupe'] },
-  { title: 'V · Chaussures & Sous-Vêtements', slots: ['Chaussures', 'Bas'] },
-  { title: 'VI · Bijoux', slots: ['Bijoux', 'Collier'] },
-  { title: 'VII · Mains', slots: ['MainGauche', 'MainDroite'], hidden: true },
-  { title: 'VIII · Familiers', slots: ['Familier'], hidden: true },
-  { title: 'IX · Armes', slots: ['Arme', 'Epee', 'Baton', 'Hache', 'Crosse'] },
-  { title: 'X · Visage', slots: ['Barbes', 'Yeux'] },
-  { title: 'XI · Capes & Mantels', slots: ['Cape', 'Mantel', 'Robe'] },
-  { title: 'XII · Bustiers & Chemises', slots: ['Bustier', 'Chemise'] },
-  { title: 'XIII · Panoplies', slots: ['Panoplie'] },
-  { title: 'XIV · Gants, Ceinture & Cou', slots: ['Gants', 'Ceinture', 'Col'] },
-  { title: 'XV · Cadres & Fonds', slots: ['Cadre', 'Fond'] },
-  { title: 'XVI · Boucliers', slots: ['Bouclier'] },
-  {
-    title: 'XVII · Outils',
-    slots: ['Objet', 'Objet2', 'Barque', 'Echelle', 'FiletPeche', 'Pelle', 'Pioche'],
-    hidden: true,
-  },
+export interface CategoryDef {
+  key: string;
+  label: string;
+  single?: boolean;
+}
+
+export const CATEGORIES: CategoryDef[] = [
+  { key: 'Chapeaux', label: 'Chapeaux' },
+  { key: 'Casques', label: 'Casques' },
+  { key: 'Coiffures', label: 'Coiffures', single: true },
+  { key: 'Barbes', label: 'Barbes', single: true },
+  { key: 'Tabliers', label: 'Tabliers' },
+  { key: 'Gilets', label: 'Gilets' },
+  { key: 'Mantels', label: 'Mantels' },
+  { key: 'Capes', label: 'Capes' },
+  { key: 'Braies', label: 'Braies' },
+  { key: 'Jupes', label: 'Jupes' },
+  { key: 'Chemises', label: 'Chemises' },
+  { key: 'Bustiers', label: 'Bustiers' },
+  { key: 'Chaussures', label: 'Chaussures' },
+  { key: 'BasDessous', label: 'Bas et dessous' },
+  { key: 'Panoplies', label: 'Panoplies' },
+  { key: 'Bijoux', label: 'Bijoux' },
+  { key: 'Cou', label: 'Cou' },
+  { key: 'Ceintures', label: 'Ceintures' },
+  { key: 'Yeux', label: 'Yeux' },
+  { key: 'Gants', label: 'Gants' },
+  { key: 'MainGauche', label: 'Main gauche' },
+  { key: 'MainDroite', label: 'Main droite' },
+  { key: 'Fonds', label: 'Fonds', single: true },
+  { key: 'Cadres', label: 'Cadres', single: true },
+  { key: 'Familiers', label: 'Familiers' },
+  { key: 'Outils_barque', label: 'Barque', single: true },
+  { key: 'Outils_filet', label: 'Filet de pêche', single: true },
+  { key: 'Outils_echelle', label: 'Échelle', single: true },
+  { key: 'Armes', label: 'Armes', single: true },
+  { key: 'Boucliers', label: 'Boucliers', single: true },
 ];
+
+/**
+ * Familles de navigation : les 30 catégories du jeu regroupées par usage.
+ * L'ordre de ce tableau est celui de la barre d'onglets — ne pas le changer.
+ */
+export interface FamilyDef {
+  key: string;
+  label: string;
+  categories: string[];
+}
+
+export const FAMILIES: FamilyDef[] = [
+  {
+    key: "corps",
+    label: "Corps",
+    categories: ["Coiffures", "Barbes", "Yeux", "Chapeaux", "Casques"],
+  },
+  {
+    key: "vetements",
+    label: "Vêtements",
+    categories: [
+      "Tabliers",
+      "Gilets",
+      "Mantels",
+      "Capes",
+      "Braies",
+      "Jupes",
+      "Chemises",
+      "Bustiers",
+      "Chaussures",
+      "BasDessous",
+      "Panoplies",
+    ],
+  },
+  {
+    key: "equipements",
+    label: "Équipements",
+    categories: [
+      "Bijoux",
+      "Cou",
+      "Ceintures",
+      "Gants",
+      "MainGauche",
+      "MainDroite",
+      "Armes",
+      "Boucliers",
+      "Outils_barque",
+      "Outils_filet",
+      "Outils_echelle",
+    ],
+  },
+  { key: "familiers", label: "Familiers", categories: ["Familiers"] },
+  { key: "decors", label: "Décors", categories: ["Fonds", "Cadres"] },
+];
+
+const FAMILY_BY_CATEGORY = new Map(
+  FAMILIES.flatMap((f) => f.categories.map((c) => [c, f] as const)),
+);
+
+/** Famille d'une catégorie, ou `undefined` si elle n'est rangée nulle part. */
+export function familyOf(category: string): FamilyDef | undefined {
+  return FAMILY_BY_CATEGORY.get(category);
+}
+
+/** Repli quand une fiche n'a pas de `slotGardeRobe` (l'objet 0, par exemple). */
+const SLOT_CATEGORY: Record<string, string> = {
+  Arme: 'Armes',
+  Barbes: 'Barbes',
+  Barque: 'Outils_barque',
+  Bas: 'BasDessous',
+  Baton: 'Armes',
+  Bijoux: 'Bijoux',
+  Bouclier: 'Boucliers',
+  Braies: 'Braies',
+  Bustier: 'Bustiers',
+  Cadre: 'Cadres',
+  Cape: 'Capes',
+  Ceinture: 'Ceintures',
+  Chapeau: 'Chapeaux',
+  Chaussures: 'Chaussures',
+  Chemise: 'Chemises',
+  Coiffures: 'Coiffures',
+  Col: 'Cou',
+  Collier: 'Bijoux',
+  Crosse: 'Armes',
+  Echelle: 'Outils_echelle',
+  Epee: 'Armes',
+  Familier: 'Familiers',
+  FiletPeche: 'Outils_filet',
+  Fond: 'Fonds',
+  Gants: 'Gants',
+  Gilet: 'Gilets',
+  Hache: 'Armes',
+  Jupe: 'Jupes',
+  MainDroite: 'MainDroite',
+  MainGauche: 'MainGauche',
+  Mantel: 'Mantels',
+  Objet: 'MainDroite',
+  Objet2: 'MainDroite',
+  Panoplie: 'Panoplies',
+  Pelle: 'Armes',
+  Pioche: 'Armes',
+  Robe: 'Mantels',
+  Tablier: 'Tabliers',
+  Yeux: 'Yeux',
+};
+
+const CATEGORY_LABELS = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.label]));
+
+/** Catégorie d'affichage d'un objet ou d'une entrée d'équipement. */
+export function categoryOf(item: { slot: string; slotGardeRobe?: string | null }): string {
+  if (item.slotGardeRobe && CATEGORY_LABELS[item.slotGardeRobe]) return item.slotGardeRobe;
+  return SLOT_CATEGORY[item.slot] ?? 'Autres';
+}
+
+export function categoryLabel(key: string): string {
+  return CATEGORY_LABELS[key] ?? key;
+}
+
+/** Catégories à capacité un (`data-limite="1"` du jeu). */
+export const SINGLE_CATEGORIES = new Set(CATEGORIES.filter((c) => c.single).map((c) => c.key));
+
+export function isMultiCategory(key: string): boolean {
+  return !SINGLE_CATEGORIES.has(key);
+}
 
 /** Libellés lisibles des clés techniques du catalogue. */
 const SLOT_LABELS: Record<string, string> = {
@@ -132,19 +273,11 @@ export function slotLabel(slot: string): string {
 
 export const SEXE_LABEL: Record<Sexe, string> = { M: 'Homme', F: 'Femme' };
 
-/**
- * Slots qui se cumulent. `multiSlotsOf` marque déjà tout ce que le personnage
- * chargé porte en plusieurs exemplaires ; cet ensemble ne couvre que les cas
- * qu'un personnage donné ne peut pas démontrer (les familiers).
- */
-export const MULTI_SLOTS = new Set(['Familier']);
-
-/** slot -> entrées portées. La longueur vaut 1 pour presque tous les slots. */
+/** slot technique -> entrées portées. Midas dessine par slot, pas par catégorie. */
 export type Loadout = Record<string, EquipEntry[]>;
 
 export function orphanSlots(present: Iterable<string>): string[] {
-  const claimed = new Set(SECTIONS.flatMap((s) => s.slots));
-  return [...present].filter((s) => !claimed.has(s)).sort();
+  return [...present].filter((s) => !(s in SLOT_LABELS)).sort();
 }
 
 let catalogPromise: Promise<Catalog> | null = null;
@@ -180,13 +313,14 @@ export function shadeColor(declinaison: number): string {
   return `hsl(${(declinaison * 47) % 360} 65% 60%)`;
 }
 
-/** Items regroupés par slot, chaque lot trié par libellé français. */
-export function indexBySlot(items: CatalogItem[]): Map<string, CatalogItem[]> {
+/** Items regroupés par catégorie d'armoire, chaque lot trié par libellé français. */
+export function indexByCategory(items: CatalogItem[]): Map<string, CatalogItem[]> {
   const out = new Map<string, CatalogItem[]>();
   for (const item of items) {
-    const bucket = out.get(item.slot);
+    const key = categoryOf(item);
+    const bucket = out.get(key);
     if (bucket) bucket.push(item);
-    else out.set(item.slot, [item]);
+    else out.set(key, [item]);
   }
   for (const bucket of out.values()) {
     bucket.sort((a, b) => itemLabel(a).localeCompare(itemLabel(b), 'fr'));
@@ -205,6 +339,7 @@ export function entryFrom(item: CatalogItem, declinaison: number): EquipEntry {
     declinaison,
     nom: item.nom,
     slot: item.slot,
+    slotGardeRobe: item.slotGardeRobe,
     miniature: item.miniature,
     declinaisons: item.declinaisons,
     slotsMasques: item.slotsMasques,
@@ -227,11 +362,21 @@ export function toLoadout(equipement: Partial<EquipEntry>[] = []): Loadout {
   return out;
 }
 
-/** Slots que ce personnage cumule visiblement (il en porte plusieurs). */
-export function multiSlotsOf(equipement: Partial<EquipEntry>[] = []): Set<string> {
-  const counts = new Map<string, number>();
-  for (const e of equipement) if (e?.slot) counts.set(e.slot, (counts.get(e.slot) ?? 0) + 1);
-  return new Set([...counts].filter(([, n]) => n > 1).map(([slot]) => slot));
+/** Entrées portées dans une catégorie d'armoire (tous slots techniques confondus). */
+export function entriesInCategory(loadout: Loadout, category: string): EquipEntry[] {
+  return Object.values(loadout)
+    .flat()
+    .filter((e) => categoryOf(e) === category);
+}
+
+/** Retire toutes les entrées d'une catégorie, sauf éventuellement un idItem. */
+export function removeCategory(loadout: Loadout, category: string, keepId?: string): Loadout {
+  const next: Loadout = {};
+  for (const [slot, list] of Object.entries(loadout)) {
+    const kept = list.filter((e) => categoryOf(e) !== category || e.idItem === keepId);
+    if (kept.length) next[slot] = kept;
+  }
+  return next;
 }
 
 /** Remplace l'entrée de même idItem, ou l'ajoute au slot. */

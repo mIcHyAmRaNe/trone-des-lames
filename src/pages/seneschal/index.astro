@@ -14,22 +14,28 @@ const categories = SENESCHAL_CATEGORIES.map((category) => ({
 
 const totalAvailable = categories.reduce((sum, category) => sum + category.available, 0);
 
+const groups = categories.map((category) => ({
+  slug: category.slug,
+  name: category.name,
+  tools: category.tools.filter((tool) => tool.status === "available"),
+}));
+
 const rules = [
   {
-    title: "Traite tous les 3 jours",
-    text: "1 bouteille × (1 + INT/20) par vache et par traite.",
+    title: "Qualité 50 → 100 %",
+    text: "Un champ part à 50 % de qualité ; son rendement double en atteignant le plafond.",
   },
   {
-    title: "Seau 20 · Couteau 5",
-    text: "Utilisations avant casse, comptées dans le calcul.",
+    title: "4 bêtes ou ruches max",
+    text: "Par champ, avec un couteau pour 5 abattages et un seau pour 20 traites.",
   },
   {
-    title: "2e champ −15 %",
-    text: "Rendement réduit sur le lait comme sur les carcasses.",
+    title: "Second champ réduit",
+    text: "Le rendement du second champ suit son propre plafond, plus bas que le premier — en culture comme en élevage.",
   },
   {
-    title: "Mortalité dès J10",
-    text: "Table officielle : 1 % à 10 jours, 35 % après 21.",
+    title: "Des estimations",
+    text: "Les rendements réels varient selon les aléas du jeu et le moment de la récolte.",
   },
 ];
 ---
@@ -72,11 +78,11 @@ const rules = [
       </p>
 
       <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <a href="/seneschal/champs/elevage-de-vaches" class="btn-gold w-full justify-center sm:w-auto">
-          Ouvrir l’élevage de vaches
+        <a href="#calculateurs" class="btn-gold w-full justify-center sm:w-auto">
+          Voir les calculateurs
         </a>
-        <a href="/seneschal/champs" class="btn-ghost w-full justify-center sm:w-auto">
-          Voir les champs
+        <a href="#registres" class="btn-ghost w-full justify-center sm:w-auto">
+          Les registres
         </a>
       </div>
     </div>
@@ -97,7 +103,7 @@ const rules = [
           {totalAvailable}
         </p>
         <p class="mt-1 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
-          Outil disponible
+          Outils disponibles
         </p>
       </div>
       <div class="col-span-2 mt-6 border-t border-gold/15 pt-5 sm:col-span-1 sm:mt-0 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
@@ -109,7 +115,7 @@ const rules = [
     </div>
   </section>
 
-  <section class="container-tdl py-16 sm:py-20" aria-labelledby="registres-titre">
+  <section id="registres" class="container-tdl scroll-mt-20 py-16 sm:py-20" aria-labelledby="registres-titre">
     <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <p class="label-caps">Les registres</p>
@@ -202,66 +208,90 @@ const rules = [
     </div>
   </section>
 
-  <section class="border-y border-gold/15 bg-ink-2/60" aria-labelledby="outil-titre">
+  <section
+    id="calculateurs"
+    class="scroll-mt-20 border-y border-gold/15 bg-ink-2/60"
+    aria-labelledby="calculateurs-titre"
+  >
     <div class="container-tdl py-16 sm:py-20">
-      <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p class="label-caps">L’outil du moment</p>
+          <p class="label-caps">Tous les calculateurs</p>
           <h2
-            id="outil-titre"
-            class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
+            id="calculateurs-titre"
+            class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl"
           >
-            Élevage de vaches
+            {totalAvailable} outils,
+            <br class="hidden sm:block" /> le même registre
           </h2>
         </div>
-        <span class="border border-gold/40 px-2.5 py-1 text-[0.5rem] font-semibold uppercase tracking-[0.16em] text-gold">
-          Disponible
-        </span>
+        <p class="max-w-sm text-sm leading-relaxed text-parchment-dim lg:text-right">
+          Chaque calculateur s’ouvre sur les mêmes chiffres : coût d’achat,
+          rendement du cycle et marge finale. De quoi savoir, avant d’investir,
+          ce que rapporte vraiment une parcelle ou un atelier.
+        </p>
       </div>
 
-      <div class="rule-gold mt-5 w-full opacity-70"></div>
-
-      <div class="card-dark texture-noise mt-6 grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
-        <div>
-          <p class="max-w-xl text-sm leading-relaxed text-parchment-dim sm:text-base">
-            Traite, croissance, abattage et rentabilité : le pré des vaches se
-            calcule du premier jour d’achat au dernier coup de couteau. Quatre
-            bêtes, un cycle, un bénéfice net.
-          </p>
-
-          <dl class="mt-6 grid gap-4 sm:grid-cols-3">
-            <div class="border-t border-gold/20 pt-3">
-              <dt class="text-[0.5625rem] uppercase tracking-[0.16em] text-gold">Lait</dt>
-              <dd class="mt-1.5 text-xs leading-relaxed text-parchment-dim">
-                1 bouteille × (1 + INT/20) par vache et par traite.
-              </dd>
+      <div class="mt-12 space-y-12 sm:mt-14 sm:space-y-14">
+        {groups.map((group, index) => (
+          <section aria-labelledby={`groupe-${group.slug}`}>
+            <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+              <div class="flex items-baseline gap-3">
+                <span
+                  class="font-display text-xs tracking-[0.16em] text-gold/60"
+                  aria-hidden="true"
+                >
+                  {ROMAN[index]}
+                </span>
+                <h3
+                  id={`groupe-${group.slug}`}
+                  class="font-display text-xl tracking-[0.05em] text-parchment sm:text-2xl"
+                >
+                  {group.name}
+                </h3>
+              </div>
+              <p class="text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
+                {group.tools.length} outil{group.tools.length > 1 ? "s" : ""} disponible{group.tools.length > 1 ? "s" : ""}
+              </p>
             </div>
-            <div class="border-t border-gold/20 pt-3">
-              <dt class="text-[0.5625rem] uppercase tracking-[0.16em] text-gold">Carcasses</dt>
-              <dd class="mt-1.5 text-xs leading-relaxed text-parchment-dim">
-                0 à 8 quintaux selon la corpulence de la bête.
-              </dd>
-            </div>
-            <div class="border-t border-gold/20 pt-3">
-              <dt class="text-[0.5625rem] uppercase tracking-[0.16em] text-gold">Outils</dt>
-              <dd class="mt-1.5 text-xs leading-relaxed text-parchment-dim">
-                Seau de 20 traites, couteau de 5 abattages.
-              </dd>
-            </div>
-          </dl>
-        </div>
 
-        <div class="flex flex-col gap-3 sm:flex-row lg:flex-col">
-          <a
-            href="/seneschal/champs/elevage-de-vaches"
-            class="btn-gold w-full justify-center sm:w-auto"
-          >
-            Calculer mon troupeau
-          </a>
-          <a href="/seneschal/champs" class="btn-ghost w-full justify-center sm:w-auto">
-            Le registre des champs
-          </a>
-        </div>
+            <div class="rule-gold mt-4 w-full opacity-70"></div>
+
+            <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {group.tools.map((tool) => (
+                <li>
+                  <a
+                    href={tool.href ?? `/seneschal/${group.slug}/${tool.slug}`}
+                    class="tool-card card-dark texture-noise group flex h-full flex-col p-5"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <h4 class="min-w-0 font-display text-base leading-snug tracking-[0.04em] text-parchment">
+                        {tool.name}
+                      </h4>
+                      <span class="flex-none border border-gold/40 px-2 py-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-gold">
+                        Disponible
+                      </span>
+                    </div>
+                    <p class="mt-2 text-xs leading-relaxed text-parchment-dim">{tool.summary}</p>
+                    <span class="mt-auto flex items-center gap-1.5 pt-5 text-[0.5625rem] font-bold uppercase tracking-[0.16em] text-gold/80">
+                      Ouvrir le calculateur
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="h-3 w-3 transition-transform duration-150 group-hover:translate-x-1"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
     </div>
   </section>
@@ -274,7 +304,7 @@ const rules = [
           id="regles-titre"
           class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
         >
-          Ce que le calcul retient
+          Ce que le Sénéchal retient
         </h2>
       </div>
       <p class="text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
@@ -300,8 +330,8 @@ const rules = [
 
     <p class="mt-8 max-w-2xl border-l border-gold/25 pl-4 text-xs leading-relaxed text-parchment-dim/80">
       Les calculs sont des estimations : les rendements réels du jeu peuvent
-      varier selon la croissance des bêtes, les aléas de mortalité et le moment
-      de l’abattage.
+      varier selon les aléas de production et le moment de la récolte. Vérifiez
+      les prix en jeu avant d’acheter.
     </p>
   </section>
 </Layout>
@@ -335,13 +365,24 @@ const rules = [
     border-color: color-mix(in oklab, var(--color-gold) 38%, transparent);
   }
 
+  .tool-card {
+    transition: border-color 0.2s ease;
+  }
+  .tool-card:hover {
+    border-color: color-mix(in oklab, var(--color-gold) 32%, transparent);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .link-arrow,
     .link-arrow svg,
-    .pillar {
+    .pillar,
+    .tool-card {
       transition: none;
     }
     .link-arrow:hover svg {
+      transform: none;
+    }
+    .tool-card:hover svg {
       transform: none;
     }
   }

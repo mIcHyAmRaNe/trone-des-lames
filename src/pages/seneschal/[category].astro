@@ -18,7 +18,6 @@ interface Props {
 const { category } = Astro.props;
 const available = category.tools.filter((tool) => tool.status === "available");
 const soon = category.tools.filter((tool) => tool.status === "soon");
-const featured = available[0];
 const isEchoppes = category.slug === "echoppes";
 ---
 
@@ -26,7 +25,10 @@ const isEchoppes = category.slug === "echoppes";
   title={`${category.name} — Le Sénéchal · Le Trône des Lames`}
   description={`${category.description} Outils de calcul pour Renaissance Kingdoms, réglés sur les règles à jour.`}
 >
-  <nav aria-label="Fil d’Ariane" class="border-b border-gold/10 bg-ink-2/30">
+  <nav
+    aria-label="Fil d’Ariane"
+    class="sticky top-16 z-40 border-b border-gold/10 bg-ink/90 backdrop-blur-md"
+  >
     <ol
       class="container-tdl flex flex-wrap items-center gap-2 py-3 text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim"
     >
@@ -65,44 +67,41 @@ const isEchoppes = category.slug === "echoppes";
   </section>
 
   <div class="container-tdl py-12 sm:py-16">
-    {featured && (
-      <section aria-labelledby="disponible-titre">
+    {available.length > 0 && (
+      <section aria-labelledby="calculateurs-titre">
         <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <h2 id="disponible-titre" class="label-caps">Disponible</h2>
+          <h2 id="calculateurs-titre" class="label-caps">Les calculateurs</h2>
           <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
-            Règles vérifiées en octobre 2026
+            {available.length} outil{available.length > 1 ? "s" : ""} disponible{available.length > 1 ? "s" : ""} · règles vérifiées en octobre 2026
           </p>
         </div>
 
-        <article class="card-dark texture-noise mt-4 grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12">
-          <div>
-            <span class="border border-gold/40 px-2 py-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.16em] text-gold">
-              {featured.tag ?? "Disponible"}
-            </span>
-            <h3 class="mt-3 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl">
-              {featured.name}
-            </h3>
-            <p class="mt-3 max-w-xl text-sm leading-relaxed text-parchment-dim">
-              {featured.summary}
-            </p>
-            {featured.slug === "elevage-de-vaches" && (
-              <p class="mt-4 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/70">
-                4 vaches · traite · carcasses · outils
-              </p>
-            )}
-          </div>
+        <div class="rule-gold mt-4 w-full opacity-70"></div>
 
-          <a
-            href={featured.href ?? `/seneschal/${category.slug}/${featured.slug}`}
-            class="btn-gold w-full justify-center sm:w-auto"
-          >
-            Ouvrir le calculateur
-          </a>
-        </article>
+        <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {available.map((tool) => (
+            <li>
+              <a
+                href={tool.href ?? `/seneschal/${category.slug}/${tool.slug}`}
+                class="tool-card card-dark texture-noise flex h-full flex-col p-5"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <h3 class="min-w-0 font-display text-base leading-snug tracking-[0.04em] text-parchment">
+                    {tool.name}
+                  </h3>
+                  <span class="flex-none border border-gold/40 px-2 py-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-gold">
+                    Disponible
+                  </span>
+                </div>
+                <p class="mt-2 text-xs leading-relaxed text-parchment-dim">{tool.summary}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
       </section>
     )}
 
-    {isEchoppes && (
+    {isEchoppes && available.length === 0 && (
       <section aria-labelledby="echoppes-titre">
         <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <h2 id="echoppes-titre" class="label-caps">Le registre des échoppes</h2>
@@ -125,8 +124,8 @@ const isEchoppes = category.slug === "echoppes";
             en cours de vérification sur le wiki officiel. Le registre des
             champs, lui, est déjà ouvert.
           </p>
-          <a href="/seneschal/champs/elevage-de-vaches" class="btn-ghost mt-6">
-            Ouvrir l’élevage de vaches
+          <a href="/seneschal/champs" class="btn-ghost mt-6">
+            Ouvrir le registre des champs
           </a>
         </div>
       </section>

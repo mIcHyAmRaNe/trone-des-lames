@@ -1,0 +1,282 @@
+---
+import {
+  APIARY_MOODS,
+  APIARY_RULES,
+  findCrop,
+  findHerd,
+} from "../../lib/seneschal";
+import { formatPoints } from "../../lib/format";
+
+interface Props {
+  tool: { slug: string; name: string; kind?: string };
+}
+
+const { tool } = Astro.props;
+
+const CROP_BY_SLUG: Record<string, string> = {
+  "champ-de-ble": "ble",
+  "champ-d-orge": "orge",
+  "champ-de-mais": "mais",
+  "champ-de-legumes": "legumes",
+  "champ-d-oliviers": "oliviers",
+  "champ-de-vignes": "vignes",
+  "champ-de-houblon": "houblon",
+};
+
+const HERD_BY_SLUG: Record<string, string> = {
+  "elevage-de-cochons": "cochons",
+  "elevage-de-moutons": "moutons",
+  "elevage-de-chevres": "chevres",
+};
+
+const SOURCES: Record<string, { label: string; href: string }[]> = {
+  "champ-de-legumes": [
+    { label: "Légume", href: "https://wiki.renaissancekingdoms.com/fr/L%C3%A9gume" },
+    { label: "Champ de légumes", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_l%C3%A9gumes" },
+  ],
+  "champ-de-ble": [
+    { label: "Sac de blé", href: "https://wiki.renaissancekingdoms.com/fr/Sac_de_bl%C3%A9" },
+    { label: "Champ de blé", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_bl%C3%A9" },
+  ],
+  "champ-de-mais": [
+    { label: "Sac de maïs", href: "https://wiki.renaissancekingdoms.com/fr/Sac_de_ma%C3%AFs" },
+    { label: "Champ de maïs", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_ma%C3%AFs" },
+  ],
+  rucher: [{ label: "Rucher", href: "https://wiki.renaissancekingdoms.com/fr/Rucher" }],
+  "elevage-de-cochons": [
+    { label: "Cochon", href: "https://wiki.renaissancekingdoms.com/fr/Cochon" },
+    { label: "Champ de cochons", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_cochons" },
+  ],
+  "elevage-de-moutons": [
+    { label: "Mouton", href: "https://wiki.renaissancekingdoms.com/fr/Mouton" },
+    { label: "Champ de moutons", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_moutons" },
+  ],
+  "elevage-de-chevres": [
+    { label: "Chèvre", href: "https://wiki.renaissancekingdoms.com/fr/Ch%C3%A8vre" },
+    { label: "Champ de chèvres", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_ch%C3%A8vres" },
+  ],
+  "champ-d-orge": [
+    { label: "Sac d’orge", href: "https://wiki.renaissancekingdoms.com/fr/Sac_d%27orge" },
+    { label: "Champ d’orge", href: "https://wiki.renaissancekingdoms.com/fr/Champ_d%27orge" },
+  ],
+  "champ-d-oliviers": [
+    { label: "Livre d’olives", href: "https://wiki.renaissancekingdoms.com/fr/Livre_d%27olives" },
+    { label: "Champ d’oliviers", href: "https://wiki.renaissancekingdoms.com/fr/Champ_d%27oliviers" },
+  ],
+  "champ-de-vignes": [
+    { label: "Livre de raisins", href: "https://wiki.renaissancekingdoms.com/fr/Livre_de_raisins" },
+    { label: "Champ de vignes", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_vignes" },
+  ],
+  "champ-de-houblon": [
+    { label: "Sac de houblon", href: "https://wiki.renaissancekingdoms.com/fr/Sac_de_houblon" },
+    { label: "Champ de houblon", href: "https://wiki.renaissancekingdoms.com/fr/Champ_de_houblon" },
+  ],
+};
+
+const kind = tool.kind;
+const crop = CROP_BY_SLUG[tool.slug] ? findCrop(CROP_BY_SLUG[tool.slug]) : undefined;
+const herd = HERD_BY_SLUG[tool.slug] ? findHerd(HERD_BY_SLUG[tool.slug]) : undefined;
+const sources = SOURCES[tool.slug] ?? [];
+
+const percent = (value: number) => `${formatPoints(Math.round(value * 10) / 10)} %`;
+
+const kicker =
+  kind === "apiary" ? "Le rucher" : kind === "herd" ? "L’élevage" : "La culture";
+const heading =
+  kind === "apiary" ? "Les règles du rucher" : "Les règles du champ";
+
+const qualityMax = crop
+  ? Math.min(100, 50 + Object.values(crop.quality).reduce((sum, value) => sum + value, 0))
+  : 0;
+
+const rules: { title: string; text: string }[] = [];
+
+if (crop) {
+  rules.push(
+    {
+      title: `${crop.cycleDays} jours de cycle`,
+      text: `Du semis à la récolte, ${crop.produce.toLowerCase()} se récolte une fois par cycle.`,
+    },
+    {
+      title: `${crop.workSessions} session${crop.workSessions > 1 ? "s" : ""} de ${crop.hoursPerSession} h`,
+      text: `${formatPoints(crop.workSessions * crop.hoursPerSession)} h de travail et ${formatPoints(
+        crop.workSessions * crop.energyPerSession,
+      )} PE pour mener le cycle à son terme.`,
+    },
+    {
+      title: `Récolte à 50 % : ${formatPoints(crop.firstFieldYield)} / ${formatPoints(
+        crop.secondFieldYield,
+      )}`,
+      text: "Premier et second champ. La récolte double à 100 % de qualité ; le second champ a son propre rendement, réduit selon le wiki.",
+    },
+    {
+      title: crop.seed ? `Semence : ${crop.seed}` : "Sans semis",
+      text: crop.seed
+        ? "Un sac de semence est consommé à chaque cycle."
+        : "Le champ repart sans semence : seules les sessions de travail comptent.",
+    },
+    {
+      title: `Qualité max ${formatPoints(qualityMax)} %`,
+      text: `Somme des bonus du champ : Force, Intelligence, Conservation, Faux de l’Ankou, Bon sens paysan, Soc et Cultivateur.`,
+    },
+  );
+  if (crop.note) rules.push({ title: "À savoir", text: crop.note });
+} else if (herd) {
+  rules.push(
+    {
+      title: `Achat ${formatPoints(herd.price)} écus`,
+      text: `${herd.name} : une bête achetée au prix du wiki.`,
+    },
+    {
+      title: `${herd.maxAnimals} bêtes maximum`,
+      text: `${herd.maxAnimals} bêtes par champ ; chaque abattage libère une place.`,
+    },
+  );
+  if (herd.milk) {
+    rules.push({
+      title: `${herd.milk.label} tous les ${herd.milk.every} jours`,
+      text: "1 × (1 + INT/20) par bête et par passage. L’Intelligence plafonne à 20.",
+    });
+  } else {
+    rules.push({
+      title: "Pas de traite",
+      text: "Les cochons ne produisent ni lait ni laine : seule la carcasse compte.",
+    });
+  }
+  rules.push(
+    {
+      title: herd.growthChance > 0 ? `Croissance ${percent(herd.growthChance * 100)} / jour` : "Croissance non documentée",
+      text:
+        herd.growthChance > 0
+          ? herd.feed === "corn"
+            ? "Chance de croissance par jour nourri : herbe 5/18, maïs 5/9. Départ décharné."
+            : "Chance de croissance par jour nourri, départ décharné."
+          : "Le rythme de croissance des chèvres n’est pas documenté sur le wiki.",
+    },
+    {
+      title: "Mortalité",
+      text: herd.mortality
+        ? `${Object.entries(herd.mortality)
+            .map(([age, value]) => `${age} j : ${formatPoints(value)} %`)
+            .join(" · ")} · au-delà : 35 %`
+        : "Table non documentée sur le wiki pour les chèvres.",
+    },
+    {
+      title: "Second champ −15 %",
+      text: "Production et carcasses réduites de 15 % sur le champ secondaire.",
+    },
+  );
+} else if (kind === "apiary") {
+  rules.push(
+    {
+      title: `${APIARY_RULES.hivePrice} écus la ruche`,
+      text: "Une ruche achetée au prix du wiki, quatre au maximum par rucher.",
+    },
+    {
+      title: `${APIARY_RULES.maxHives} ruches maximum`,
+      text: "Chaque ruche produit indépendamment des autres.",
+    },
+    {
+      title: "Enfumoir",
+      text: "Indispensable pour récolter le miel dans de bonnes conditions.",
+    },
+    {
+      title: "Humeur → rendement",
+      text: "Plus les abeilles sont sereines, plus le miel, la cire et la gelée sont abondants.",
+    },
+    {
+      title: `−${APIARY_RULES.harvestMoodDrop} niveaux par récolte`,
+      text: "L’humeur baisse après chaque récolte ; l’entretien aux fleurs est gratuit.",
+    },
+    {
+      title: "Second champ −15 %",
+      text: "Le miel récolté par ruche est réduit de 15 % sur le champ secondaire.",
+    },
+  );
+}
+---
+
+<section class="border-y border-gold/15 bg-ink-2/60" aria-labelledby={`${tool.slug}-regles-titre`}>
+  <div class="container-tdl py-14 sm:py-16">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div>
+        <p class="label-caps">{kicker}</p>
+        <h2 id={`${tool.slug}-regles-titre`} class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl">
+          {heading}
+        </h2>
+      </div>
+      <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">Wiki officiel · octobre 2026</p>
+    </div>
+
+    <div class="rule-gold mt-5 w-full opacity-70"></div>
+
+    <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {rules.map((rule) => (
+        <li class="card-dark texture-noise p-5">
+          <p class="font-display text-sm leading-snug tracking-[0.04em] text-gold-light">{rule.title}</p>
+          <p class="mt-1.5 text-xs leading-relaxed text-parchment-dim">{rule.text}</p>
+        </li>
+      ))}
+    </ul>
+
+    {kind === "apiary" && (
+      <div class="mt-6 overflow-x-auto">
+        <table class="w-full min-w-[30rem] border-collapse text-left">
+          <thead>
+            <tr class="border-b border-gold/15">
+              <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim first:pl-0">Humeur</th>
+              <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-right text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Miel / ruche</th>
+              <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-right text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">Cire</th>
+              <th scope="col" class="whitespace-nowrap px-3 py-2.5 text-right text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim last:pr-0">Gelée</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gold/10">
+            {APIARY_MOODS.map((mood) => (
+              <tr>
+                <th scope="row" class="whitespace-nowrap px-3 py-2 text-left text-xs font-normal text-parchment first:pl-0">
+                  {mood.level} — {mood.label}
+                </th>
+                <td class="whitespace-nowrap px-3 py-2 text-right font-display text-sm tabular-nums text-parchment-dim">
+                  {formatPoints(mood.honey)}
+                </td>
+                <td class="whitespace-nowrap px-3 py-2 text-right font-display text-sm tabular-nums text-parchment-dim">
+                  {formatPoints(mood.wax)}
+                </td>
+                <td class="whitespace-nowrap px-3 py-2 text-right font-display text-sm tabular-nums text-parchment-dim last:pr-0">
+                  {formatPoints(mood.jelly)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="mt-3 text-[0.6875rem] leading-relaxed text-parchment-dim/80">
+          Le miel est certain à chaque récolte ; la cire et la gelée sont des espérances par ruche et par récolte.
+          Le bonus de Charisme du récoltant et le Pacificateur ne sont pas modélisés.
+        </p>
+      </div>
+    )}
+  </div>
+</section>
+
+<section class="border-t border-gold/15 bg-ink-2/40" aria-labelledby={`${tool.slug}-sources-titre`}>
+  <div class="container-tdl py-12 sm:py-14">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div>
+        <p class="label-caps">Sources</p>
+        <h2 id={`${tool.slug}-sources-titre`} class="mt-2 font-display text-xl tracking-[0.05em] text-parchment">Vérifié sur le wiki officiel</h2>
+      </div>
+      <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">Dernière vérification : octobre 2026</p>
+    </div>
+    <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+      {sources.map((source) => (
+        <li>
+          <a href={source.href} target="_blank" rel="noreferrer" class="group inline-flex items-center gap-1.5 text-xs text-parchment-dim underline decoration-gold/25 underline-offset-4 transition-colors hover:text-gold">
+            {source.label}
+            <svg viewBox="0 0 24 24" class="h-3 w-3 flex-none text-gold/50 transition-colors group-hover:text-gold" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 16 16 8M9 8h7v7" /></svg>
+          </a>
+        </li>
+      ))}
+    </ul>
+    <p class="mt-6 max-w-2xl text-[0.6875rem] leading-relaxed text-parchment-dim/70">Les calculs restent des estimations : les rendements réels du jeu peuvent varier.</p>
+  </div>
+</section>

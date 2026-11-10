@@ -1,15 +1,21 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  MULTI_SLOTS,
-  SECTIONS,
+  CATEGORIES,
+  FAMILIES,
+  SINGLE_CATEGORIES,
+  categoryLabel,
+  categoryOf,
   countEquipped,
+  entriesInCategory,
   entryFrom,
-  indexBySlot,
+  familyOf,
+  indexByCategory,
+  isMultiCategory,
   itemHaystack,
   itemLabel,
-  multiSlotsOf,
   orphanSlots,
+  removeCategory,
   removeEntry,
   slotLabel,
   toLoadout,
@@ -32,6 +38,13 @@ import {
   assert.ok(catalog.sexes.F.length > 800, 'catalogue féminin présent');
   const slots = new Set(items.map((i) => i.slot));
   assert.deepEqual(orphanSlots(slots), [], 'aucun slot orphelin');
+  const categories = new Set(items.map(categoryOf));
+  for (const category of categories) {
+    assert.ok(
+      CATEGORIES.some((c) => c.key === category),
+      `catégorie inconnue du jeu : ${category}`,
+    );
+  }
   for (const item of items) {
     assert.ok(Array.isArray(item.declinaisons), `${item.id}: déclinaisons`);
     assert.ok(Array.isArray(item.zIndex), `${item.id}: zIndex`);
@@ -62,61 +75,108 @@ import {
   assert.equal(entry.declinaison, 2);
   assert.deepEqual(entry.zIndexCalques, [2601]);
   assert.equal(entry.postureMainG, null);
+  assert.equal(entry.slotGardeRobe, null);
   console.log('✓ entrée Midas');
 }
 
-// --- 4. Loadout : cumul, remplacement, retrait
+// --- 4. Loadout : cumul, remplacement, retrait, catégories du jeu
 {
-  const item = (id: string, slot = 'Familier'): CatalogItem => ({
-    id, nom: id, slot, slotGardeRobe: null, miniature: 'o',
+  const item = (id: string, slot: string, slotGardeRobe: string | null): CatalogItem => ({
+    id, nom: id, slot, slotGardeRobe, miniature: 'o',
     declinaisons: [0], zIndex: [1], dependCouleurPeau: false,
     dependPostureMainG: false, dependPostureMainD: false, slotsMasques: [],
     nameEn: null, nameFr: id,
   });
-  const chat = entryFrom(item('chat'), 0);
-  const chien = entryFrom(item('chien'), 0);
-  const equipement = [chat, chien, entryFrom(item('cape', 'Cape'), 0)];
+  const chat = entryFrom(item('chat', 'Familier', 'Familiers'), 0);
+  const chien = entryFrom(item('chien', 'Familier', 'Familiers'), 0);
+  const cape = entryFrom(item('cape', 'Cape', 'Capes'), 0);
   assert.deepEqual(orphanSlots(['Cape', 'Familier', 'Inconnu']), ['Inconnu']);
-  assert.deepEqual([...multiSlotsOf(equipement)], ['Familier']);
-  assert.ok(MULTI_SLOTS.has('Familier'));
+  assert.equal(categoryOf(chat), 'Familiers');
+  assert.equal(categoryOf({ slot: 'Panoplie', slotGardeRobe: null }), 'Panoplies');
+  assert.ok(isMultiCategory('Familiers'));
+  assert.ok(!isMultiCategory('Armes'));
+  assert.ok(isMultiCategory('Chapeaux') && isMultiCategory('Bijoux'));
 
-  let loadout = toLoadout(equipement);
+  let loadout = toLoadout([chat, chien, cape]);
   assert.equal(loadout.Familier.length, 2);
   assert.equal(countEquipped(loadout), 3);
+  assert.deepEqual(entriesInCategory(loadout, 'Familiers').map((e) => e.idItem), ['chat', 'chien']);
 
   loadout = upsert(loadout, 'Familier', { ...chat, declinaison: 1 });
   assert.equal(loadout.Familier.length, 2, 'même idItem remplacé, pas dupliqué');
   assert.equal(loadout.Familier.find((e) => e.idItem === 'chat')?.declinaison, 1);
 
+  loadout = removeCategory(loadout, 'Familiers');
+  assert.equal(loadout.Familier, undefined, 'catégorie vidée, slot supprimé');
+  assert.equal(countEquipped(loadout), 1, 'la cape est conservée');
+
+  loadout = upsert(loadout, 'Familier', chat);
   loadout = removeEntry(loadout, 'Familier', 'chat');
-  assert.equal(loadout.Familier.length, 1);
-  loadout = removeEntry(loadout, 'Familier', 'chien');
-  assert.equal(loadout.Familier, undefined, 'slot vide supprimé');
-  console.log('✓ loadout');
+  assert.equal(loadout.Familier, undefined);
+  console.log('✓ loadout + catégories');
 }
 
-// --- 5. Tri par slot
+// --- 5. Tri par catégorie
 {
   const items: CatalogItem[] = ['Zèbre', 'abeille', 'Castor'].map((nameFr, i) => ({
     id: String(i), nom: nameFr.toLowerCase(),
-    slot: 'Chapeau', slotGardeRobe: null, miniature: 'o', declinaisons: [0], zIndex: [1],
+    slot: 'Chapeau', slotGardeRobe: 'Chapeaux', miniature: 'o', declinaisons: [0], zIndex: [1],
     dependCouleurPeau: false, dependPostureMainG: false, dependPostureMainD: false,
     slotsMasques: [], nameEn: null, nameFr,
   }));
-  const buckets = indexBySlot(items);
-  assert.deepEqual(buckets.get('Chapeau')?.map(itemLabel), ['abeille', 'Castor', 'Zèbre']);
-  console.log('✓ tri alphabétique');
+  const buckets = indexByCategory(items);
+  assert.deepEqual(buckets.get('Chapeaux')?.map(itemLabel), ['abeille', 'Castor', 'Zèbre']);
+  console.log('✓ tri alphabétique par catégorie');
 }
 
-// --- 6. Sections
+// --- 6. Catégories identiques à la garde-robe du jeu
 {
-  assert.ok(SECTIONS.some((s) => s.hidden));
-  const claimed = SECTIONS.flatMap((s) => s.slots);
-  assert.equal(new Set(claimed).size, claimed.length, 'aucun slot en double');
-  console.log('✓ sections');
+  // 30 slots de #onglet2Panel, dans l'ordre du jeu.
+  assert.equal(CATEGORIES.length, 30);
+  assert.equal(new Set(CATEGORIES.map((c) => c.key)).size, 30, 'clés uniques');
+  assert.equal(new Set(CATEGORIES.map((c) => c.label)).size, 30, 'libellés uniques');
+  assert.equal(CATEGORIES[0].key, 'Chapeaux');
+  assert.equal(CATEGORIES.at(-1)?.key, 'Boucliers');
+  // data-limite="1" du jeu : un seul objet par catégorie.
+  assert.deepEqual(
+    [...SINGLE_CATEGORIES],
+    ['Coiffures', 'Barbes', 'Fonds', 'Cadres', 'Outils_barque', 'Outils_filet', 'Outils_echelle', 'Armes', 'Boucliers'],
+  );
+  assert.equal(categoryLabel('BasDessous'), 'Bas et dessous');
+  assert.equal(categoryLabel('Inconnue'), 'Inconnue');
+  console.log('✓ catégories du jeu');
 }
 
-// --- 7. Cookie de session chiffré
+// --- 7. Familles de navigation : chaque catégorie dans exactement une famille
+{
+  const seen = new Set<string>();
+  for (const family of FAMILIES) {
+    assert.ok(family.categories.length > 0, `${family.key}: famille non vide`);
+    for (const key of family.categories) {
+      assert.ok(!seen.has(key), `${key}: rangée dans deux familles`);
+      seen.add(key);
+      assert.ok(
+        CATEGORIES.some((c) => c.key === key),
+        `${key}: catégorie inconnue du jeu`,
+      );
+      assert.equal(familyOf(key)?.key, family.key, `${key}: familyOf`);
+    }
+  }
+  assert.deepEqual(
+    [...seen].sort(),
+    CATEGORIES.map((c) => c.key).sort(),
+    'toutes les catégories sont rangées',
+  );
+  assert.deepEqual(
+    FAMILIES.map((f) => f.key),
+    ['corps', 'vetements', 'equipements', 'familiers', 'decors'],
+    'ordre des familles stable',
+  );
+  assert.equal(familyOf('Inconnue'), undefined);
+  console.log('✓ familles de navigation');
+}
+
+// --- 8. Cookie de session chiffré
 {
   process.env.ADMIN_SECRET = 'test-secret';
   const jar = new Map<string, string>();

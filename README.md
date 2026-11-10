@@ -50,7 +50,7 @@ src/
     state.ts        # état complet pour les pages
     format.ts       # formatage et lecture des points (virgule française)
     events.ts       # types, validation et CRUD des animations
-    wardrobe.ts     # catalogue d'objets, sections, helpers de loadout
+    wardrobe.ts     # catalogue d'objets, catégories du jeu, helpers de loadout
     seneschal.ts    # outils des champs/échoppes : règles et calculs de rendement
     rk.ts           # connexion au jeu et lecture d'une fiche (serveur)
     rk-session.ts   # session de garde-robe chiffrée dans un cookie
@@ -68,6 +68,9 @@ src/
     garde-robe/ItemPicker.tsx   # combobox react-select (aperçu au survol)
     catalogue/CatalogTable.tsx  # table filtrable et paginée du catalogue
     seneschal/CowCalculator.tsx # calculateur de rendement du champ de vaches
+    seneschal/BotanistCalculator.tsx # calculateur de marge de l'échoppe du botaniste
+    seneschal/CraftCalculator.tsx # calculateur de marge des métiers d'échoppe
+    seneschal/controls.tsx      # champs et selects partagés des calculateurs
   pages/
     index.astro · tournoi.astro · agenda.astro · garde-robe.astro · catalogue.astro · admin.astro
     seneschal/          # hub, catégories (champs/échoppes) et outils
@@ -93,8 +96,8 @@ La chronique se consulte globalement (`/agenda`) ou mois par mois via `/agenda?p
 
 Deux sections publiques issues de l'outil personnel `rk_wardrobe`, réécrites pour le langage visuel du site.
 
-- **`/garde-robe`** — connexion au jeu, chargement d'une fiche, habillage par emplacement, aperçu des variantes au survol, tenues enregistrées localement, export PNG.
-- **`/catalogue`** — les objets du jeu (nom, emplacement, sexes, z-index, déclinaisons), filtrables et paginés.
+- **`/garde-robe`** — connexion au jeu, chargement d'une fiche, habillage par catégorie de la garde-robe du jeu, aperçu des variantes au survol, tenues enregistrées localement, export PNG.
+- **`/catalogue`** — les objets du jeu (nom, catégorie, sexes, z-index, déclinaisons), filtrables et paginés.
 
 ### Rendu du personnage
 
@@ -110,7 +113,7 @@ Les identifiants ne vont qu'au serveur du site, qui ouvre une session auprès du
 
 ### Catalogue
 
-`public/rk/catalog.json` est un fichier statique (1792 objets, 39 emplacements) qui contient, pour chaque objet, son slot, son nom d'image CDN, ses déclinaisons de couleur et surtout son `zIndexCalques` — sans z-index réel, les vêtements se superposent mal au corps.
+`public/rk/catalog.json` est un fichier statique (1792 entrées, 30 catégories du jeu) qui contient, pour chaque objet, son slot technique, son `slotGardeRobe`, son nom d'image CDN, ses déclinaisons de couleur et surtout son `zIndexCalques` — sans z-index réel, les vêtements se superposent mal au corps.
 
 ```bash
 npm run catalog           # reconstruction complète depuis ryence.de (~1777 objets)
@@ -138,8 +141,14 @@ Le Sénéchal regroupe les outils d'aide des champs et des échoppes, inspirés 
 - `/seneschal` — hub des registres (champs, échoppes) et des outils disponibles.
 - `/seneschal/champs` · `/seneschal/echoppes` — catégories et outils à venir.
 - `/seneschal/champs/elevage-de-vaches` — calculateur de cycle : troupeau, traite, croissance, abattage, outils et rentabilité.
+- `/seneschal/champs/elevage-de-moutons` · `elevage-de-cochons` · `elevage-de-chevres` — tonte, engraissement, lait, carcasses et mortalité.
+- `/seneschal/champs/champ-de-ble` · `champ-d-orge` · `champ-de-mais` · `champ-de-legumes` · `champ-d-oliviers` · `champ-de-vignes` · `champ-de-houblon` — cycle, qualité, récolte et marge.
+- `/seneschal/champs/rucher` — ruches, humeur des abeilles, miel, cire et gelée royale.
+- `/seneschal/echoppes/boucher` · `boulanger` · `charpentier` · `cidriculteur` · `distillateur` · `forgeron` · `fromager` · `meunier` · `oleiculteur` · `sculpteur` · `tisserand` · `viniculteur` — calculateurs d'atelier : recettes, matières premières, dépenses, recettes et marge nette (par heure et par unité).
 
-Les formules et constantes vivent dans `src/lib/seneschal.ts` (vache à 45 écus, 4 bêtes max, lait `1 × (1 + INT/20)` plafonné à 20, 2e champ −15 %, seau 20 utilisations, couteau 5 abattages, table de mortalité officielle). Les pages sont prérendues ; seul le calculateur est un îlot React.
+Les formules et constantes vivent dans `src/lib/seneschal.ts` (vache à 45 écus, 4 bêtes max, lait `1 × (1 + INT/20)` plafonné à 20, 2e champ −15 %, seau 20 utilisations, couteau 5 abattages, table de mortalité officielle). Les cultures suivent la règle du wiki : qualité 50 % par défaut, rendement doublé à 100 %, minimum de récolte du wiki pour chaque champ, second champ avec son propre minimum. Les pages sont prérendues ; seul le calculateur est un îlot React.
+
+Le moteur est data-driven : `CROP_FIELDS`, `HERD_RULES` et `APIARY_RULES` décrivent chaque champ, `computeCropCycle`, `computeHerdCycle` et `computeApiary` font les calculs. Les tables de mortalité des chèvres et les rendements maximaux ne sont pas documentés sur le wiki : l’outil le signale au lieu d’inventer des valeurs.
 
 ## Règles implémentées
 
@@ -153,7 +162,7 @@ Les formules et constantes vivent dans `src/lib/seneschal.ts` (vache à 45 écus
 ```bash
 node --experimental-strip-types tests/tournament.test.ts   # logique pure
 node --experimental-strip-types tests/wardrobe.test.ts     # catalogue, loadout, session
-node --experimental-strip-types tests/seneschal.test.ts    # rendements du champ de vaches
+node --experimental-strip-types tests/seneschal.test.ts    # vaches, cultures, élevages, rucher, métiers
 node tests/e2e.mjs                                          # API (serveur dev requis)
 ```
 
