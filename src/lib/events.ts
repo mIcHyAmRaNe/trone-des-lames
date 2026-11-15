@@ -67,6 +67,21 @@ function isDate(v: string) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
 
+/**
+ * Empreinte d'unicité d'une animation : nom + ville + date de début, normalisés.
+ * Deux propositions qui produisent la même empreinte désignent la même animation.
+ */
+export function eventKey(e: Pick<AgendaEvent, 'title' | 'city' | 'startsOn'>): string {
+  const norm = (v: string) =>
+    v
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[\s'’]+/g, ' ')
+      .trim();
+  return `${norm(e.title)}|${norm(e.city)}|${e.startsOn}`;
+}
+
 /** Inclusive duration in days; both dates already known valid. */
 function daysBetween(a: string, b: string) {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000) + 1;
@@ -160,6 +175,13 @@ export async function listEvents(opts: { status?: EventStatus | 'all' } = {}): P
           args: [status],
         });
   return (r.rows as unknown as Row[]).map(toEvent);
+}
+
+/** Retourne l'animation déjà enregistrée qui correspond à cette proposition, sinon null. */
+export async function findDuplicate(input: EventInput): Promise<AgendaEvent | null> {
+  const key = eventKey(input);
+  const all = await listEvents({ status: 'all' });
+  return all.find((e) => eventKey(e) === key) ?? null;
 }
 
 export async function createEvent(input: EventInput, status: EventStatus): Promise<AgendaEvent> {

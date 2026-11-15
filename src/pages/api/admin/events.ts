@@ -3,6 +3,7 @@ import { isAdmin, json, unauthorized } from '../../../lib/auth';
 import {
   createEvent,
   deleteEvent,
+  eventKey,
   listEvents,
   parseEvent,
   updateEvent,
@@ -13,7 +14,9 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ cookies }) => {
   if (!isAdmin(cookies)) return unauthorized();
-  return json({ events: await listEvents({ status: 'all' }) });
+  // `key` lets the admin screen flag two rows describing the same animation.
+  const events = await listEvents({ status: 'all' });
+  return json({ events: events.map((e) => ({ ...e, key: eventKey(e) })) });
 };
 
 export const POST: APIRoute = async ({ request, cookies }) => {

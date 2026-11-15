@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { clientIp, json } from '../../lib/auth';
-import { createEvent, listEvents, parseEvent, type EventInput } from '../../lib/events';
+import { createEvent, findDuplicate, listEvents, parseEvent, type EventInput } from '../../lib/events';
 
 export const prerender = false;
 
@@ -42,6 +42,22 @@ export const POST: APIRoute = async ({ request }) => {
   delete body.status;
   try {
     const input = parseEvent(body) as EventInput;
+
+    // Same animation already on file (pending or approved): do not create a twin.
+    const duplicate = await findDuplicate(input);
+    if (duplicate) {
+      const pending = duplicate.status === 'pending';
+      return json(
+        {
+          code: pending ? 'duplicate-pending' : 'already-exists',
+          error: pending
+            ? 'Cette animation est déjà proposée et attend la validation de l’organisation.'
+            : 'Cette animation figure déjà dans l’agenda.',
+        },
+        409,
+      );
+    }
+
     await createEvent(input, 'pending');
     return json({ ok: true }, 201);
   } catch (e) {

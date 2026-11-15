@@ -463,7 +463,8 @@ const copy = {
 
         if (response.status === 429) {
           message = msg.errorRate;
-        } else if (response.status === 400) {
+        } else if (response.status === 400 || response.status === 409) {
+          // 409 : animation déjà proposée ou déjà publiée, le serveur explique pourquoi.
           const body = (await response.json().catch(() => null)) as
             | { error?: unknown; message?: unknown }
             | null;

@@ -115,6 +115,11 @@ const STR = {
     approve: 'Approuver',
     deleteEventConfirm: (title: string) => `Supprimer « ${title} » ?`,
     eventDeleted: 'Événement supprimé',
+    editEvent: (title: string) => `Modifier « ${title} »`,
+    save: 'Enregistrer',
+    eventUpdated: 'Événement modifié',
+    updateFailed: 'Modification impossible',
+    dupEvent: 'La même animation a été soumise plusieurs fois',
     reset: 'Réinitialisation',
     clearResultsNote:
       'Efface les résultats et le tableau final. Conserve les combattants et les groupes.',
@@ -230,6 +235,11 @@ const STR = {
     approve: 'Approve',
     deleteEventConfirm: (title: string) => `Delete “${title}”?`,
     eventDeleted: 'Event deleted',
+    editEvent: (title: string) => `Edit ${title}`,
+    save: 'Save',
+    eventUpdated: 'Event updated',
+    updateFailed: 'Could not update',
+    dupEvent: 'The same animation was submitted more than once',
     reset: 'Reset',
     clearResultsNote: 'Clears the results and the final bracket. Keeps the fighters and groups.',
     clearResultsConfirm: 'Clear all results and the final bracket?',
@@ -1183,6 +1193,10 @@ const EMPTY_EVENT_FORM = {
   endsOn: '',
 };
 
+const EDIT_FIELDS = ['title', 'rkName', 'city', 'county', 'forumUrl', 'startsOn', 'endsOn'] as const;
+
+type AdminEvent = AgendaEvent & { key: string };
+
 function fmtRange(startsOn: string, endsOn: string, lang: Lang = 'fr') {
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' };
   const loc = locale(lang);
@@ -1194,12 +1208,16 @@ function fmtRange(startsOn: string, endsOn: string, lang: Lang = 'fr') {
 
 function Agenda({ run, lang = 'fr' }: { run: Run; lang?: Lang }) {
   const s = STR[lang];
-  const [events, setEvents] = useState<AgendaEvent[] | null>(null);
+  const [events, setEvents] = useState<AdminEvent[] | null>(null);
   const [form, setForm] = useState(EMPTY_EVENT_FORM);
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState<number | null>(null);
+  const [draft, setDraft] = useState(EMPTY_EVENT_FORM);
+  const [editError, setEditError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const refreshEvents = useCallback(async () => {
-    const data = (await api('/api/admin/events', undefined, lang)) as { events: AgendaEvent[] };
+    const data = (await api('/api/admin/events', undefined, lang)) as { events: AdminEvent[] };
     setEvents(data.events);
   }, [lang]);
 
@@ -1225,6 +1243,45 @@ function Agenda({ run, lang = 'fr' }: { run: Run; lang?: Lang }) {
     setForm((f) => ({ ...f, [k]: e.target.value }));
     setError('');
   };
+
+  const updDraft = (k: keyof typeof EMPTY_EVENT_FORM) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDraft((f) => ({ ...f, [k]: e.target.value }));
+    setEditError('');
+  };
+
+  const duplicates = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const ev of events ?? []) seen.set(ev.key, (seen.get(ev.key) ?? 0) + 1);
+    return new Set([...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k));
+  }, [events]);
+
+  function startEdit(ev: AdminEvent) {
+    setEditing(ev.id);
+    setDraft({
+      title: ev.title,
+      rkName: ev.rkName,
+      city: ev.city,
+      county: ev.county,
+      forumUrl: ev.forumUrl,
+      startsOn: ev.startsOn,
+      endsOn: ev.endsOn,
+    });
+    setEditError('');
+  }
+
+  async function saveEdit(ev: AdminEvent) {
+    setSaving(true);
+    try {
+      await api('/api/admin/events', { method: 'PATCH', body: JSON.stringify({ id: ev.id, ...draft }) }, lang);
+      setEditing(null);
+      setEditError('');
+      await act(async () => {}, s.eventUpdated);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : s.updateFailed);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -1327,68 +1384,197 @@ function Agenda({ run, lang = 'fr' }: { run: Run; lang?: Lang }) {
         <p className="py-4 text-center text-sm text-parchment-dim">{s.noEvents}</p>
       ) : (
         <ul className="space-y-2">
-          {sorted.map((ev) => (
-            <li
-              key={ev.id}
-              className="flex flex-wrap items-center gap-2 rounded border border-gold/10 bg-ink/40 px-3 py-2"
-            >
-              <span
-                className={`flex-none rounded-sm border px-1.5 py-0.5 text-[0.5rem] font-bold uppercase tracking-wider ${
-                  ev.status === 'pending' ? 'border-blood/60 text-blood' : 'border-gold/40 text-gold'
+          {sorted.map((ev) => {
+            const dup = duplicates.has(ev.key);
+            const dirty = EDIT_FIELDS.some((k) => draft[k] !== ev[k]);
+            return (
+              <li
+                key={ev.id}
+                className={`flex flex-wrap items-center gap-2 rounded border px-3 py-2 ${
+                  dup ? 'border-blood/60 bg-blood/[0.06]' : 'border-gold/10 bg-ink/40'
                 }`}
               >
-                {ev.status === 'pending' ? s.pending : s.publishedStatus}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-sm text-parchment">{ev.title}</span>
-              <span className="flex-none text-[0.6875rem] text-parchment-dim">
-                {fmtRange(ev.startsOn, ev.endsOn, lang)}
-              </span>
-              <span className="flex-none text-[0.6875rem] text-parchment-dim">
-                {ev.city} · {ev.county}
-              </span>
-              <span className="flex-none text-[0.6875rem] text-parchment-dim">RK : {ev.rkName}</span>
-              <a
-                href={ev.forumUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-gold hover:underline"
-              >
-                Forum
-              </a>
-              {ev.status === 'pending' && (
-                <button
-                  type="button"
-                  className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-gold"
-                  onClick={() =>
-                    void act(
-                      () =>
-                        api('/api/admin/events', {
-                          method: 'PATCH',
-                          body: JSON.stringify({ id: ev.id, status: 'approved' }),
-                        }, lang),
-                      s.eventApproved,
-                    )
-                  }
-                >
-                  {s.approve}
-                </button>
-              )}
-              <button
-                type="button"
-                aria-label={s.deleteEventConfirm(ev.title)}
-                className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-blood transition-colors hover:text-blood-light"
-                onClick={() => {
-                  if (!window.confirm(s.deleteEventConfirm(ev.title))) return;
-                  void act(
-                    () => api(`/api/admin/events?id=${ev.id}`, { method: 'DELETE' }, lang),
-                    s.eventDeleted,
-                  );
-                }}
-              >
-                {s.delShort}
-              </button>
-            </li>
-          ))}
+                {editing === ev.id ? (
+                  <form
+                    className="w-full"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void saveEdit(ev);
+                    }}
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`flex-none rounded-sm border px-1.5 py-0.5 text-[0.5rem] font-bold uppercase tracking-wider ${
+                          ev.status === 'pending' ? 'border-blood/60 text-blood' : 'border-gold/40 text-gold'
+                        }`}
+                      >
+                        {ev.status === 'pending' ? s.pending : s.publishedStatus}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-parchment">{ev.title}</span>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        value={draft.title}
+                        onChange={updDraft('title')}
+                        placeholder={s.eventName}
+                        maxLength={100}
+                        required
+                        autoFocus
+                        aria-label={s.eventName}
+                        aria-invalid={editError ? true : undefined}
+                        className={`${inputCls} sm:col-span-2`}
+                      />
+                      <input
+                        value={draft.rkName}
+                        onChange={updDraft('rkName')}
+                        placeholder={s.playerName}
+                        maxLength={60}
+                        required
+                        aria-label={s.playerName}
+                        className={inputCls}
+                      />
+                      <input
+                        value={draft.city}
+                        onChange={updDraft('city')}
+                        placeholder={s.town}
+                        maxLength={60}
+                        required
+                        aria-label={s.town}
+                        className={inputCls}
+                      />
+                      <input
+                        value={draft.county}
+                        onChange={updDraft('county')}
+                        placeholder={s.county}
+                        maxLength={60}
+                        required
+                        aria-label={s.county}
+                        className={inputCls}
+                      />
+                      <input
+                        value={draft.startsOn}
+                        onChange={updDraft('startsOn')}
+                        type="date"
+                        required
+                        aria-label={s.startDate}
+                        className={inputCls}
+                      />
+                      <input
+                        value={draft.endsOn}
+                        onChange={updDraft('endsOn')}
+                        type="date"
+                        required
+                        aria-label={s.endDate}
+                        className={inputCls}
+                      />
+                      <input
+                        value={draft.forumUrl}
+                        onChange={updDraft('forumUrl')}
+                        type="url"
+                        placeholder={s.forumLink}
+                        maxLength={500}
+                        required
+                        aria-label={s.forumLink}
+                        className={`${inputCls} sm:col-span-2`}
+                      />
+                    </div>
+                    {editError && (
+                      <p role="alert" className="mt-1.5 flex items-start gap-1.5 text-xs text-blood">
+                        <span aria-hidden="true">⚠</span>
+                        {editError}
+                      </p>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <button type="submit" disabled={saving || !dirty} className="btn-gold disabled:opacity-40">
+                        {s.save}
+                      </button>
+                      <button
+                        type="button"
+                        className="text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim transition-colors hover:text-gold"
+                        onClick={() => {
+                          setEditing(null);
+                          setEditError('');
+                        }}
+                      >
+                        {s.cancel}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <span
+                      className={`flex-none rounded-sm border px-1.5 py-0.5 text-[0.5rem] font-bold uppercase tracking-wider ${
+                        ev.status === 'pending' ? 'border-blood/60 text-blood' : 'border-gold/40 text-gold'
+                      }`}
+                    >
+                      {ev.status === 'pending' ? s.pending : s.publishedStatus}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-parchment">{ev.title}</span>
+                    {dup && (
+                      <span className="flex-none text-[0.5rem] uppercase tracking-[0.1em] text-blood" title={s.dupEvent}>
+                        {s.duplicate}
+                      </span>
+                    )}
+                    <span className="flex-none text-[0.6875rem] text-parchment-dim">
+                      {fmtRange(ev.startsOn, ev.endsOn, lang)}
+                    </span>
+                    <span className="flex-none text-[0.6875rem] text-parchment-dim">
+                      {ev.city} · {ev.county}
+                    </span>
+                    <span className="flex-none text-[0.6875rem] text-parchment-dim">RK : {ev.rkName}</span>
+                    <a
+                      href={ev.forumUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-gold hover:underline"
+                    >
+                      Forum
+                    </a>
+                    <button
+                      type="button"
+                      aria-label={s.editEvent(ev.title)}
+                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-parchment-dim transition-colors hover:text-gold"
+                      onClick={() => startEdit(ev)}
+                    >
+                      {s.edit}
+                    </button>
+                    {ev.status === 'pending' && (
+                      <button
+                        type="button"
+                        className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-gold"
+                        onClick={() =>
+                          void act(
+                            () =>
+                              api('/api/admin/events', {
+                                method: 'PATCH',
+                                body: JSON.stringify({ id: ev.id, status: 'approved' }),
+                              }, lang),
+                            s.eventApproved,
+                          )
+                        }
+                      >
+                        {s.approve}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      aria-label={s.deleteEventConfirm(ev.title)}
+                      className="flex-none text-[0.625rem] uppercase tracking-[0.1em] text-blood transition-colors hover:text-blood-light"
+                      onClick={() => {
+                        if (!window.confirm(s.deleteEventConfirm(ev.title))) return;
+                        void act(
+                          () => api(`/api/admin/events?id=${ev.id}`, { method: 'DELETE' }, lang),
+                          s.eventDeleted,
+                        );
+                      }}
+                    >
+                      {s.delShort}
+                    </button>
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </Section>
