@@ -3,9 +3,10 @@ import CreatableSelect from 'react-select/creatable';
 import Select from 'react-select';
 import type { StylesConfig } from 'react-select';
 import { parsePoints } from '../../lib/format';
+import type { Lang } from '../../i18n';
 
 type Option = { value: string; label: string };
-type FighterOption = { value: number; label: string };
+type FighterOption = { value: string; label: string };
 
 /** Common point totals, offered as shortcuts. Any other value can still be typed. */
 const OPTIONS: Option[] = Array.from({ length: 8 }, (_, i) => {
@@ -155,6 +156,25 @@ const makeTheme = (p: Palette) => (t: any) => ({
   },
 });
 
+const STR = {
+  fr: {
+    scorePlaceholder: ' - ',
+    scoreNoOptions: 'Saisissez un nombre',
+    scoreInvalid: 'Valeur invalide',
+    scoreCreateLabel: (input: string) => `Utiliser ${input.trim()}`,
+    forfeitPlaceholder: 'Qui déclare forfait ?',
+    forfeitNoOptions: 'Aucun combattant',
+  },
+  en: {
+    scorePlaceholder: ' - ',
+    scoreNoOptions: 'Enter a number',
+    scoreInvalid: 'Invalid value',
+    scoreCreateLabel: (input: string) => `Use ${input.trim()}`,
+    forfeitPlaceholder: 'Who forfeits?',
+    forfeitNoOptions: 'No fighters',
+  },
+};
+
 /**
  * Score combobox: pick a common total from the list or type any value
  * (decimals with a comma or a dot are both accepted).
@@ -165,13 +185,16 @@ export function ScoreSelect({
   disabled,
   label,
   isWinner,
+  lang = 'fr',
 }: {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   label: string;
   isWinner?: boolean;
+  lang?: Lang;
 }) {
+  const s = STR[lang];
   const p = usePalette();
   const baseStyles = makeBaseStyles(p);
   const theme = makeTheme(p);
@@ -197,37 +220,41 @@ export function ScoreSelect({
             fontSize: 12,
           }),
         }}
-        placeholder="—"
+        placeholder={s.scorePlaceholder}
         options={OPTIONS}
         value={value ? { value, label: value } : null}
         onChange={(opt) => onChange(opt?.value ?? '')}
         isValidNewOption={(input) => parsePoints(input) != null}
-        formatCreateLabel={(input) => `Utiliser ${input.trim()}`}
+        formatCreateLabel={(input) => s.scoreCreateLabel(input)}
         noOptionsMessage={({ inputValue }) =>
-          inputValue ? 'Valeur invalide' : 'Saisissez un nombre'
+          inputValue ? s.scoreInvalid : s.scoreNoOptions
         }
       />
     </div>
   );
 }
 
-/** Selects which fighter forfeits — always a deliberate, explicit choice. */
+/** Selects which fighter forfeits  -  always a deliberate, explicit choice. */
 export function ForfeitSelect({
   options,
   value,
   onChange,
+  lang = 'fr',
 }: {
   options: FighterOption[];
   value: number | null;
   onChange: (id: number | null) => void;
+  lang?: Lang;
 }) {
+  const s = STR[lang];
   const p = usePalette();
   const baseStyles = makeBaseStyles(p);
   const theme = makeTheme(p);
+  const valueStr = value != null ? String(value) : null;
   return (
     <div className="w-40 flex-none">
       <Select
-        aria-label="Combattant déclarant forfait"
+        aria-label={lang === 'fr' ? 'Combattant déclarant forfait' : 'Fighter who forfeits'}
         classNamePrefix="tdl-forfeit"
         menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
         menuPosition="fixed"
@@ -250,13 +277,13 @@ export function ForfeitSelect({
             padding: 4,
           }),
         }}
-        placeholder="Qui déclare forfait ?"
+        placeholder={s.forfeitPlaceholder}
         options={options}
-        value={options.find((o) => o.value === value) ?? null}
-        onChange={(opt) => onChange((opt as FighterOption | null)?.value ?? null)}
+        value={valueStr ? options.find((o) => o.value === valueStr) ?? null : null}
+        onChange={(opt) => onChange(opt ? Number(opt.value) : null)}
         isSearchable={false}
         isClearable
-        noOptionsMessage={() => 'Aucun combattant'}
+        noOptionsMessage={() => s.forfeitNoOptions}
       />
     </div>
   );

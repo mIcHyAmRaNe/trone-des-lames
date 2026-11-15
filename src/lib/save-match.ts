@@ -26,7 +26,7 @@ export type Resolved = {
 
 /**
  * A duel always has a winner: the higher score. A forfeit is declared by the
- * loser — the winner is the other fighter and their points are derived from
+ * loser  -  the winner is the other fighter and their points are derived from
  * the rules, never entered.
  */
 export function resolveResult(match: Match, input: MatchInput): Resolved {

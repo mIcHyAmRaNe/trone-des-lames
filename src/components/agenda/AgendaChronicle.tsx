@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ChangeEvent, MouseEvent as ReactMouseEvent } from 'react';
 import type { AgendaEvent } from '../../lib/events';
+import type { Lang } from '../../i18n';
 import {
   dayNumber,
   daysInMonth,
@@ -21,6 +22,7 @@ interface Props {
   initialPeriod: string | null;
   /** Server day (YYYY-MM-DD); never read the clock during render. */
   today: string;
+  lang?: Lang;
 }
 
 type Month = { key: string; days: number };
@@ -45,7 +47,134 @@ type Placed = {
 
 const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const MIN_SPAN = 12; // percent of the graph, keeps the minimum ribbon width from colliding
-const NOSCRIPT_SUBMIT = '<button type="submit" class="scroll-btn">Afficher</button>';
+const NOSCRIPT_SUBMIT = '<button type="submit" class="scroll-btn">Show</button>';
+
+const STR = {
+  fr: {
+    chronicleEyebrow: 'Chronique du royaume',
+    chronicleTitle: 'Le fil des animations',
+    viewLabel: 'Vue',
+    filterAria: 'Filtrer les animations par date',
+    filters: {
+      upcoming: 'À venir',
+      past: 'Passées',
+      all: 'Toutes',
+    },
+    emptyStateTitle: 'Le registre est encore vide',
+    emptyStateDesc: 'Aucune animation n\'est inscrite pour le moment. Les premières propositions apparaîtront ici après validation par l\'organisation.',
+    proposeEvent: 'Proposer une animation',
+    periodLabel: (label: string) => label,
+    monthInfo: (count: number, days: number) => `${count} animation${count > 1 ? 's' : ''} ◆ ${days} jours`,
+    fullChronicle: 'Toute la chronique',
+    emptyMonthTitle: (label: string) => `Aucune animation en ${label}`,
+    emptyMonthDesc: 'Ce mois ne contient aucune animation au registre.',
+    emptyMonthCta: 'Voir toute la chronique',
+    filterEmpty: 'Aucune animation dans cette vue. Essayez « Toutes ».',
+    legend: {
+      upcoming: 'À venir',
+      ongoing: 'En cours',
+      past: 'Passées',
+      today: "Aujourd'hui",
+    },
+    scrollHint: 'Faites défiler la chronique',
+    periodLabelAria: 'Filtrer la chronique par période',
+    periodLabel: 'Période affichée',
+    prevMonthAria: (label: string) => `Mois précédent, ${label}`,
+    prevMonthAriaShort: 'Mois précédent',
+    nextMonthAria: (label: string) => `Mois suivant, ${label}`,
+    nextMonthAriaShort: 'Mois suivant',
+    today: "Aujourd'hui",
+    register: 'Registre',
+    periodLabelMobile: 'Période affichée',
+    filterEmptyMobile: 'Aucune animation dans cette vue.',
+    groupFrom: 'dès',
+    daySuffix: 'j',
+    ongoing: 'En cours.',
+    detailTitle: (state: State) =>
+      state === 'ongoing'
+        ? 'En cours'
+        : state === 'past'
+        ? 'Animation passée'
+        : 'Animation à venir',
+    detailEmptyTitle: "Le détail d'une animation",
+    detailEmptyDesc: 'Choisissez une animation dans la chronique pour lire ses dates, son organisateur et le lien vers le forum.',
+    detailKeys: 'Tab pour parcourir · Entrée pour ouvrir',
+    detailLabels: {
+      city: 'Ville',
+      county: 'Comté',
+      proposedBy: 'Proposé par',
+      duration: 'Durée',
+    },
+    forumButton: "Voir l'événement sur le forum",
+    forumNote: 'Forum officiel, nouvel onglet',
+    eventCount: (count: number, isMonth: boolean) =>
+      `${count} animation${count > 1 ? 's' : ''} ${isMonth ? 'ce mois-ci' : 'au registre'}`,
+    showToday: "Aujourd'hui",
+    unitSeparator: '·',
+  },
+  en: {
+    chronicleEyebrow: "Realm's chronicle",
+    chronicleTitle: 'The events feed',
+    viewLabel: 'View',
+    filterAria: 'Filter events by date',
+    filters: {
+      upcoming: 'Upcoming',
+      past: 'Past',
+      all: 'All',
+    },
+    emptyStateTitle: 'The register is still empty',
+    emptyStateDesc: 'No events are registered yet. The first proposals will appear here after approval by the organisers.',
+    proposeEvent: 'Propose an event',
+    periodLabel: (label: string) => label,
+    monthInfo: (count: number, days: number) => `${count} event${count > 1 ? 's' : ''} ◆ ${days} days`,
+    fullChronicle: 'Full chronicle',
+    emptyMonthTitle: (label: string) => `No events in ${label}`,
+    emptyMonthDesc: 'This month contains no events in the register.',
+    emptyMonthCta: 'View full chronicle',
+    filterEmpty: 'No events in this view. Try "All".',
+    legend: {
+      upcoming: 'Upcoming',
+      ongoing: 'Ongoing',
+      past: 'Past',
+      today: 'Today',
+    },
+    scrollHint: 'Scroll the chronicle',
+    periodLabelAria: 'Filter chronicle by period',
+    periodLabel: 'Displayed period',
+    prevMonthAria: (label: string) => `Previous month, ${label}`,
+    prevMonthAriaShort: 'Previous month',
+    nextMonthAria: (label: string) => `Next month, ${label}`,
+    nextMonthAriaShort: 'Next month',
+    today: 'Today',
+    register: 'Register',
+    periodLabelMobile: 'Displayed period',
+    filterEmptyMobile: 'No events in this view.',
+    groupFrom: 'from',
+    daySuffix: 'd',
+    ongoing: 'Ongoing.',
+    detailTitle: (state: State) =>
+      state === 'ongoing'
+        ? 'Ongoing'
+        : state === 'past'
+        ? 'Past event'
+        : 'Upcoming event',
+    detailEmptyTitle: 'Event details',
+    detailEmptyDesc: 'Select an event from the chronicle to read its dates, organiser and forum link.',
+    detailKeys: 'Tab to navigate · Enter to open',
+    detailLabels: {
+      city: 'City',
+      county: 'County',
+      proposedBy: 'Proposed by',
+      duration: 'Duration',
+    },
+    forumButton: 'View event on forum',
+    forumNote: 'Official forum, new tab',
+    eventCount: (count: number, isMonth: boolean) =>
+      `${count} event${count > 1 ? 's' : ''} ${isMonth ? 'this month' : 'in the register'}`,
+    showToday: 'Today',
+    unitSeparator: '·',
+  },
+};
 
 const whenOf = (event: AgendaEvent, today: string): When =>
   event.endsOn < today ? 'past' : 'upcoming';
@@ -112,12 +241,12 @@ function prefersReducedMotion(): boolean {
 }
 
 /* ---- Everything the chronicle draws for one period. ---- */
-function computeView(domain: Domain, period: string | null, today: string) {
+function computeView(domain: Domain, period: string | null, today: string, lang: Lang) {
   const { sorted, months, monthIndex, todayKey, endKey } = domain;
   const isMonthView = period !== null;
   const viewMonth = period ? months[monthIndex.get(period) ?? 0] : null;
   const viewDays = viewMonth?.days ?? 0;
-  const periodLabel = period ? monthLabel(period) : '';
+  const periodLabel = period ? monthLabel(period, lang) : '';
   const monthStart = period ? `${period}-01` : '';
   const monthEnd = viewMonth ? `${period}-${String(viewMonth.days).padStart(2, '0')}` : '';
 
@@ -207,7 +336,7 @@ function computeView(domain: Domain, period: string | null, today: string) {
       : []
     : [...new Set(sorted.map((e) => e.startsOn.slice(0, 7)))].map((key) => ({
         key,
-        label: monthLabel(key),
+        label: monthLabel(key, lang),
         items: sorted.filter((e) => e.startsOn.slice(0, 7) === key),
       }));
 
@@ -242,7 +371,8 @@ function computeView(domain: Domain, period: string | null, today: string) {
   };
 }
 
-export default function AgendaChronicle({ events, initialPeriod: periodProp, today }: Props) {
+export default function AgendaChronicle({ events, initialPeriod: periodProp, today, lang = 'fr' }: Props) {
+  const s = STR[lang];
   const domain = useMemo(() => buildDomain(events, today), [events, today]);
   const initialPeriod = useMemo(() => normalizePeriod(domain, periodProp), [domain, periodProp]);
 
@@ -262,7 +392,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
   const todayLineRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLDivElement>(null);
 
-  const current = useMemo(() => computeView(domain, period, today), [domain, period, today]);
+  const current = useMemo(() => computeView(domain, period, today, lang), [domain, period, today, lang]);
 
   const selectEvent = (id: number) => {
     setSelectedId(id);
@@ -368,9 +498,9 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
   ).length;
 
   const filters: Array<{ key: FilterKey; label: string; count: number }> = [
-    { key: 'upcoming', label: 'À venir', count: current.upcomingCount },
-    { key: 'past', label: 'Passées', count: current.pastCount },
-    { key: 'all', label: 'Toutes', count: current.viewEvents.length },
+    { key: 'upcoming', label: s.filters.upcoming, count: current.upcomingCount },
+    { key: 'past', label: s.filters.past, count: current.pastCount },
+    { key: 'all', label: s.filters.all, count: current.viewEvents.length },
   ];
 
   const handlePeriodSelect = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -388,24 +518,24 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
     >
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <div>
-          <p className="label-caps">Chronique du royaume</p>
+          <p className="label-caps">{s.chronicleEyebrow}</p>
           <h2
             id="chronique-titre"
             className="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
           >
-            Le fil des animations
+            {s.chronicleTitle}
           </h2>
         </div>
 
         {current.viewEvents.length > 0 && (
           <div className="flex flex-wrap items-center gap-3">
             <span className="hidden text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim/70 sm:inline">
-              Vue
+              {s.viewLabel}
             </span>
             <div
               className="flex border border-gold/25 bg-ink/40 p-0.5"
               role="group"
-              aria-label="Filtrer les animations par date"
+              aria-label={s.filterAria}
             >
               {filters.map((f) => (
                 <button
@@ -438,14 +568,13 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
             <path d="M12 2l2.4 6.2L21 10l-5 4.6L17.2 21 12 17.6 6.8 21 8 14.6 3 10l6.6-1.8L12 2z" />
           </svg>
           <p className="mt-4 font-display text-lg tracking-[0.06em] text-parchment">
-            Le registre est encore vide
+            {s.emptyStateTitle}
           </p>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-parchment-dim">
-            Aucune animation n’est inscrite pour le moment. Les premières propositions
-            apparaîtront ici après validation par l’organisation.
+            {s.emptyStateDesc}
           </p>
           <a href="#proposer" className="btn-ghost mt-6">
-            Proposer une animation
+            {s.proposeEvent}
           </a>
         </div>
       ) : (
@@ -465,22 +594,14 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                 </p>
                 <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.5625rem] uppercase tracking-[0.16em] text-parchment-dim/70">
                   <span>
-                    {current.viewEvents.length} animation
-                    {current.viewEvents.length > 1 ? 's' : ''}
-                  </span>
-                  <span className="text-gold/40" aria-hidden="true">
-                    ◆
-                  </span>
-                  <span>{current.viewDays} jours</span>
-                  <span className="text-gold/40" aria-hidden="true">
-                    ◆
+                    {s.monthInfo(current.viewEvents.length, current.viewDays)}
                   </span>
                   <a
                     href={periodHref(null)}
                     onClick={onPeriodClick(null)}
                     className="text-gold-light underline decoration-gold/40 underline-offset-4 transition-colors hover:decoration-gold"
                   >
-                    Toute la chronique
+                    {s.fullChronicle}
                   </a>
                 </p>
               </div>
@@ -489,13 +610,13 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
             {current.emptyMonth ? (
               <div className="px-6 py-12 text-center">
                 <p className="font-display text-lg tracking-[0.04em] text-parchment">
-                  Aucune animation en {current.periodLabel}
+                  {s.emptyMonthTitle(current.periodLabel)}
                 </p>
                 <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-parchment-dim">
-                  Ce mois ne contient aucune animation au registre.
+                  {s.emptyMonthDesc}
                 </p>
                 <a href={periodHref(null)} onClick={onPeriodClick(null)} className="btn-ghost mt-6">
-                  Voir toute la chronique
+                  {s.emptyMonthCta}
                 </a>
               </div>
             ) : (
@@ -518,7 +639,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                   aria-label={
                     current.isMonthView
                       ? undefined
-                      : 'Chronique des animations, défilement horizontal'
+                      : 'Chronicle of events, horizontal scroll'
                   }
                 >
                   <div
@@ -557,7 +678,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                             key={m.key}
                             className="relative flex flex-1 items-center border-l border-gold/10 pl-3 first:border-l-0"
                           >
-                            <span className="ruler-label">{monthShortLabel(m.key)}</span>
+                            <span className="ruler-label">{monthShortLabel(m.key, lang)}</span>
                           </div>
                         ))
                       )}
@@ -569,7 +690,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                           style={{ left: `${current.todayPct}%` }}
                         >
                           <span className="today-flag-dot"></span>
-                          Aujourd’hui
+                          {s.showToday}
                         </div>
                       )}
                     </div>
@@ -638,7 +759,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                           data-compact={current.compact ? 'true' : 'false'}
                           aria-pressed={selectedId === p.event.id}
                           aria-controls="agenda-detail"
-                          title={`${p.event.title} — ${formatRange(p.event.startsOn, p.event.endsOn)}`}
+                          title={`${p.event.title}  -  ${formatRange(p.event.startsOn, p.event.endsOn, lang)}`}
                           style={{
                             left: `${p.left}%`,
                             width: `${Math.max(0.4, Math.min(p.right, 100) - p.left)}%`,
@@ -653,17 +774,17 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                           {p.state === 'ongoing' && (
                             <span className="ribbon-pulse" aria-hidden="true"></span>
                           )}
-                          {p.state === 'ongoing' && <span className="sr-only">En cours. </span>}
+                          {p.state === 'ongoing' && <span className="sr-only">{s.ongoing}</span>}
                           <span className="ribbon-body">
                             <span className="ribbon-title">{p.event.title}</span>
                             {!current.compact && (
                               <span className="ribbon-sub">
-                                {formatRangeShort(p.event.startsOn, p.event.endsOn)}
+                                {formatRangeShort(p.event.startsOn, p.event.endsOn, lang)}
                               </span>
                             )}
                           </span>
                           <span className="sr-only">
-                            , du {formatRange(p.event.startsOn, p.event.endsOn)}, {p.event.city}
+                            , {formatRange(p.event.startsOn, p.event.endsOn, lang)}, {p.event.city}
                           </span>
                         </button>
                       ))}
@@ -686,27 +807,27 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                 hidden={visibleCount > 0}
                 className="border-t border-gold/20 bg-ink/40 px-4 py-3 text-center text-sm text-parchment-dim"
               >
-                Aucune animation dans cette vue. Essayez « Toutes ».
+                {s.filterEmpty}
               </p>
             )}
 
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-gold/20 px-3 py-2.5 sm:px-4">
               <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.5625rem] uppercase tracking-[0.16em] text-parchment-dim">
                 <li className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-3.5 bg-gold/80"></span>À venir
+                  <span className="h-1.5 w-3.5 bg-gold/80"></span>{s.legend.upcoming}
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="h-1.5 w-3.5 bg-gold/80"></span>
                   <span className="-ml-1.5 mr-0.5 h-1.5 w-1.5 rounded-full bg-blood"></span>
-                  En cours
+                  {s.legend.ongoing}
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-3.5 bg-parchment-dim/30"></span>Passées
+                  <span className="h-1.5 w-3.5 bg-parchment-dim/30"></span>{s.legend.past}
                 </li>
                 {current.showToday && (
                   <li className="flex items-center gap-1.5">
                     <span className="inline-block h-3 w-px border-l border-dashed border-gold-light/70"></span>
-                    Aujourd’hui
+                    {s.legend.today}
                   </li>
                 )}
               </ul>
@@ -718,24 +839,24 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                     className="hidden text-[0.5625rem] uppercase tracking-[0.16em] text-parchment-dim/60 lg:block"
                     style={{ display: scrollable ? undefined : 'none' }}
                   >
-                    Faites défiler la chronique
+                    {s.scrollHint}
                   </p>
                 )}
 
                 <div
                   className="period-nav"
                   role="group"
-                  aria-label="Filtrer la chronique par période"
+                  aria-label={s.periodLabelAria}
                 >
                   <label htmlFor="agenda-month" className="period-label">
-                    Période affichée
+                    {s.periodLabel}
                   </label>
 
                   {current.prevMonth ? (
                     <a
                       className="scroll-btn"
                       href={periodHref(current.prevMonth.key)}
-                      aria-label={`Mois précédent, ${monthLabel(current.prevMonth.key)}`}
+                      aria-label={s.prevMonthAria(monthLabel(current.prevMonth.key, lang))}
                       onClick={onPeriodClick(current.prevMonth.key)}
                     >
                       <svg
@@ -754,7 +875,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                       type="button"
                       className="scroll-btn"
                       disabled
-                      aria-label="Mois précédent"
+                      aria-label={s.prevMonthAriaShort}
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -784,10 +905,10 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                         value={period ?? ''}
                         onChange={handlePeriodSelect}
                       >
-                        <option value="">Toute la chronique</option>
+                        <option value="">{s.fullChronicle}</option>
                         {current.months.map((m) => (
                           <option key={m.key} value={m.key}>
-                            {monthLabel(m.key)}
+                            {monthLabel(m.key, lang)}
                           </option>
                         ))}
                       </select>
@@ -812,7 +933,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                     <a
                       className="scroll-btn"
                       href={periodHref(current.nextMonth.key)}
-                      aria-label={`Mois suivant, ${monthLabel(current.nextMonth.key)}`}
+                      aria-label={s.nextMonthAria(monthLabel(current.nextMonth.key, lang))}
                       onClick={onPeriodClick(current.nextMonth.key)}
                     >
                       <svg
@@ -831,7 +952,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                       type="button"
                       className="scroll-btn"
                       disabled
-                      aria-label="Mois suivant"
+                      aria-label={s.nextMonthAriaShort}
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -852,7 +973,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                       href={periodHref(domain.todayKey)}
                       onClick={onPeriodClick(domain.todayKey)}
                     >
-                      Aujourd’hui
+                      {s.today}
                     </a>
                   ) : (
                     <button
@@ -861,7 +982,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                       data-today=""
                       onClick={() => scrollToToday(true)}
                     >
-                      Aujourd’hui
+                      {s.today}
                     </button>
                   )}
                 </div>
@@ -872,7 +993,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
           {/* Phone: vertical chronicle grouped by month. */}
           <div className="card-dark texture-noise mt-6 md:hidden">
             <div className="flex items-center justify-between gap-3 border-b border-gold/25 px-4 py-2.5">
-              <p className="label-caps">Registre</p>
+              <p className="label-caps">{s.register}</p>
               <form
                 method="get"
                 action="/agenda#chronique"
@@ -880,7 +1001,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                 onSubmit={(event) => event.preventDefault()}
               >
                 <label htmlFor="agenda-month-mobile" className="sr-only">
-                  Période affichée
+                  {s.periodLabelMobile}
                 </label>
                 <div className="period-field">
                   <select
@@ -891,10 +1012,10 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                     value={period ?? ''}
                     onChange={handlePeriodSelect}
                   >
-                    <option value="">Toute la chronique</option>
+                    <option value="">{s.fullChronicle}</option>
                     {current.months.map((m) => (
                       <option key={m.key} value={m.key}>
-                        {monthLabel(m.key)}
+                        {monthLabel(m.key, lang)}
                       </option>
                     ))}
                   </select>
@@ -919,14 +1040,14 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
             {current.emptyMonth ? (
               <div className="px-4 py-10 text-center">
                 <p className="font-display text-sm tracking-[0.04em] text-parchment">
-                  Aucune animation en {current.periodLabel}
+                  {s.emptyMonthTitle(current.periodLabel)}
                 </p>
                 <a
                   href={periodHref(null)}
                   onClick={onPeriodClick(null)}
                   className="mt-4 inline-block text-[0.625rem] uppercase tracking-[0.16em] text-gold-light underline decoration-gold/40 underline-offset-4"
                 >
-                  Voir toute la chronique
+                  {s.emptyMonthCta}
                 </a>
               </div>
             ) : (
@@ -936,7 +1057,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                   hidden={visibleCount > 0}
                   className="border-b border-gold/20 px-4 py-4 text-sm text-parchment-dim"
                 >
-                  Aucune animation dans cette vue.
+                  {s.filterEmptyMobile}
                 </p>
 
                 {current.groups.map((g) => {
@@ -961,13 +1082,13 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                             current.isMonthView && e.startsOn < current.monthStart;
                           const clipEnd = current.isMonthView && e.endsOn > current.monthEnd;
                           const endLabel = clipEnd
-                            ? 'suite'
+                            ? s.groupFrom
                             : e.startsOn === e.endsOn
-                              ? '1 j'
-                              : current.isMonthView ||
-                                  e.startsOn.slice(0, 7) === e.endsOn.slice(0, 7)
-                                ? `→ ${dayNumber(e.endsOn)}`
-                                : `→ ${monthShortLabel(e.endsOn.slice(0, 7)).split(' ')[0]}`;
+                            ? `1 ${s.daySuffix}`
+                            : current.isMonthView ||
+                                e.startsOn.slice(0, 7) === e.endsOn.slice(0, 7)
+                            ? `→ ${dayNumber(e.endsOn)}`
+                            : `→ ${monthShortLabel(e.endsOn.slice(0, 7), lang).split(' ')[0]}`;
                           return (
                             <li
                               key={e.id}
@@ -988,7 +1109,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                               >
                                 <span className="list-date" aria-hidden="true">
                                   {clipStart ? (
-                                    <span className="list-date-word">dès</span>
+                                    <span className="list-date-word">{s.groupFrom}</span>
                                   ) : (
                                     <span className="list-date-day">{dayNumber(e.startsOn)}</span>
                                   )}
@@ -1006,16 +1127,16 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                                           className="h-1.5 w-1.5 flex-none rounded-full bg-blood"
                                           aria-hidden="true"
                                         ></span>
-                                        <span className="sr-only">En cours.</span>
+                                        <span className="sr-only">{s.ongoing}</span>
                                       </>
                                     )}
                                   </span>
                                   <span className="mt-1 block text-xs text-parchment-dim">
-                                    {e.city} · {e.county}
+                                    {e.city} {s.unitSeparator} {e.county}
                                   </span>
                                   {current.isMonthView && (
                                     <span className="mt-1 block text-[0.625rem] tracking-[0.03em] text-gold/80">
-                                      {formatRange(e.startsOn, e.endsOn)}
+                                      {formatRange(e.startsOn, e.endsOn, lang)}
                                     </span>
                                   )}
                                   <span className="mt-1 block text-[0.625rem] uppercase tracking-[0.14em] text-gold/70">
@@ -1023,7 +1144,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                                   </span>
                                   {!current.isMonthView && (
                                     <span className="sr-only">
-                                      {formatRange(e.startsOn, e.endsOn)}
+                                      {formatRange(e.startsOn, e.endsOn, lang)}
                                     </span>
                                   )}
                                 </span>
@@ -1051,14 +1172,12 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
 
             <div className="flex items-center justify-between border-t border-gold/20 px-4 py-3">
               <span className="text-[0.5625rem] uppercase tracking-[0.16em] text-parchment-dim/60">
-                {current.viewEvents.length} animation
-                {current.viewEvents.length > 1 ? 's' : ''}
-                {current.isMonthView ? ' ce mois-ci' : ' au registre'}
+                {s.eventCount(current.viewEvents.length, current.isMonthView)}
               </span>
               {current.showToday && (
                 <span className="flex items-center gap-1.5 text-[0.5625rem] uppercase tracking-[0.16em] text-parchment-dim/60">
                   <span className="inline-block h-3 w-px border-l border-dashed border-gold-light/70"></span>
-                  Aujourd’hui
+                  {s.showToday}
                 </span>
               )}
             </div>
@@ -1071,7 +1190,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
             tabIndex={-1}
             role="region"
             aria-live="polite"
-            aria-label="Détail de l’animation"
+            aria-label="Event details"
             ref={detailRef}
           >
             <span className="detail-top-rule" aria-hidden="true"></span>
@@ -1083,15 +1202,14 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                 <span className="h-px w-12 bg-gradient-to-l from-transparent to-gold/50"></span>
               </div>
               <p className="font-display text-lg tracking-[0.06em] text-parchment">
-                Le détail d’une animation
+                {s.detailEmptyTitle}
               </p>
               <div className="rule-gold mx-auto my-4 w-16"></div>
               <p className="mx-auto max-w-md text-sm leading-relaxed text-parchment-dim">
-                Choisissez une animation dans la chronique pour lire ses dates, son organisateur et
-                le lien vers le forum.
+                {s.detailEmptyDesc}
               </p>
               <p className="mt-4 text-[0.5625rem] uppercase tracking-[0.18em] text-parchment-dim/50">
-                Tab pour parcourir · Entrée pour ouvrir
+                {s.detailKeys}
               </p>
             </div>
 
@@ -1105,36 +1223,32 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
                   <div className="min-w-0">
                     <p className="label-caps">
-                      {isOngoing(e, today)
-                        ? 'En cours'
-                        : whenOf(e, today) === 'past'
-                          ? 'Animation passée'
-                          : 'Animation à venir'}
+                      {s.detailTitle(isOngoing(e, today) ? 'ongoing' : whenOf(e, today))}
                     </p>
                     <h3 className="mt-2 font-display text-xl leading-snug tracking-[0.04em] text-parchment sm:text-2xl">
                       {e.title}
                     </h3>
                     <p className="mt-2 font-display text-sm tracking-[0.1em] text-gold-light">
-                      {formatRange(e.startsOn, e.endsOn)}
+                      {formatRange(e.startsOn, e.endsOn, lang)}
                     </p>
 
                     <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-3 border-t border-gold/15 pt-5 sm:grid-cols-4">
                       <div>
-                        <dt className="detail-key">Ville</dt>
+                        <dt className="detail-key">{s.detailLabels.city}</dt>
                         <dd className="detail-val">{e.city}</dd>
                       </div>
                       <div>
-                        <dt className="detail-key">Comté</dt>
+                        <dt className="detail-key">{s.detailLabels.county}</dt>
                         <dd className="detail-val">{e.county}</dd>
                       </div>
                       <div>
-                        <dt className="detail-key">Proposé par</dt>
+                        <dt className="detail-key">{s.detailLabels.proposedBy}</dt>
                         <dd className="detail-val">{e.rkName}</dd>
                       </div>
                       <div>
-                        <dt className="detail-key">Durée</dt>
+                        <dt className="detail-key">{s.detailLabels.duration}</dt>
                         <dd className="detail-val">
-                          {formatDuration(e.startsOn, e.endsOn)}
+                          {formatDuration(e.startsOn, e.endsOn, lang)}
                         </dd>
                       </div>
                     </dl>
@@ -1147,7 +1261,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                       rel="noopener"
                       className="btn-gold w-full justify-center sm:w-auto"
                     >
-                      Voir l’événement sur le forum
+                      {s.forumButton}
                       <svg
                         viewBox="0 0 24 24"
                         className="h-3.5 w-3.5"
@@ -1160,7 +1274,7 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                       </svg>
                     </a>
                     <p className="text-[0.625rem] leading-relaxed text-parchment-dim/60 lg:text-right">
-                      Forum officiel, nouvel onglet
+                      {s.forumNote}
                     </p>
                   </div>
                 </div>

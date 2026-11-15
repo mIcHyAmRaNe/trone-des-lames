@@ -7,7 +7,7 @@ import type { StylesConfig } from "react-select";
 export const selectClassNames = {
   container: () => "min-w-0",
   control: () =>
-    "flex min-w-0 items-center border border-gold/20 bg-ink/60 px-2.5 py-1 transition-colors hover:border-gold/40 focus-within:border-gold",
+    "flex min-w-0 items-center border border-gold/20 bg-ink/60 px-2.5 py-2 transition-colors hover:border-gold/40 focus-within:border-gold",
   valueContainer: () => "flex min-w-0 flex-wrap items-center gap-1",
   placeholder: () => "truncate text-sm text-parchment-dim/60",
   singleValue: () => "truncate text-sm text-parchment",

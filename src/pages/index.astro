@@ -1,112 +1,151 @@
 ---
 import Layout from "../layouts/Layout.astro";
 
-export const prerender = true;
+const { lang = 'fr' } = Astro.locals;
 
-type Tool = {
-    numeral: string;
-    href: string;
-    eyebrow: string;
-    title: string;
-    description: string;
-    cta: string;
-    paths: string[];
-    primary?: boolean;
-    featured?: boolean;
-    span?: string;
-    tags?: string[];
-    link?: { href: string; label: string };
-};
+const COPY = {
+    fr: {
+        title: 'Le Trône des Lames  -  Les outils du royaume',
+        description:
+            'Les outils des joueurs de Renaissance Kingdoms : agenda des animations, calculateurs du Sénéchal, garde-robe et catalogue d’objets.',
+        eyebrow: 'Renaissance Kingdoms · Outils de jeu',
+        heroLead:
+            'Suivre les fêtes des royaumes, calculer la marge d’un champ, essayer une tenue : les outils des joueurs de Renaissance Kingdoms, réunis au même endroit.',
+        heroCta: 'Ouvrir l’agenda',
+        toolsEyebrow: 'Les outils',
+        toolsTitle: 'Quatre outils,',
+        toolsTitle2: 'un même royaume',
+        toolsLead:
+            'Chaque outil a sa page. Propositions d’animations et contributions au catalogue s’y trouvent aussi.',
+        sigil: 'OUTILS',
+        cards: [
+            {
+                eyebrow: 'La chronique',
+                title: 'L’agenda des royaumes',
+                description:
+                    'Fêtes, marchés et cérémonies des royaumes, relus par l’organisation avant publication. Les prochaines dates, comté par comté.',
+                cta: 'Ouvrir l’agenda',
+                tags: ['Fêtes', 'Marchés', 'Cérémonies'],
+                link: 'Proposer une animation',
+            },
+            {
+                eyebrow: 'Les comptes',
+                title: 'Le Sénéchal',
+                description:
+                    'Rendements, coûts et marges des champs et des échoppes, calculés sur les règles à jour du jeu.',
+                cta: 'Ouvrir le Sénéchal',
+                tags: [] as string[],
+                link: 'Élevage de vaches',
+            },
+            {
+                eyebrow: 'L’atelier',
+                title: 'La garde-robe',
+                description:
+                    'Vêtements, armes et teintes : essayez-les sur votre personnage et exportez le rendu en PNG. Rien n’est enregistré dans le jeu.',
+                cta: 'Ouvrir la garde-robe',
+                tags: [] as string[],
+                link: null,
+            },
+            {
+                eyebrow: 'Le registre',
+                title: 'Le catalogue',
+                description:
+                    'Tous les objets de garde-robe : emplacements, sexes et déclinaisons. La recherche fonctionne en français comme en anglais.',
+                cta: 'Parcourir le catalogue',
+                tags: [] as string[],
+                link: 'Contribuer au catalogue',
+            },
+        ],
+    },
+    en: {
+        title: 'The Throne of Blades  -  Tools of the realm',
+        description:
+            'Tools for Renaissance Kingdoms players: events calendar, Seneschal calculators, wardrobe and item catalogue.',
+        eyebrow: 'Renaissance Kingdoms · Game tools',
+        heroLead:
+            'Follow the realm’s festivals, work out a field’s margin, try on an outfit: the Renaissance Kingdoms player tools, gathered in one place.',
+        heroCta: 'Open the calendar',
+        toolsEyebrow: 'The tools',
+        toolsTitle: 'Four tools,',
+        toolsTitle2: 'one realm',
+        toolsLead:
+            'Each tool has its own page. Event submissions and catalogue contributions live there too.',
+        sigil: 'TOOLS',
+        cards: [
+            {
+                eyebrow: 'The chronicle',
+                title: 'The realm’s calendar',
+                description:
+                    'Festivals, markets and ceremonies across the kingdoms, reviewed by the organisers before publication. Upcoming dates, county by county.',
+                cta: 'Open the calendar',
+                tags: ['Festivals', 'Markets', 'Ceremonies'],
+                link: 'Submit an event',
+            },
+            {
+                eyebrow: 'The ledgers',
+                title: 'The Seneschal',
+                description:
+                    'Yields, costs and margins for fields and workshops, calculated from the game’s current rules.',
+                cta: 'Open the Seneschal',
+                tags: [] as string[],
+                link: 'Cattle farming',
+            },
+            {
+                eyebrow: 'The workshop',
+                title: 'The wardrobe',
+                description:
+                    'Clothes, weapons and dyes: try them on your character and export the result as a PNG. Nothing is saved in the game.',
+                cta: 'Open the wardrobe',
+                tags: [] as string[],
+                link: null,
+            },
+            {
+                eyebrow: 'The register',
+                title: 'The catalogue',
+                description:
+                    'Every wardrobe item: slots, sexes and colour variants. Search works in French as well as English.',
+                cta: 'Browse the catalogue',
+                tags: [] as string[],
+                link: 'Contribute to the catalogue',
+            },
+        ],
+    },
+} as const;
 
-const tools: Tool[] = [
-    {
-        numeral: 'I',
-        href: '/tournoi',
-        eyebrow: 'La lice',
-        title: 'Le tournoi',
-        description:
-            'Seize combattants, quatre groupes, une couronne. Suivez les poules, les classements et la phase finale, duel après duel.',
-        cta: 'Entrer dans le tournoi',
-        primary: true,
-        featured: true,
-        span: 'sm:col-span-2 lg:col-span-3',
-        tags: ['Poules', 'Phase finale', 'Palmarès'],
-        paths: [
-            'M3 8l4 2.6L12 5l5 5.6L21 8l-1.8 10.5H4.8L3 8Z',
-            'M6 21h12',
-        ],
-        link: { href: '/tournoi?onglet=reglement', label: 'Lire le règlement' },
-    },
-    {
-        numeral: 'II',
-        href: '/agenda',
-        eyebrow: 'La chronique',
-        title: 'L’agenda des royaumes',
-        description:
-            'Fêtes, marchés et cérémonies des royaumes, relus par l’organisation avant publication. Les prochaines dates, comté par comté.',
-        cta: 'Ouvrir l’agenda',
-        featured: true,
-        span: 'lg:col-span-3',
-        tags: ['Fêtes', 'Marchés', 'Cérémonies'],
-        paths: [
-            'M4 6.5h16V20H4V6.5Z',
-            'M8 3.5v5M16 3.5v5M4 11h16',
-        ],
-        link: { href: '/agenda#proposer', label: 'Proposer une animation' },
-    },
-    {
-        numeral: 'III',
-        href: '/seneschal',
-        eyebrow: 'Les comptes',
-        title: 'Le Sénéchal',
-        description:
-            'Rendements, coûts et marges des champs et des échoppes, calculés sur les règles à jour du jeu.',
-        cta: 'Ouvrir le Sénéchal',
-        span: 'lg:col-span-2',
-        paths: [
-            'M12 21V8',
-            'M12 12c-2.6 0-4.2-1.6-4.2-4.2 2.6 0 4.2 1.6 4.2 4.2Z',
-            'M12 12c2.6 0 4.2-1.6 4.2-4.2-2.6 0-4.2 1.6-4.2 4.2Z',
-            'M12 17.2c-2.6 0-4.2-1.6-4.2-4.2 2.6 0 4.2 1.6 4.2 4.2Z',
-            'M12 17.2c2.6 0 4.2-1.6 4.2-4.2-2.6 0-4.2 1.6-4.2 4.2Z',
-        ],
-        link: { href: '/seneschal/champs/elevage-de-vaches', label: 'Élevage de vaches' },
-    },
-    {
-        numeral: 'IV',
-        href: '/garde-robe',
-        eyebrow: 'L’atelier',
-        title: 'La garde-robe',
-        description:
-            'Vêtements, armes et teintes : essayez-les sur votre personnage et exportez le rendu en PNG. Rien n’est enregistré dans le jeu.',
-        cta: 'Ouvrir la garde-robe',
-        span: 'lg:col-span-2',
-        paths: [
-            'M9 4l3 1.6L15 4l4.5 2.6-1.9 3.4-2.6-1.3V20H9V8.7L6.4 10 4.5 6.6 9 4Z',
-        ],
-    },
-    {
-        numeral: 'V',
-        href: '/catalogue',
-        eyebrow: 'Le registre',
-        title: 'Le catalogue',
-        description:
-            'Tous les objets de garde-robe : emplacements, sexes et déclinaisons. La recherche fonctionne en français comme en anglais.',
-        cta: 'Parcourir le catalogue',
-        span: 'lg:col-span-2',
-        paths: [
-            'M5 4.5A1.5 1.5 0 0 1 6.5 3H19v18H6.5A1.5 1.5 0 0 1 5 19.5v-15Z',
-            'M8.5 7.5h6M8.5 11.5h4',
-        ],
-        link: { href: '/submit', label: 'Contribuer au catalogue' },
-    },
+const copy = COPY[lang];
+
+const hrefs = ['/agenda', '/seneschal', '/garde-robe', '/catalogue'];
+const linkHrefs = [
+    '/agenda#proposer',
+    '/seneschal/champs/elevage-de-vaches',
+    null,
+    '/submit',
 ];
+const shapes: { paths: string[]; primary?: boolean; featured?: boolean; span?: string }[] = [
+    { featured: true, span: 'lg:col-span-3', paths: ['M4 6.5h16V20H4V6.5Z', 'M8 3.5v5M16 3.5v5M4 11h16'] },
+    { span: 'lg:col-span-2', paths: ['M12 21V8', 'M12 12c-2.6 0-4.2-1.6-4.2-4.2 2.6 0 4.2 1.6 4.2 4.2Z', 'M12 12c2.6 0 4.2-1.6 4.2-4.2-2.6 0-4.2 1.6-4.2 4.2Z', 'M12 17.2c-2.6 0-4.2-1.6-4.2-4.2 2.6 0 4.2 1.6 4.2 4.2Z', 'M12 17.2c2.6 0 4.2-1.6-4.2-4.2 2.6 0-4.2 1.6-4.2 4.2Z'] },
+    { span: 'lg:col-span-2', paths: ['M9 4l3 1.6L15 4l4.5 2.6-1.9 3.4-2.6-1.3V20H9V8.7L6.4 10 4.5 6.6 9 4Z'] },
+    { span: 'lg:col-span-2', paths: ['M5 4.5A1.5 1.5 0 0 1 6.5 3H19v18H6.5A1.5 1.5 0 0 1 5 19.5v-15Z', 'M8.5 7.5h6M8.5 11.5h4'] },
+];
+const numerals = ['I', 'II', 'III', 'IV'];
+const links = copy.cards.map((_, i) => {
+    const href = linkHrefs[i];
+    return href ? { href, label: copy.cards[i].link as string } : null;
+});
+const tools = copy.cards.map((card, i) => ({
+    numeral: numerals[i],
+    href: hrefs[i],
+    eyebrow: card.eyebrow,
+    title: card.title,
+    description: card.description,
+    cta: card.cta,
+    tags: card.tags as unknown as string[],
+    link: links[i],
+    ...shapes[i],
+}));
 ---
 
-<Layout
-    title="Le Trône des Lames — Les outils du royaume"
-    description="Les outils des joueurs de Renaissance Kingdoms : tournoi, agenda des animations, calculateurs du Sénéchal, garde-robe et catalogue d’objets."
->
+<Layout title={copy.title} description={copy.description}>
     <!-- HERO -->
     <section class="relative overflow-hidden border-b border-gold/15">
         <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_35%_0%,rgba(201,162,39,0.13),transparent_72%)]"></div>
@@ -119,193 +158,98 @@ const tools: Tool[] = [
 
         <div class="container-tdl relative grid gap-10 py-14 sm:py-20 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center lg:gap-16 lg:py-24">
             <div>
-                <p class="label-caps reveal">Renaissance Kingdoms · Outils de jeu</p>
-
-                <h1 class="reveal mt-5 font-display text-[2.35rem] leading-[1.03] font-black tracking-[0.07em] text-parchment sm:text-5xl lg:text-6xl" style="animation-delay:0.05s">
-                    LE TRÔNE
-                    <br />
-                    <span class="bg-gradient-to-b from-gold-light via-gold to-gold-dim bg-clip-text text-transparent">
-                        DES LAMES
-                    </span>
+                <p class="label-caps reveal">{copy.eyebrow}</p>
+                <h1 class="reveal mt-3 font-display text-4xl font-bold tracking-[0.05em] text-parchment sm:text-5xl lg:text-6xl">
+                    {copy.toolsTitle}
+                    <br class="hidden sm:block" /> {copy.toolsTitle2}
                 </h1>
-
-                <div class="rule-gold reveal my-6 w-32" style="animation-delay:0.1s"></div>
-
-                <p class="reveal max-w-lg text-balance leading-relaxed text-parchment-dim" style="animation-delay:0.15s">
-                    Combattre en lice, suivre les fêtes des royaumes, calculer
-                    la marge d’un champ, essayer une tenue : les outils des
-                    joueurs de Renaissance Kingdoms, réunis au même endroit.
+                <div class="rule-gold reveal my-5 w-28"></div>
+                <p class="reveal max-w-lg text-balance leading-relaxed text-parchment-dim sm:text-base">
+                    {copy.heroLead}
                 </p>
 
-                <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap" style="animation-delay:0.2s">
-                    <a href="/tournoi" class="btn-gold w-full justify-center sm:w-auto">
-                        Entrer dans le tournoi
-                    </a>
-                    <a href="/agenda" class="btn-ghost w-full justify-center sm:w-auto">
-                        Ouvrir l’agenda
+                <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <a href="/agenda" class="btn-gold w-full justify-center sm:w-auto">
+                        {copy.heroCta}
                     </a>
                 </div>
             </div>
 
-            <div
-                class="reveal relative mx-auto hidden w-full max-w-[19rem] sm:block lg:max-w-[22rem]"
-                style="animation-delay:0.14s"
-                aria-hidden="true"
-            >
-                <svg viewBox="0 0 320 320" class="h-auto w-full text-gold" fill="none" aria-hidden="true">
-                    <circle cx="160" cy="160" r="152" stroke="currentColor" stroke-opacity="0.14" />
-                    <circle
-                        cx="160"
-                        cy="160"
-                        r="126"
-                        stroke="currentColor"
-                        stroke-opacity="0.3"
-                        stroke-dasharray="1 8"
-                        stroke-linecap="round"
-                        class="sigil-ring"
-                    />
-                    <circle cx="160" cy="160" r="98" stroke="currentColor" stroke-opacity="0.2" />
-                    <circle cx="160" cy="160" r="88" stroke="currentColor" stroke-opacity="0.35" stroke-width="0.75" />
-                    <path
-                        d="M160 8v22M160 290v22M8 160h22M290 160h22"
-                        stroke="currentColor"
-                        stroke-opacity="0.4"
-                        stroke-width="1.5"
-                    />
-                    <path
-                        d="M160 58l10 82 82 10-82 10-10 82-10-82-82-10 82-10 10-82Z"
-                        fill="currentColor"
-                        fill-opacity="0.06"
-                    />
-                    <text
-                        x="160"
-                        y="158"
-                        text-anchor="middle"
-                        dominant-baseline="central"
-                        font-family="Cinzel, serif"
-                        font-size="84"
-                        font-weight="700"
-                        letter-spacing="4"
-                        fill="currentColor"
-                        fill-opacity="0.9">V</text>
-                    <text
-                        x="160"
-                        y="224"
-                        text-anchor="middle"
-                        font-family="Inter, sans-serif"
-                        font-size="9"
-                        letter-spacing="4"
-                        fill="currentColor"
-                        fill-opacity="0.55">OUTILS</text>
-                </svg>
+            <div class="relative hidden lg:block" aria-hidden="true">
+                <div class="relative aspect-square max-w-lg">
+                    <svg viewBox="0 0 200 200" class="absolute inset-0 h-full w-full text-gold/40" fill="none" stroke="currentColor">
+                        <circle cx="100" cy="100" r="80" stroke-width="1" />
+                        <circle cx="100" cy="100" r="72" stroke-width="0.4" stroke-dasharray="1 6" />
+                        <circle cx="100" cy="100" r="54" stroke-width="0.6" />
+                        <path d="M100 12l4.5 8-4.5 8-4.5-8 4.5-8z" fill="currentColor" stroke="none" />
+                        <path d="M100 172l4.5 8-4.5 8-4.5-8 4.5-8z" fill="currentColor" stroke="none" opacity="0.6" />
+                        <path d="M12 100l8-4.5 8 4.5-8 4.5-8-4.5z" fill="currentColor" stroke="none" opacity="0.6" />
+                        <path d="M172 100l8-4.5 8 4.5-8 4.5-8-4.5z" fill="currentColor" stroke="none" opacity="0.6" />
+                        <path d="M100 20v14M100 166v14M20 100h14M166 100h14" stroke-width="0.6" opacity="0.5" />
+                    </svg>
+                    <div class="relative text-center">
+                        <p class="font-display text-[0.5rem] tracking-[0.32em] text-gold/60">{copy.sigil}</p>
+                        <p class="mt-1.5 font-display text-2xl font-bold tracking-[0.1em] text-gold">
+                            {new Date().getUTCFullYear().toString().slice(-2).padStart(2, '0')}
+                        </p>
+                        <p class="mt-2 text-[0.4375rem] uppercase leading-relaxed tracking-[0.22em] text-parchment-dim/55">
+                            Renaissance
+                            <br />
+                            Kingdoms
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- TOOLS -->
-    <section class="container-tdl py-16 sm:py-20" aria-labelledby="outils-titre">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-                <p class="label-caps">Les outils</p>
-                <h2 id="outils-titre" class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl">
-                    Cinq outils,
-                    <br class="hidden sm:block" /> un même royaume
-                </h2>
-            </div>
+    <!-- TOOLS GRID -->
+    <section class="container-tdl py-12 sm:py-16" aria-labelledby="outils-titre">
+        <div class="max-w-sm">
+            <p class="label-caps">{copy.toolsEyebrow}</p>
+            <h2 id="outils-titre" class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl">
+                {copy.toolsTitle}
+                <br class="hidden sm:block" /> {copy.toolsTitle2}
+            </h2>
+            <div class="rule-gold my-5 w-24"></div>
             <p class="max-w-sm text-sm leading-relaxed text-parchment-dim lg:text-right">
-                Chaque outil a sa page. Règlement, propositions d’animations et
-                contributions au catalogue s’y trouvent aussi.
+                {copy.toolsLead}
             </p>
         </div>
 
-        <div class="rule-gold mt-8 w-full opacity-60"></div>
-
-        <div class="mt-8 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-6">
-            {tools.map((tool, i) => (
-                <article
-                    class:list={[
-                        'card-dark texture-noise group relative flex flex-col p-6 sm:p-7',
-                        tool.span,
-                    ]}
-                >
-                    {tool.featured && (
-                        <span
-                            class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent"
-                            aria-hidden="true"
-                        >
-                        </span>
-                    )}
-
+        <div class="mt-10 tools-grid">
+            {tools.map((tool) => (
+                <article class="pillar card-dark texture-noise relative p-6 sm:p-8">
                     <span
-                        class="pointer-events-none absolute right-5 top-4 font-display text-5xl leading-none font-black text-gold/10 transition-colors group-hover:text-gold/20 sm:text-6xl"
+                        class="pointer-events-none absolute right-5 top-4 font-display text-6xl font-black leading-none text-gold/10"
                         aria-hidden="true"
                     >
                         {tool.numeral}
                     </span>
 
-                    <div class="reveal" style={`animation-delay:${0.05 + i * 0.05}s`}>
-                        <div class="flex items-center gap-3">
-                            <span class="flex h-11 w-11 flex-none items-center justify-center border border-gold/25 bg-ink/30 text-gold">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    class="h-5 w-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    aria-hidden="true"
-                                >
-                                    {tool.paths.map((d) => <path d={d} />)}
-                                </svg>
-                            </span>
-                            <p class="label-caps">{tool.eyebrow}</p>
-                        </div>
+                    <p class="label-caps mt-5">{tool.eyebrow}</p>
+                    <h3 class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment">
+                        {tool.title}
+                    </h3>
+                    <p class="mt-3 max-w-md text-sm leading-relaxed text-parchment-dim">
+                        {tool.description}
+                    </p>
 
-                        <h3
-                            class:list={[
-                                'mt-5 font-display tracking-[0.05em] text-parchment transition-colors group-hover:text-gold-light',
-                                tool.featured ? 'text-2xl' : 'text-xl',
-                            ]}
-                        >
-                            {tool.title}
-                        </h3>
-
-                        <p class="mt-3 text-sm leading-relaxed text-parchment-dim">
-                            {tool.description}
-                        </p>
-
-                        {tool.tags && (
-                            <p class="mt-4 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
-                                {tool.tags.map((tag, index) => (
-                                    <span class="whitespace-nowrap">
-                                        {index > 0 && <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>}
-                                        {tag}
-                                    </span>
-                                ))}
-                            </p>
-                        )}
-                    </div>
-
-                    <div class="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 pt-6">
-                        <a
-                            href={tool.href}
-                            class:list={[
-                                tool.primary ? 'btn-gold' : 'btn-ghost',
-                                'card-link w-full justify-center sm:w-auto',
-                            ]}
-                        >
+                    <div class="mt-10 flex flex-col gap-2 mt-auto">
+                        <div class="h-px w-full bg-gradient-to-r from-transparent via-gold/50 to-transparent mt-4 mb-4" aria-hidden="true"></div>
+                        <a href={tool.href} class="link-arrow flex items-center justify-center gap-2">
                             {tool.cta}
+                            <svg
+                                viewBox="0 0 24 24"
+                                class="h-3.5 w-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                aria-hidden="true"
+                            >
+                                <path d="M5 12h14M13 6l6 6-6 6" />
+                            </svg>
                         </a>
-
-                        {tool.link && (
-                            <a href={tool.link.href} class="link-arrow relative z-10">
-                                {tool.link.label}
-                                <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                    <path d="M5 12h14M13 6l6 6-6 6" />
-                                </svg>
-                            </a>
-                        )}
                     </div>
                 </article>
             ))}
@@ -335,28 +279,35 @@ const tools: Tool[] = [
         transform: translateX(3px);
     }
 
-    /* Toute la carte ouvre son outil : l'ombre du bouton recouvre la carte. */
-    .card-link::after {
-        content: "";
-        position: absolute;
-        inset: 0;
+    .pillar {
+        transition: border-color 0.2s ease;
+        display: flex;
+        flex-direction: column;
+    }
+    .pillar:hover {
+        border-color: color-mix(in oklab, var(--color-gold) 38%, transparent);
     }
 
-    @media (prefers-reduced-motion: no-preference) {
-        .sigil-ring {
-            transform-origin: 160px 160px;
-            animation: sigil-spin 90s linear infinite;
+    .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+    }
+    @media (max-width: 1024px) {
+        .tools-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
-    @keyframes sigil-spin {
-        to {
-            transform: rotate(360deg);
+    @media (max-width: 640px) {
+        .tools-grid {
+            grid-template-columns: 1fr;
         }
     }
 
     @media (prefers-reduced-motion: reduce) {
         .link-arrow,
-        .link-arrow svg {
+        .link-arrow svg,
+        .pillar {
             transition: none;
         }
         .link-arrow:hover svg {

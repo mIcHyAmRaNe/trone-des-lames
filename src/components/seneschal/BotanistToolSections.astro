@@ -64,7 +64,7 @@ import { BOTANIST_PLANTS, BOTANIST_SKILLS } from "../../lib/seneschal";
             <td class="whitespace-nowrap px-3 py-2 text-sm tabular-nums text-parchment-dim">{p.hours} h</td>
             <td class="whitespace-nowrap px-3 py-2 text-sm tabular-nums text-parchment-dim">Toutes les {p.waterEvery} h</td>
             <td class="whitespace-nowrap px-3 py-2 text-sm tabular-nums text-parchment-dim">
-              {p.kind === "fleur" ? "Floriculteur" : p.kind === "buisson" ? "Pépiniériste" : p.kind === "arbre" ? "Pépiniériste / Jardinier" : "—"}
+              {p.kind === "fleur" ? "Floriculteur" : p.kind === "buisson" ? "Pépiniériste" : p.kind === "arbre" ? "Pépiniériste / Jardinier" : " - "}
             </td>
           </tr>
         ))}

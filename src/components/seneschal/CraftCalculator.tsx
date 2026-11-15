@@ -316,7 +316,7 @@ export default function CraftCalculator({ craft }: { craft: CraftShop }) {
             {result.lines.map((line) => (
               <Line
                 key={line.label}
-                label={`${formatPoints(line.qty)} × ${formatPoints(line.unitPrice)} — ${line.label}`}
+                label={`${formatPoints(line.qty)} × ${formatPoints(line.unitPrice)}  -  ${line.label}`}
                 value={line.cost}
               />
             ))}

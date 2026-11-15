@@ -3,10 +3,12 @@ import Layout from '../layouts/Layout.astro';
 import Admin from '../components/admin/Admin';
 
 export const prerender = false;
+
+const { lang = 'fr' } = Astro.locals;
 ---
 
-<Layout title="Administration — Le Trône des Lames">
+<Layout title={lang === 'en' ? 'Administration  -  The Throne of Blades' : 'Administration  -  Le Trône des Lames'}>
   <div class="container-tdl py-14">
-    <Admin view="tournoi" client:only="react" />
+    <Admin view="tournoi" lang={lang} client:only="react" />
   </div>
 </Layout>

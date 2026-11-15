@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Select, { components, type GroupBase } from "react-select";
+import type { Lang } from "../../i18n";
 import { type CatalogItem, itemHaystack, itemLabel, shadeColor, slotLabel } from "../../lib/wardrobe";
 import { menuPortalStyle, selectClassNames } from "./selectTheme";
 
@@ -16,14 +17,22 @@ import { menuPortalStyle, selectClassNames } from "./selectTheme";
 // identités stables + des données dynamiques passées par selectProps.meta
 // conservent la position de défilement pendant l'exploration.
 
-interface Opt {
+export interface PickerOption {
   value: string;
   label: string;
-  item: CatalogItem;
+  /** Groupe affiché dans le menu. Par défaut : le slot de l'objet. */
+  group?: string;
+  /** Absent pour une option virtuelle, comme un style de visage. */
+  item?: CatalogItem;
 }
 
+type Opt = PickerOption;
+
 interface Props {
-  items: CatalogItem[];
+  /** Objets du catalogue. Ignoré si `options` est fourni. */
+  items?: CatalogItem[];
+  /** Options mixtes : objets du catalogue et choix virtuels. */
+  options?: PickerOption[];
   /** Mode simple : idItem porté, ou "". Mode multi : idItems portés. */
   value: string | string[];
   /** Les slots cumulables reçoivent isMulti avec puces retirables. */
@@ -36,13 +45,21 @@ interface Props {
   onPreview?: (id: string | null) => void;
   /** Survol seul, avec la teinte survolée. */
   onPreviewColour?: (id: string, declinaison: number) => void;
+  /**
+   * Pastilles de teinte dans les lignes du menu. À couper quand la couleur est
+   * déjà un champ à part (cheveux, barbe) : deux contrôles pour la même chose.
+   */
+  showShades?: boolean;
   showSlot?: boolean;
   placeholder?: string;
   id?: string;
+  lang?: Lang;
 }
 
 interface Meta {
+  lang: Lang;
   showSlot?: boolean;
+  showShades?: boolean;
   shown: number;
   capped: boolean;
   selected: number;
@@ -56,19 +73,30 @@ function WikiOption(props: any) {
   const o = props.data as Opt;
   const it = o.item;
   const meta = props.selectProps.meta as Meta;
-  const shades = it.declinaisons.length > 1 ? it.declinaisons : [];
+  if (!it) {
+    return (
+      <components.Option {...props}>
+        <span className="min-w-0 flex-1 truncate">{o.label}</span>
+      </components.Option>
+    );
+  }
+  const shades =
+    meta.showShades !== false && it.declinaisons.length > 1 ? it.declinaisons : [];
+  // Survol = aperçu : la ligne survolée s'affiche sur le personnage, la
+  // précédente disparaît dès que le pointeur passe ailleurs. Rien n'est porté
+  // sans clic.
+  const hoverProps = {
+    ...props.innerProps,
+    onMouseEnter: () => meta.onPreview?.(it.id),
+    onMouseLeave: () => meta.onPreview?.(null),
+  };
   return (
-    <components.Option {...props}>
-      <div
-        className="flex items-center gap-2"
-        // L'aperçu part toujours de l'objet SURVOLÉ et de sa première teinte —
-        // jamais de l'objet actuellement porté.
-        onMouseEnter={() => meta.onPreviewColour?.(it.id, it.declinaisons[0] ?? 0)}
-      >
+    <components.Option {...props} innerProps={hoverProps}>
+      <div className="flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate">{o.label}</span>
         {meta.showSlot && (
           <span className="flex-none text-[0.6875rem] text-parchment-dim/70">
-            {slotLabel(it.slot)}
+            {slotLabel(it.slot, meta.lang)}
           </span>
         )}
         {shades.length > 0 && (
@@ -77,7 +105,6 @@ function WikiOption(props: any) {
               <button
                 key={d}
                 type="button"
-                onMouseEnter={() => meta.onPreviewColour?.(it.id, d)}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -86,7 +113,13 @@ function WikiOption(props: any) {
                   e.stopPropagation();
                   meta.onPickShade(it.id, d);
                 }}
-                title={`Teinte ${d} — ${o.label}`}
+                onMouseEnter={() => meta.onPreviewColour?.(it.id, d)}
+                onMouseLeave={() => meta.onPreview?.(it.id)}
+                title={
+                  meta.lang === "en"
+                    ? `Shade ${d}  -  ${o.label}`
+                    : `Teinte ${d}  -  ${o.label}`
+                }
                 className="flex cursor-pointer items-center gap-1 border border-gold/25 bg-ink/60 px-1.5 py-0.5 text-[0.6875rem] font-semibold tabular-nums text-parchment transition-colors hover:bg-gold hover:text-ink"
               >
                 <span aria-hidden="true" className="h-2 w-2" style={{ backgroundColor: shadeColor(d) }} />
@@ -104,15 +137,18 @@ function CountMenuList(props: any) {
   const meta = props.selectProps.meta as Meta;
   return (
     <components.MenuList {...props}>
-      <div onMouseLeave={() => meta.onPreview?.(null)}>{props.children}</div>
+      <div>{props.children}</div>
       <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-gold/15 bg-ink-2 px-2.5 py-1.5 text-[0.6875rem] text-parchment-dim">
         <span>
-          {meta.shown} objet{meta.shown > 1 ? "s" : ""} affiché{meta.shown > 1 ? "s" : ""}
-          {meta.capped ? " · 200 premiers" : ""}
+          {meta.lang === "en"
+            ? `${meta.shown} item${meta.shown === 1 ? "" : "s"} shown${meta.capped ? " - first 200" : ""}`
+            : `${meta.shown} objet${meta.shown > 1 ? "s" : ""} affiché${meta.shown > 1 ? "s" : ""}${meta.capped ? " - 200 premiers" : ""}`}
         </span>
         {meta.selected > 0 && (
           <span className="flex-none">
-            {meta.selected} sélectionné{meta.selected > 1 ? "s" : ""}
+            {meta.lang === "en"
+              ? `${meta.selected} selected`
+              : `${meta.selected} sélectionné${meta.selected > 1 ? "s" : ""}`}
           </span>
         )}
       </div>
@@ -124,13 +160,13 @@ function NoMatch(props: any) {
   const meta = props.selectProps.meta as Meta;
   return (
     <components.NoOptionsMessage {...props}>
-      <p>Aucun objet ne correspond.</p>
+      <p>{meta.lang === "en" ? "No items match." : "Aucun objet ne correspond."}</p>
       <button
         type="button"
         onClick={meta.onResetInput}
         className="mt-2 cursor-pointer border border-gold/40 px-3 py-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-gold-light transition-colors hover:border-gold hover:bg-gold/10"
       >
-        Effacer la recherche
+        {meta.lang === "en" ? "Clear the search" : "Effacer la recherche"}
       </button>
     </components.NoOptionsMessage>
   );
@@ -146,42 +182,56 @@ const pickerComponents = {
 
 export default function ItemPicker({
   items,
+  options,
   value,
   multi,
   onChange,
   onMultiChange,
   onPreview,
   onPreviewColour,
+  showShades,
   showSlot,
   placeholder,
   id,
+  lang = "fr",
 }: Props) {
   const [input, setInput] = useState("");
-  const searchPh = placeholder ?? "Rechercher un objet…";
+  const searchPh =
+    placeholder ?? (lang === "en" ? "Search for an item…" : "Rechercher un objet…");
 
   const allOpts = useMemo<Opt[]>(
-    () => items.map((it) => ({ value: it.id, label: itemLabel(it), item: it })),
-    [items],
+    () =>
+      options ??
+      (items ?? []).map((it) => ({
+        value: it.id,
+        label: itemLabel(it, lang),
+        item: it,
+      })),
+    [items, options, lang],
   );
   const byId = useMemo(() => new Map(allOpts.map((o) => [o.value, o])), [allOpts]);
 
-  // Requête vide : tout est proposé (200 premiers) — la liste apparaît toujours.
+  // Requête vide : tout est proposé (200 premiers)  -  la liste apparaît toujours.
   const filtered = useMemo(() => {
     const q = input.trim().toLowerCase();
-    const list = !q ? allOpts : allOpts.filter((o) => itemHaystack(o.item).includes(q));
+    const list = !q
+      ? allOpts
+      : allOpts.filter((o) =>
+          `${o.label} ${o.item ? itemHaystack(o.item) : ""}`.toLowerCase().includes(q),
+        );
     return list.slice(0, 200);
   }, [allOpts, input]);
 
   const grouped = useMemo<GroupBase<Opt>[]>(() => {
     const buckets = new Map<string, Opt[]>();
     for (const o of filtered) {
-      const g = slotLabel(o.item.slot);
+      const g = o.group ?? (o.item ? slotLabel(o.item.slot, lang) : "");
       const b = buckets.get(g);
       if (b) b.push(o);
       else buckets.set(g, [o]);
     }
     return [...buckets].map(([label, options]) => ({ label, options }));
-  }, [filtered]);
+  }, [filtered, lang]);
 
   const selectValue = multi
     ? (value as string[]).map((v) => byId.get(v)).filter((o): o is Opt => !!o)
@@ -199,9 +249,11 @@ export default function ItemPicker({
   // Valeurs fraîches à chaque rendu, sans importance : seuls les *types* de
   // composants provoquent un remontage, et ils vivent au niveau du module.
   const meta: Meta = {
+    lang,
     showSlot,
+    showShades,
     shown: filtered.length,
-    capped: items.length > 200,
+    capped: allOpts.length > 200,
     selected: multi && Array.isArray(value) ? value.length : 0,
     onPreview,
     onPreviewColour,
@@ -225,6 +277,9 @@ export default function ItemPicker({
         onPreview?.(null);
       }}
       filterOption={() => true}
+      // Les objets déjà portés restent dans la liste : c'est là qu'on clique
+      // les autres teintes, sans avoir à retirer la puce pour les retrouver.
+      hideSelectedOptions={false}
       isMulti={!!multi}
       isClearable
       isSearchable

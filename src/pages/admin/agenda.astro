@@ -1,12 +1,19 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Admin from '../../components/admin/Admin';
+import type { Lang } from '../../i18n';
+
+const { lang = 'fr' } = Astro.locals;
+const copy = {
+  fr: { title: 'Administration agenda  -  Le Trône des Lames' },
+  en: { title: 'Agenda administration  -  The Throne of Blades' },
+}[lang];
 
 export const prerender = false;
 ---
 
-<Layout title="Administration agenda — Le Trône des Lames">
+<Layout title={copy.title}>
   <div class="container-tdl py-14">
-    <Admin view="agenda" client:only="react" />
+    <Admin view="agenda" lang={lang} client:only="react" />
   </div>
 </Layout>

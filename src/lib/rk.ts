@@ -1,5 +1,5 @@
 // Accès au jeu Renaissance Kingdoms côté serveur : connexion + fiche publique.
-// Le navigateur ne parle jamais au jeu directement — le cookie de session du
+// Le navigateur ne parle jamais au jeu directement  -  le cookie de session du
 // jeu reste sur le serveur (chiffré dans le cookie du visiteur, voir rk-session.ts).
 import type { Avatar } from './wardrobe';
 

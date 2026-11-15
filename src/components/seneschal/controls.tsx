@@ -33,7 +33,7 @@ export function FieldSelect({
         menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
         styles={{ menuPortal: menuPortalStyle }}
         classNames={{ ...selectClassNames, container: () => "mt-1.5 min-w-0" }}
-        placeholder="—"
+        placeholder=" - "
       />
       {hint ? <p className="mt-1 text-[0.625rem] leading-snug text-parchment-dim/70">{hint}</p> : null}
     </div>

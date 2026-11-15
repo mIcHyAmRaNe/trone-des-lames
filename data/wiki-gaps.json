@@ -1,0 +1,178 @@
+{
+  "generatedAt": "2026-11-13T07:41:51.285Z",
+  "source": "https://wiki.renaissancekingdoms.com/fr/V%C3%AAtement",
+  "catalog": {
+    "generatedAt": "2026-10-05T14:07:27.714Z",
+    "refreshedAt": "2026-11-13T07:14:52.060Z"
+  },
+  "counts": {
+    "wikiItems": 1014,
+    "tables": 16,
+    "itemSexPairs": 1962,
+    "resolvedByAsset": 1005,
+    "resolvedByName": 940,
+    "crossSex": 0,
+    "gaps": 0,
+    "probable": 17,
+    "namedOnly": 0
+  },
+  "gaps": [],
+  "crossSex": [],
+  "probable": [
+    {
+      "title": "Étole des Cinq Rivières",
+      "name": "L'étole des Cinq Rivières",
+      "section": "I.a CHAPEAUX",
+      "sex": "F",
+      "id": "1892",
+      "nom": "etoleCinqRivieres",
+      "nameFr": null
+    },
+    {
+      "title": "Fleur",
+      "name": "La fleur",
+      "section": "I.a CHAPEAUX",
+      "sex": "F",
+      "id": "191",
+      "nom": "fleur",
+      "nameFr": null
+    },
+    {
+      "title": "Fleur",
+      "name": "La fleur",
+      "section": "I.a CHAPEAUX",
+      "sex": "M",
+      "id": "191",
+      "nom": "fleur",
+      "nameFr": null
+    },
+    {
+      "title": "Anneau de nez",
+      "name": "L'anneau de nez",
+      "section": "V. BIJOUX",
+      "sex": "M",
+      "id": "1897",
+      "nom": "anneauNez",
+      "nameFr": null
+    },
+    {
+      "title": "Anneau de nez",
+      "name": "L'anneau de nez",
+      "section": "V. BIJOUX",
+      "sex": "F",
+      "id": "1897",
+      "nom": "anneauNez",
+      "nameFr": null
+    },
+    {
+      "title": "Bijou étincelant",
+      "name": "Le bijou étincelant",
+      "section": "V. BIJOUX",
+      "sex": "F",
+      "id": "1898",
+      "nom": "bijouEtincelant",
+      "nameFr": null
+    },
+    {
+      "title": "Collier en perles de jade",
+      "name": "Le collier en perles de jade",
+      "section": "V. BIJOUX",
+      "sex": "M",
+      "id": "1899",
+      "nom": "collierPerlesJade",
+      "nameFr": null
+    },
+    {
+      "title": "Collier en perles de jade",
+      "name": "Le collier en perles de jade",
+      "section": "V. BIJOUX",
+      "sex": "F",
+      "id": "1899",
+      "nom": "collierPerlesJade",
+      "nameFr": null
+    },
+    {
+      "title": "Collier en pierre fine (cornaline)",
+      "name": "Le collier en pierre fine (cornaline)",
+      "section": "V. BIJOUX",
+      "sex": "F",
+      "id": "1902",
+      "nom": "collierPierreFineCornaline",
+      "nameFr": null
+    },
+    {
+      "title": "Chevaux de joute",
+      "name": "Le cheval de joute (bai)",
+      "section": "VII FAMILIERS",
+      "sex": "M",
+      "id": "1137",
+      "nom": "chevalJoute",
+      "nameFr": "Cheval de joute (blanc)"
+    },
+    {
+      "title": "Chevaux de joute",
+      "name": "Le cheval de joute (bai)",
+      "section": "VII FAMILIERS",
+      "sex": "F",
+      "id": "1137",
+      "nom": "chevalJoute",
+      "nameFr": "Cheval de joute (blanc)"
+    },
+    {
+      "title": "Tissage des Cinq Rivières",
+      "name": "Le tissage des Cinq Rivières",
+      "section": "X.b MANTELS",
+      "sex": "F",
+      "id": "1891",
+      "nom": "tissageCinqRivieres",
+      "nameFr": null
+    },
+    {
+      "title": "Haut des Cinq Rivières",
+      "name": "Le haut des Cinq Rivières",
+      "section": "XI.b CHEMISES",
+      "sex": "M",
+      "id": "1890",
+      "nom": "hautCinqRivieres",
+      "nameFr": null
+    },
+    {
+      "title": "Haut des Cinq Rivières",
+      "name": "Le haut des Cinq Rivières",
+      "section": "XI.b CHEMISES",
+      "sex": "F",
+      "id": "1890",
+      "nom": "hautCinqRivieres",
+      "nameFr": null
+    },
+    {
+      "title": "Haut des dunes",
+      "name": "Le haut des dunes",
+      "section": "XI.b CHEMISES",
+      "sex": "F",
+      "id": "1922",
+      "nom": "hautDunes",
+      "nameFr": null
+    },
+    {
+      "title": "Panoplie Raptor Master",
+      "name": "La panoplie Raptor Master",
+      "section": "XII. PANOPLIES",
+      "sex": "F",
+      "id": "796",
+      "nom": "PanoplieRaptorMaster",
+      "nameFr": null
+    },
+    {
+      "title": "Foulard des dunes",
+      "name": "Le foulard des dunes",
+      "section": "XIII.d COU",
+      "sex": "F",
+      "id": "1926",
+      "nom": "foulardDunes",
+      "nameFr": null
+    }
+  ],
+  "namedOnly": [],
+  "unknownAssets": []
+}

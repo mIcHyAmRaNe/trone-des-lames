@@ -1,12 +1,37 @@
 ---
 import type { TournamentState } from '../lib/state';
 import MatchNode from './MatchNode.astro';
+import type { Lang } from '../i18n';
 
 interface Props {
   state: TournamentState;
+  lang?: Lang;
 }
 
-const { state } = Astro.props;
+const { state, lang = 'fr' } = Astro.props;
+
+const copy = {
+  fr: {
+    noDrawTitle: 'Le tirage n’a pas encore eu lieu',
+    noDrawBody:
+      'Les huit qualifiés seront placés dans le tableau à l’issue de la phase de poules.',
+    swipe: 'Faites glisser horizontalement →',
+    quarterFinals: 'Quarts de finale',
+    semiFinals: 'Demi-finales',
+    final: 'Grande finale',
+    awaiting: 'En attente',
+  },
+  en: {
+    noDrawTitle: 'The draw has not taken place yet',
+    noDrawBody:
+      'The eight qualifiers will be placed in the bracket once the group stage is over.',
+    swipe: 'Swipe horizontally →',
+    quarterFinals: 'Quarter-finals',
+    semiFinals: 'Semi-finals',
+    final: 'Grand final',
+    awaiting: 'Awaiting',
+  },
+}[lang];
 
 const qf = state.matches.filter((m) => m.phase === 'qf').sort((a, b) => a.slot - b.slot);
 const sf = state.matches.filter((m) => m.phase === 'sf').sort((a, b) => a.slot - b.slot);
@@ -52,25 +77,25 @@ const sfBySlot = (slot: number) => sf.find((m) => m.slot === slot);
       <path d="M4 6h5v4H4zM4 14h5v4H4zM15 10h5v4h-5z" />
       <path d="M9 8h3v8h3M9 16h3" />
     </svg>
-    <p class="font-display text-lg tracking-[0.14em] text-parchment">Le tirage n’a pas encore eu lieu</p>
+    <p class="font-display text-lg tracking-[0.14em] text-parchment">{copy.noDrawTitle}</p>
     <p class="max-w-md text-sm leading-relaxed text-parchment-dim">
-      Les huit qualifiés seront placés dans le tableau à l’issue de la phase de poules.
+      {copy.noDrawBody}
     </p>
   </div>
 ) : (
   <div>
     <p class="mb-3 text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim sm:hidden">
-      Faites glisser horizontalement →
+      {copy.swipe}
     </p>
 
     <div class="scroll">
       <div class="bracket">
         <div class="titles">
-          <h3 class="round-title">Quarts de finale</h3>
+          <h3 class="round-title">{copy.quarterFinals}</h3>
           <span aria-hidden="true"></span>
-          <h3 class="round-title">Demi-finales</h3>
+          <h3 class="round-title">{copy.semiFinals}</h3>
           <span aria-hidden="true"></span>
-          <h3 class="round-title">Grande finale</h3>
+          <h3 class="round-title">{copy.final}</h3>
         </div>
 
         <div class="grid">
@@ -79,7 +104,7 @@ const sfBySlot = (slot: number) => sf.find((m) => m.slot === slot);
               const m = qfBySlot(slot);
               return (
                 <div class="node" style={`--y:${y}`}>
-                  {m ? <MatchNode m={m} phase="qf" /> : <div class="placeholder">—</div>}
+                  {m ? <MatchNode m={m} phase="qf" lang={lang} /> : <div class="placeholder"> - </div>}
                 </div>
               );
             })}
@@ -101,7 +126,7 @@ const sfBySlot = (slot: number) => sf.find((m) => m.slot === slot);
               const m = sfBySlot(slot);
               return (
                 <div class="node" style={`--y:${y}`}>
-                  {m ? <MatchNode m={m} phase="sf" /> : <div class="placeholder">En attente</div>}
+                  {m ? <MatchNode m={m} phase="sf" lang={lang} /> : <div class="placeholder">{copy.awaiting}</div>}
                 </div>
               );
             })}
@@ -120,7 +145,7 @@ const sfBySlot = (slot: number) => sf.find((m) => m.slot === slot);
 
           <div class="col col-final">
             <div class="node node-final" style={`--y:${FINAL_Y}`}>
-              {fin ? <MatchNode m={fin} phase="final" /> : <div class="placeholder">En attente</div>}
+              {fin ? <MatchNode m={fin} phase="final" lang={lang} /> : <div class="placeholder">{copy.awaiting}</div>}
             </div>
           </div>
         </div>
@@ -164,7 +189,7 @@ const sfBySlot = (slot: number) => sf.find((m) => m.slot === slot);
   }
 
   /* A node is absolutely centred on its computed percentage, so a child always
-     lands exactly on the midpoint of its two parents — no pixel maths. */
+     lands exactly on the midpoint of its two parents  -  no pixel maths. */
   .grid {
     position: relative;
     height: calc(var(--row) * 4);

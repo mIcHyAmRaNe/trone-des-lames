@@ -1,10 +1,19 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Admin from '../../components/admin/Admin';
+import type { Lang } from '../../i18n';
+
+const { lang = 'fr' } = Astro.locals;
+const copy = {
+  fr: { title: 'Catalogue  -  Administration' },
+  en: { title: 'Catalogue  -  Administration' },
+}[lang];
+
+export const prerender = false;
 ---
 
-<Layout title="Catalogue — Administration">
+<Layout title={copy.title}>
   <div class="container-tdl py-14">
-    <Admin view="catalog" client:only="react" />
+    <Admin view="catalog" lang={lang} client:only="react" />
   </div>
 </Layout>

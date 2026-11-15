@@ -51,6 +51,41 @@ async function init() {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       )`,
       `CREATE INDEX IF NOT EXISTS idx_events_status ON events (status, starts_on)`,
+      `CREATE TABLE IF NOT EXISTS catalog_submissions (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        status TEXT NOT NULL,
+        target_key TEXT NOT NULL,
+        item_id TEXT,
+        payload TEXT NOT NULL,
+        before TEXT,
+        submitted_by TEXT NOT NULL,
+        submitted_at TEXT NOT NULL,
+        decided_by TEXT,
+        decided_at TEXT,
+        admin_note TEXT
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS ux_catalog_sub_pending ON catalog_submissions (target_key) WHERE status = 'pending'`,
+      `CREATE INDEX IF NOT EXISTS idx_catalog_sub_status ON catalog_submissions (status, submitted_at)`,
+      `CREATE TABLE IF NOT EXISTS catalog_overrides (
+        sexe TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        item TEXT NOT NULL,
+        submission_id TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (sexe, item_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS catalog_reports (
+        id TEXT PRIMARY KEY,
+        item_id TEXT NOT NULL,
+        item_label TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        message TEXT,
+        status TEXT NOT NULL DEFAULT 'open',
+        created_at TEXT NOT NULL,
+        closed_at TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_catalog_reports_status ON catalog_reports (status, created_at)`,
     ],
     'write',
   );

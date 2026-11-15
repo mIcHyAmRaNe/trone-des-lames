@@ -9,20 +9,21 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "astro": "astro",
     "catalog": "node scripts/catalog.mjs bootstrap",
     "catalog:refresh": "node scripts/catalog.mjs refresh",
-    "astro": "astro"
+    "catalog:wiki": "node scripts/wiki-audit.mjs"
   },
   "dependencies": {
-    "@astrojs/react": "^7.1.0",
-    "@astrojs/vercel": "^11.0.15",
+    "@astrojs/react": "^7.1.9",
+    "@astrojs/vercel": "^11.0.22",
     "@libsql/client": "^0.18.0",
-    "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.4.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "astro": "^7.4.12",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-select": "^5.10.2",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

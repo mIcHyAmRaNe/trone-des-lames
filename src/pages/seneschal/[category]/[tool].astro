@@ -24,27 +24,139 @@ import {
   type SeneschalCategory,
   type SeneschalTool,
 } from "../../../lib/seneschal";
+import type { Lang } from "../../../i18n";
 
-export const prerender = true;
+const { lang = 'fr' } = Astro.locals;
 
-export async function getStaticPaths() {
-  return SENESCHAL_CATEGORIES.flatMap((category) =>
-    category.tools
-      .filter((tool) => tool.status === "available")
-      .map((tool) => ({
-        params: { category: category.slug, tool: tool.slug },
-        props: { category, tool },
-      })),
-  );
-}
+const copy = {
+  fr: {
+    breadcrumb: "Le Sénéchal",
+    kicker: (kind: string) =>
+      kind === "botanist"
+        ? "Échoppe"
+        : kind === "crop"
+        ? "Culture"
+        : kind === "apiary"
+        ? "Rucher"
+        : kind === "craft"
+        ? "Échoppe"
+        : "Élevage",
+    lead: (kind: string, tool: any) =>
+      kind === "botanist"
+        ? "Cultures, colorants et teintures : le temps, le coût et la marge de chaque production."
+        : kind === "crop"
+        ? "Cycle, qualité et récolte : les comptes du champ, du semis à la vente."
+        : kind === "apiary"
+        ? "Ruches, humeur des abeilles et récoltes : le rendement du miel, de la cire et de la gelée royale."
+        : kind === "craft"
+        ? "Matières premières, temps de production et énergie : les recettes de l'atelier, d'après le wiki."
+        : "Traite, croissance, abattage : les comptes du pré, d'après les règles à jour.",
+    subtitle: (kind: string) =>
+      kind === "botanist"
+        ? "La marge d'une production"
+        : kind === "crop"
+        ? "Le cycle du champ"
+        : kind === "herd"
+        ? "Le cycle de l'élevage"
+        : kind === "apiary"
+        ? "La récolte de miel"
+        : kind === "craft"
+        ? "La marge de l'atelier"
+        : "Le cycle complet",
+    description: (kind: string, tool: any) =>
+      kind === "botanist"
+        ? `${tool.summary} Marge d'une production du botaniste : cultures, colorants et teintures.`
+        : kind === "crop"
+        ? `${tool.summary} Cycle, qualité et rentabilité du champ.`
+        : kind === "apiary"
+        ? `${tool.summary} Rendement des ruches, humeur et rentabilité.`
+        : kind === "craft"
+        ? `${tool.summary} Recettes, matières premières, temps de production et énergie.`
+        : `${tool.summary} Calcul du cycle complet : croissance, abattage, coûts et bénéfice net.`,
+    rulesBadge: "Règles à jour · octobre 2026",
+    cowsMax: (n: number) => `${n} vaches maximum`,
+    pots: "6 pots de culture",
+    cycleDays: (d: number) => `${d} jours de cycle`,
+    animalsMax: (n: number) => `${n} bêtes maximum`,
+    hivesMax: (n: number) => `${n} ruches maximum`,
+    calcLabel: "Le calcul",
+    unitEstimates: "Estimations en écus",
+    unitCraft: "Recettes, dépenses et marge",
+    botanistCycleTitle: "Le cycle complet",
+    botanistCycleSubtitle: "Des pots à la vente",
+    botanistCycleEyebrow: "Pots, pousse, récolte, fabrication et vente",
+    notAvailable: "Cet outil n'est pas encore disponible.",
+    allRegisters: "Tous les registres",
+    estimatesNote: "Les calculs sont des estimations",
+  },
+  en: {
+    breadcrumb: "The Seneschal",
+    kicker: (kind: string) =>
+      kind === "botanist"
+        ? "Workshop"
+        : kind === "crop"
+        ? "Crop"
+        : kind === "apiary"
+        ? "Apiary"
+        : kind === "craft"
+        ? "Workshop"
+        : "Husbandry",
+    lead: (kind: string, tool: any) =>
+      kind === "botanist"
+        ? "Crops, dyes and pigments: time, cost and margin for each production."
+        : kind === "crop"
+        ? "Cycle, quality and harvest: field accounts from sowing to sale."
+        : kind === "apiary"
+        ? "Hives, bee mood and harvests: honey, wax and royal jelly yield."
+        : kind === "craft"
+        ? "Raw materials, production time and energy: workshop recipes from the wiki."
+        : "Milking, growth, slaughter: meadow accounts from current rules.",
+    subtitle: (kind: string) =>
+      kind === "botanist"
+        ? "Production margin"
+        : kind === "crop"
+        ? "Field cycle"
+        : kind === "herd"
+        ? "Herd cycle"
+        : kind === "apiary"
+        ? "Honey harvest"
+        : kind === "craft"
+        ? "Workshop margin"
+        : "Complete cycle",
+    description: (kind: string, tool: any) =>
+      kind === "botanist"
+        ? `${tool.summary} Botanist production margin: crops, dyes and pigments.`
+        : kind === "crop"
+        ? `${tool.summary} Cycle, quality and field profitability.`
+        : kind === "apiary"
+        ? `${tool.summary} Hive yield, mood and profitability.`
+        : kind === "craft"
+        ? `${tool.summary} Recipes, raw materials, production time and energy.`
+        : `${tool.summary} Full cycle calculation: growth, slaughter, costs and net profit.`,
+    rulesBadge: "Rules up to date · October 2026",
+    cowsMax: (n: number) => `${n} cows max`,
+    pots: "6 culture pots",
+    cycleDays: (d: number) => `${d} day cycle`,
+    animalsMax: (n: number) => `${n} animals max`,
+    hivesMax: (n: number) => `${n} hives max`,
+    calcLabel: "The calculation",
+    unitEstimates: "Estimates in écus",
+    unitCraft: "Recipes, costs and margin",
+    botanistCycleTitle: "Full cycle",
+    botanistCycleSubtitle: "From pots to sale",
+    botanistCycleEyebrow: "Pots, growth, harvest, crafting and sale",
+    notAvailable: "This tool is not yet available.",
+    allRegisters: "All registers",
+    estimatesNote: "Calculations are estimates",
+  },
+}[lang];
 
-interface Props {
-  category: SeneschalCategory;
-  tool: SeneschalTool;
-}
-
-const { category, tool } = Astro.props;
-const kind = tool.kind;
+const { category, tool } = Astro.params;
+const cat = SENESCHAL_CATEGORIES.find((c) => c.slug === category);
+if (!cat) return Astro.redirect('/seneschal');
+const t = cat.tools.find((x) => x.slug === tool);
+if (!t || t.status !== "available") return Astro.redirect(`/seneschal/${category}`);
+const kind = t.kind;
 
 const CROP_BY_SLUG: Record<string, string> = {
   "champ-de-ble": "ble",
@@ -62,83 +174,44 @@ const HERD_BY_SLUG: Record<string, string> = {
   "elevage-de-chevres": "chevres",
 };
 
-const craftId = tool.slug;
-const cropId = CROP_BY_SLUG[tool.slug];
-const herdId = HERD_BY_SLUG[tool.slug];
+const craftId = t.slug;
+const cropId = CROP_BY_SLUG[t.slug];
+const herdId = HERD_BY_SLUG[t.slug];
 const crop = cropId ? findCrop(cropId) : undefined;
 const herd = herdId ? findHerd(herdId) : undefined;
 const craft = kind === "craft" ? findCraft(craftId) : undefined;
 
-const kicker =
-  kind === "botanist"
-    ? "Échoppe"
-    : kind === "crop"
-      ? "Culture"
-      : kind === "apiary"
-        ? "Rucher"
-        : kind === "craft"
-          ? "Échoppe"
-          : "Élevage";
-
-const lead =
-  kind === "botanist"
-    ? "Cultures, colorants et teintures : le temps, le coût et la marge de chaque production."
-    : kind === "crop"
-      ? "Cycle, qualité et récolte : les comptes du champ, du semis à la vente."
-      : kind === "apiary"
-        ? "Ruches, humeur des abeilles et récoltes : le rendement du miel, de la cire et de la gelée royale."
-        : kind === "craft"
-          ? "Matières premières, temps de production et énergie : les recettes de l’atelier, d’après le wiki."
-          : "Traite, croissance, abattage : les comptes du pré, d’après les règles à jour.";
-
-const subtitle =
-  kind === "botanist"
-    ? "La marge d’une production"
-    : kind === "crop"
-      ? "Le cycle du champ"
-      : kind === "herd"
-        ? "Le cycle de l’élevage"
-        : kind === "apiary"
-          ? "La récolte de miel"
-        : kind === "craft"
-          ? "La marge de l’atelier"
-          : "Le cycle complet";
-
-const description =
-  kind === "botanist"
-    ? `${tool.summary} Marge d'une production du botaniste : cultures, colorants et teintures.`
-    : kind === "crop"
-      ? `${tool.summary} Cycle, qualité et rentabilité du champ.`
-      : kind === "apiary"
-        ? `${tool.summary} Rendement des ruches, humeur et rentabilité.`
-        : kind === "craft"
-          ? `${tool.summary} Recettes, matières premières, temps de production et énergie.`
-          : `${tool.summary} Calcul du cycle complet : croissance, abattage, coûts et bénéfice net.`;
+const kicker = copy.kicker(kind);
+const lead = copy.lead(kind, t);
+const subtitle = copy.subtitle(kind);
+const description = copy.description(kind, t);
 
 const percent = (value: number) => `${formatPoints(Math.round(value * 10) / 10)} %`;
 
 const mortality = [...Array.from({ length: 12 }, (_, i) => 10 + i), 22].map((age) => ({
   age,
-  label: age > 21 ? "22 et +" : `${age} jours`,
+  label: age > 21 ? (lang === 'fr' ? "22 et +" : "22+") : `${age} ${lang === 'fr' ? "jours" : "days"}`,
   daily: cowDailyMortality(age),
   cumulative: cowCumulativeMortality(age),
 }));
+
+export const prerender = false;
 ---
 
 <Layout
-  title={`${tool.name} — Le Sénéchal · Le Trône des Lames`}
+  title={`${t.name}  -  The Seneschal · The Throne of Blades`}
   description={description}
 >
   <nav
-    aria-label="Fil d’Ariane"
+    aria-label={lang === 'fr' ? "Fil d'Ariane" : "Breadcrumb"}
     class="sticky top-16 z-40 border-b border-gold/10 bg-ink/90 backdrop-blur-md"
   >
     <ol class="container-tdl flex flex-wrap items-center gap-2 py-3 text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim">
-      <li><a href="/seneschal" class="transition-colors hover:text-gold">Le Sénéchal</a></li>
+      <li><a href="/seneschal" class="transition-colors hover:text-gold">{copy.breadcrumb}</a></li>
       <li aria-hidden="true" class="text-gold/40">/</li>
-      <li><a href={`/seneschal/${category.slug}`} class="transition-colors hover:text-gold">{category.name}</a></li>
+      <li><a href={`/seneschal/${cat.slug}`} class="transition-colors hover:text-gold">{cat.name}</a></li>
       <li aria-hidden="true" class="text-gold/40">/</li>
-      <li aria-current="page" class="text-parchment">{tool.name}</li>
+      <li aria-current="page" class="text-parchment">{t.name}</li>
     </ol>
   </nav>
 
@@ -147,29 +220,29 @@ const mortality = [...Array.from({ length: 12 }, (_, i) => 10 + i), 22].map((age
     <div class="pointer-events-none absolute inset-0 opacity-[0.04]" aria-hidden="true" style="background-image: repeating-linear-gradient(90deg, var(--color-parchment) 0 1px, transparent 1px 92px)"></div>
 
     <div class="container-tdl relative py-12 sm:py-16">
-      <p class="label-caps reveal">{category.name} · {kicker}</p>
-      <h1 class="reveal mt-3 font-display text-4xl font-bold tracking-[0.05em] text-parchment sm:text-5xl">{tool.name}</h1>
+      <p class="label-caps reveal">{cat.name} · {kicker}</p>
+      <h1 class="reveal mt-3 font-display text-4xl font-bold tracking-[0.05em] text-parchment sm:text-5xl">{t.name}</h1>
       <div class="rule-gold reveal my-5 w-28"></div>
       <p class="reveal max-w-xl text-sm leading-relaxed text-parchment-dim sm:text-base">
         {lead}
       </p>
 
       <div class="reveal mt-6 flex flex-wrap gap-2">
-        <span class="border border-gold/30 bg-gold/5 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-gold">Règles à jour · octobre 2026</span>
+        <span class="border border-gold/30 bg-gold/5 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-gold">{copy.rulesBadge}</span>
         {kind === "cow" && (
-          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{COW_RULES.maxCows} vaches maximum</span>
+          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{copy.cowsMax(COW_RULES.maxCows)}</span>
         )}
         {kind === "botanist" && (
-          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">6 pots de culture</span>
+          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{copy.pots}</span>
         )}
         {kind === "crop" && crop && (
-          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{crop.cycleDays} jours de cycle</span>
+          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{copy.cycleDays(crop.cycleDays)}</span>
         )}
         {kind === "herd" && herd && (
-          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{herd.maxAnimals} bêtes maximum</span>
+          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{copy.animalsMax(herd.maxAnimals)}</span>
         )}
         {kind === "apiary" && (
-          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{APIARY_RULES.maxHives} ruches maximum</span>
+          <span class="border border-gold/20 px-2.5 py-1 text-[0.5625rem] uppercase tracking-[0.14em] text-parchment-dim">{copy.hivesMax(APIARY_RULES.maxHives)}</span>
         )}
       </div>
     </div>
@@ -178,44 +251,44 @@ const mortality = [...Array.from({ length: 12 }, (_, i) => 10 + i), 22].map((age
   <div class="container-tdl py-10 sm:py-14">
     <div class="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div>
-        <p class="label-caps">Le calcul</p>
+        <p class="label-caps">{copy.calcLabel}</p>
         <h2 class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment">
           {subtitle}
         </h2>
       </div>
       <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
-        {kind === "craft" ? "Recettes, dépenses et marge" : "Estimations en écus"}
+        {kind === "craft" ? copy.unitCraft : copy.unitEstimates}
       </p>
     </div>
 
-    {kind === "cow" && <CowCalculator client:load />}
-    {kind === "botanist" && <BotanistCalculator client:load />}
+    {kind === "cow" && <CowCalculator client:load lang={lang} />}
+    {kind === "botanist" && <BotanistCalculator client:load lang={lang} />}
     {kind === "botanist" && (
       <section class="mt-14 sm:mt-16" aria-labelledby="cycle-titre">
         <div class="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div>
-            <p class="label-caps">Le cycle complet</p>
+            <p class="label-caps">{copy.botanistCycleEyebrow}</p>
             <h2 id="cycle-titre" class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment">
-              Des pots à la vente
+              {copy.botanistCycleSubtitle}
             </h2>
           </div>
           <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
-            Pots, pousse, récolte, fabrication et vente
+            {copy.botanistCycleEyebrow}
           </p>
         </div>
-        <BotanistCycleCalculator client:load />
+        <BotanistCycleCalculator client:load lang={lang} />
       </section>
     )}
-    {kind === "crop" && cropId && <CropCalculator client:load cropId={cropId} />}
-    {kind === "herd" && herdId && <HerdCalculator client:load herdId={herdId} />}
-    {kind === "apiary" && <ApiaryCalculator client:load />}
-    {kind === "craft" && craft && <CraftCalculator client:load craft={craft} />}
+    {kind === "crop" && cropId && <CropCalculator client:load cropId={cropId} lang={lang} />}
+    {kind === "herd" && herdId && <HerdCalculator client:load herdId={herdId} lang={lang} />}
+    {kind === "apiary" && <ApiaryCalculator client:load lang={lang} />}
+    {kind === "craft" && craft && <CraftCalculator client:load craft={craft} lang={lang} />}
     {!kind && (
-      <p class="card-dark texture-noise p-6 text-sm text-parchment-dim">Cet outil n’est pas encore disponible.</p>
+      <p class="card-dark texture-noise p-6 text-sm text-parchment-dim">{copy.notAvailable}</p>
     )}
   </div>
 
-  {kind === "cow" && <CowToolSections />}
-  {kind === "botanist" && <BotanistToolSections />}
-  {(kind === "crop" || kind === "herd" || kind === "apiary") && <FieldToolSections tool={tool} />}
+  {kind === "cow" && <CowToolSections lang={lang} />}
+  {kind === "botanist" && <BotanistToolSections lang={lang} />}
+  {(kind === "crop" || kind === "herd" || kind === "apiary") && <FieldToolSections tool={t} lang={lang} />}
 </Layout>

@@ -1,71 +1,79 @@
 import type { APIRoute } from 'astro';
-import { isAdmin } from '../../lib/auth';
-import { readRkSession } from '../../lib/rk-session';
-import { addSubmission, readSubmissions } from '../../lib/store';
+import { isAdmin } from '../../lib/auth.js';
+import { resolvePlayer } from '../../lib/rk-session.js';
+import { listSubmissions, createSubmission } from '../../lib/catalog-store.js';
+import type { SubmissionRequest, SubmissionError } from '../../lib/catalog-submit.js';
+import type { Lang } from '../../i18n/index.js';
 
-const numArray = (v: unknown): number[] | null => {
-  if (!Array.isArray(v)) return null;
-  const out = v.map(Number);
-  if (out.some((n) => !Number.isFinite(n))) throw new Error('invalid number');
-  return out;
+/** Même règle que la route `fiche` : lettres, chiffres, espaces, `_` et `-`. */
+const LOGIN_RE = /^[\p{L}\p{N} _-]+$/u;
+
+function errorResponse(err: SubmissionError): Response {
+  switch (err.error) {
+    case 'bot':
+    case 'invalid item':
+    case 'unknown-player':
+      return Response.json(err, { status: 400 });
+    case 'unchanged':
+    case 'duplicate-pending':
+    case 'already-exists':
+      return Response.json(err, { status: 409 });
+    case 'rate-limited':
+      return Response.json(err, { status: 429 });
+    case 'rk-unavailable':
+      return Response.json(err, { status: 502 });
+  }
+}
+
+export const GET: APIRoute = async ({ cookies, url }) => {
+  // Admin: liste toutes les soumissions (avec filtre status optionnel)
+  if (!isAdmin(cookies)) return Response.json({ error: 'forbidden' }, { status: 403 });
+  const status = url.searchParams.get('status') as 'pending' | 'approved' | 'rejected' | null;
+  const all = await listSubmissions(status ?? undefined);
+  return Response.json(all);
 };
 
-export const POST: APIRoute = async ({ request, cookies }) => {
-  const rk = readRkSession(cookies);
-  if (!rk) return Response.json({ error: 'unauthorized' }, { status: 401 });
-  const submittedBy = rk.login;
-  let body: { item?: Record<string, unknown> };
+export const POST: APIRoute = async ({ request, cookies, locals }) => {
+  const lang: Lang = (locals as { lang?: Lang }).lang ?? 'fr';
+  let body: SubmissionRequest;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: 'bad request' }, { status: 400 });
   }
-  const item = body?.item;
-  if (!item || typeof item !== 'object') return Response.json({ error: 'missing item' }, { status: 400 });
-  const nom = typeof item.nom === 'string' ? item.nom.trim() : '';
-  const slot = typeof item.slot === 'string' ? item.slot.trim() : '';
-  const sexes = Array.isArray(item.sexes) ? item.sexes.filter((s) => s === 'M' || s === 'F') : [];
-  let zIndex: number[];
-  let declinaisons: number[];
-  try {
-    zIndex = numArray(item.zIndex) ?? [];
-    declinaisons = numArray(item.declinaisons) ?? [];
-  } catch {
-    return Response.json({ error: 'invalid item' }, { status: 400 });
-  }
-  if (!nom || !slot || !sexes.length || !zIndex.length) {
-    return Response.json({ error: 'invalid item' }, { status: 400 });
-  }
-  if (readSubmissions().filter((s) => s.status === 'pending' && s.submittedBy === submittedBy).length >= 20) {
-    return Response.json({ error: 'too many pending submissions' }, { status: 429 });
-  }
-  const s = addSubmission({
-    id: crypto.randomUUID(),
-    status: 'pending',
-    submittedBy,
-    submittedAt: new Date().toISOString(),
-    item: {
-      nom,
-      nameEn: typeof item.nameEn === 'string' && item.nameEn.trim() ? item.nameEn.trim() : undefined,
-      nameFr: typeof item.nameFr === 'string' && item.nameFr.trim() ? item.nameFr.trim() : undefined,
-      slot,
-      sexes: [...new Set(sexes)] as ('M' | 'F')[],
-      declinaisons,
-      zIndex,
-      slotsMasques: Array.isArray(item.slotsMasques) ? item.slotsMasques.map(String) : undefined,
-      dependCouleurPeau: item.dependCouleurPeau === true,
-      dependPostureMainG: item.dependPostureMainG === true,
-      dependPostureMainD: item.dependPostureMainD === true,
-      sourceUrl: typeof item.sourceUrl === 'string' ? item.sourceUrl : undefined,
-      note: typeof item.note === 'string' ? item.note : undefined,
-    },
-  });
-  return Response.json({ ok: true, id: s.id });
-};
 
-export const GET: APIRoute = async ({ cookies, url }) => {
-  if (!isAdmin(cookies)) return Response.json({ error: 'forbidden' }, { status: 403 });
-  const status = url.searchParams.get('status');
-  const all = readSubmissions().sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1));
-  return Response.json(status ? all.filter((s) => s.status === status) : all);
+  if (!body || typeof body !== 'object' || !body.item) {
+    return Response.json({ error: 'invalid item' }, { status: 400 });
+  }
+
+  // Filtres anti-robot avant tout appel au jeu.
+  if (body.website && body.website.trim() !== '') {
+    return Response.json({ error: 'bot' }, { status: 400 });
+  }
+  if (typeof body.elapsedMs === 'number' && body.elapsedMs < 1200) {
+    return Response.json({ error: 'bot' }, { status: 400 });
+  }
+
+  // Le pseudo remplace la connexion : il doit exister côté jeu.
+  const login = (body.login ?? '').trim();
+  if (!login || login.length > 50 || !LOGIN_RE.test(login)) {
+    return Response.json(
+      {
+        error: 'invalid item',
+        fields: { login: lang === 'fr' ? 'Pseudo invalide.' : 'Invalid player name.' },
+      },
+      { status: 400 },
+    );
+  }
+  let player: string | null;
+  try {
+    player = await resolvePlayer(cookies, login);
+  } catch {
+    return Response.json({ error: 'rk-unavailable' }, { status: 502 });
+  }
+  if (!player) return Response.json({ error: 'unknown-player', login }, { status: 400 });
+
+  const result = await createSubmission(player, body, lang);
+  if ('error' in result) return errorResponse(result);
+  return Response.json({ ok: true, id: result.id, player });
 };

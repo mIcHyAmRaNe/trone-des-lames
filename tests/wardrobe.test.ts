@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   CATEGORIES,
   FAMILIES,
+  assetStyleNumber,
   SINGLE_CATEGORIES,
   categoryLabel,
   categoryOf,
@@ -29,6 +30,14 @@ import {
   setRkSession,
   type RkSession,
 } from '../src/lib/rk-session.ts';
+import {
+  BODY_FIELDS,
+  DEFAULT_CODE_VISAGE,
+  codeVisageValue,
+  normalizeCodeVisage,
+  setCodeVisageSex,
+  setCodeVisageValue,
+} from '../src/lib/wardrobe.ts';
 
 // --- 1. Le catalogue livré couvre tous les slots connus
 {
@@ -59,7 +68,11 @@ import {
   assert.equal(slotLabel('MainGauche'), 'Main gauche');
   assert.equal(slotLabel('Pelle'), 'Pelle');
   assert.equal(slotLabel('Inconnu'), 'Inconnu');
+  assert.ok(item.nom);
   assert.ok(itemHaystack(item).includes(item.nom.toLowerCase()));
+  assert.equal(assetStyleNumber('coiffure12', 'coiffure'), 12);
+  assert.equal(assetStyleNumber('barbe3', 'barbe'), 3);
+  assert.equal(assetStyleNumber('casquette', 'coiffure'), null);
   console.log('✓ libellés + recherche');
 }
 
@@ -125,7 +138,7 @@ import {
     slotsMasques: [], nameEn: null, nameFr,
   }));
   const buckets = indexByCategory(items);
-  assert.deepEqual(buckets.get('Chapeaux')?.map(itemLabel), ['abeille', 'Castor', 'Zèbre']);
+  assert.deepEqual(buckets.get('Chapeaux')?.map((item) => itemLabel(item)), ['abeille', 'Castor', 'Zèbre']);
   console.log('✓ tri alphabétique par catégorie');
 }
 
@@ -176,7 +189,42 @@ import {
   console.log('✓ familles de navigation');
 }
 
-// --- 8. Cookie de session chiffré
+// --- 8. Code visage : lecture et écriture des attributs du corps
+{
+  assert.equal(DEFAULT_CODE_VISAGE.M.length, 21);
+  assert.equal(DEFAULT_CODE_VISAGE.F[0], 'F');
+
+  // Code réel du jeu (21 caractères : sexe + 20 chiffres).
+  const real = 'M50241317230001400033';
+  assert.equal(codeVisageValue(real, 1), 5);
+  assert.equal(codeVisageValue(real, 14), 1);
+  assert.equal(codeVisageValue(real, 20), 3);
+
+  // Modifier un chiffre laisse tous les autres intacts.
+  const edited = setCodeVisageValue(real, 11, 4);
+  assert.equal(edited[11], '4');
+  assert.equal(edited.slice(0, 11), real.slice(0, 11));
+  assert.equal(edited.slice(12), real.slice(12));
+
+  // Les anciens codes courts sont complétés par des zéros, le sexe suit.
+  const short = 'M010000000010000';
+  assert.equal(normalizeCodeVisage(short).length, 21);
+  assert.equal(codeVisageValue(normalizeCodeVisage(short), 15), 0);
+  assert.equal(setCodeVisageSex(short, 'F')[0], 'F');
+
+  // Chaque valeur proposée par le formulaire se relit sans perte.
+  for (const field of BODY_FIELDS) {
+    const values =
+      field.values ?? Array.from({ length: field.max - field.min + 1 }, (_, i) => field.min + i);
+    for (const value of values) {
+      const code = setCodeVisageValue(real, field.index, value);
+      assert.equal(codeVisageValue(code, field.index), value, field.label);
+    }
+  }
+  console.log('✓ code visage');
+}
+
+// --- 9. Cookie de session chiffré
 {
   process.env.ADMIN_SECRET = 'test-secret';
   const jar = new Map<string, string>();

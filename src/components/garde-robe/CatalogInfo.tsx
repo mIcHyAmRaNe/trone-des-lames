@@ -1,12 +1,45 @@
 import { useState } from "react";
+import type { Lang } from "../../i18n";
 import { CATEGORIES, type Catalog, categoryOf } from "../../lib/wardrobe";
 
-function when(iso: string | undefined): string {
-  if (!iso) return "—";
+const STR = {
+  fr: {
+    aria: "Informations sur le catalogue",
+    title: "Le catalogue",
+    items: "Objets référencés",
+    sexes: "Hommes / Femmes",
+    categories: "Catégories",
+    variants: "Déclinaisons",
+    snapshot: "Instantané",
+    updated: "Dernière mise à jour",
+    note:
+      "Instantané du jeu, régénéré régulièrement : un objet absent du catalogue ne peut pas être essayé.",
+    orphans: "Catégories hors garde-robe",
+  },
+  en: {
+    aria: "Catalogue information",
+    title: "The catalogue",
+    items: "Referenced items",
+    sexes: "Men / Women",
+    categories: "Categories",
+    variants: "Variants",
+    snapshot: "Snapshot",
+    updated: "Last updated",
+    note:
+      "A snapshot of the game, refreshed regularly: an item missing from the catalogue cannot be tried.",
+    orphans: "Categories outside the wardrobe",
+  },
+};
+
+function when(iso: string | undefined, lang: Lang): string {
+  if (!iso) return " - ";
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+    : d.toLocaleString(lang === "en" ? "en-GB" : "fr-FR", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
 }
 
 /**
@@ -14,8 +47,16 @@ function when(iso: string | undefined): string {
  * garde-robe. Les compteurs et la fraîcheur viennent du fichier catalogue
  * lui-même : ils ne peuvent pas mentir.
  */
-export default function CatalogInfo({ catalog }: { catalog: Catalog | null }) {
+export default function CatalogInfo({
+  catalog,
+  lang = "fr",
+}: {
+  catalog: Catalog | null;
+  lang?: Lang;
+}) {
   const [open, setOpen] = useState(false);
+  const s = STR[lang];
+  const locale = lang === "en" ? "en-GB" : "fr-FR";
 
   const all = catalog ? [...catalog.sexes.M, ...catalog.sexes.F] : [];
   // Mêmes règles que la table du catalogue : un objet porté par les deux sexes
@@ -41,7 +82,7 @@ export default function CatalogInfo({ catalog }: { catalog: Catalog | null }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onClick={() => setOpen((v) => !v)}
-        aria-label="Informations sur le catalogue"
+        aria-label={s.aria}
         aria-expanded={open}
         className="grid h-6 w-6 flex-none cursor-pointer place-items-center border border-gold/25 text-parchment-dim transition-colors hover:border-gold hover:text-gold-light"
       >
@@ -64,43 +105,42 @@ export default function CatalogInfo({ catalog }: { catalog: Catalog | null }) {
           className="absolute right-0 top-full z-50 mt-2 w-72 border border-gold/25 bg-ink-3 p-3.5 text-xs leading-relaxed text-parchment-dim shadow-deep"
         >
           <span className="mb-2 block font-display text-sm font-semibold tracking-[0.06em] text-parchment">
-            Le catalogue
+            {s.title}
           </span>
           <span className="block space-y-1">
             <span className="flex justify-between">
-              <span>Objets référencés</span>
-              <b className="font-semibold tabular-nums text-parchment">{total.toLocaleString("fr-FR")}</b>
+              <span>{s.items}</span>
+              <b className="font-semibold tabular-nums text-parchment">{total.toLocaleString(locale)}</b>
             </span>
             <span className="flex justify-between">
-              <span>Hommes / Femmes</span>
+              <span>{s.sexes}</span>
               <b className="font-semibold tabular-nums text-parchment">
                 {male} / {female}
               </b>
             </span>
             <span className="flex justify-between">
-              <span>Catégories</span>
+              <span>{s.categories}</span>
               <b className="font-semibold tabular-nums text-parchment">{categories}</b>
             </span>
             <span className="flex justify-between">
-              <span>Déclinaisons</span>
-              <b className="font-semibold tabular-nums text-parchment">{variants.toLocaleString("fr-FR")}</b>
+              <span>{s.variants}</span>
+              <b className="font-semibold tabular-nums text-parchment">{variants.toLocaleString(locale)}</b>
             </span>
             <span className="mt-2 flex justify-between border-t border-gold/15 pt-1.5">
-              <span>Instantané</span>
-              <b className="text-parchment">{when(catalog?.generatedAt)}</b>
+              <span>{s.snapshot}</span>
+              <b className="text-parchment">{when(catalog?.generatedAt, lang)}</b>
             </span>
             <span className="flex justify-between">
-              <span>Dernière mise à jour</span>
-              <b className="text-parchment">{when(catalog?.refreshedAt)}</b>
+              <span>{s.updated}</span>
+              <b className="text-parchment">{when(catalog?.refreshedAt, lang)}</b>
             </span>
           </span>
           <span className="mt-2 block border-t border-gold/15 pt-2">
-            Instantané du jeu, régénéré régulièrement : un objet absent du
-            catalogue ne peut pas être essayé.
+            {s.note}
           </span>
           {orphans.length > 0 && (
             <span className="mt-1.5 block text-gold-light/80">
-              Catégories hors garde-robe : {orphans.join(", ")}
+              {s.orphans}: {orphans.join(", ")}
             </span>
           )}
         </span>

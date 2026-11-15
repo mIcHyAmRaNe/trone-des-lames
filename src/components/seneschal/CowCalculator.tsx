@@ -72,14 +72,14 @@ const sizeOptions: Option[] = COW_SIZES.map((size) => ({ value: size.value, labe
 
 const intelligenceOptions: Option[] = Array.from({ length: 21 }, (_, i) => ({
   value: i,
-  label: i === COW_RULES.intelligenceCap ? `${i} — rendement doublé` : String(i),
+  label: i === COW_RULES.intelligenceCap ? `${i}  -  rendement doublé` : String(i),
 }));
 
 const milkOptions: Option[] = [
   { value: 0, label: "Jamais" },
   { value: 1, label: "Tous les jours" },
   { value: 2, label: "Tous les 2 jours" },
-  { value: 3, label: "Tous les 3 jours — optimal" },
+  { value: 3, label: "Tous les 3 jours  -  optimal" },
   { value: 4, label: "Tous les 4 jours" },
 ];
 
@@ -616,7 +616,7 @@ export default function CowCalculator() {
                       Vache {cow.index + 1}
                     </th>
                     <td className="whitespace-nowrap px-3 py-2.5 text-sm tabular-nums text-parchment-dim first:pl-0 last:pr-0">
-                      J{state.cows[cow.index]?.purchaseDay ?? "—"}
+                      J{state.cows[cow.index]?.purchaseDay ?? " - "}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-sm tabular-nums text-parchment-dim first:pl-0 last:pr-0">
                       J{cow.slaughterDay}

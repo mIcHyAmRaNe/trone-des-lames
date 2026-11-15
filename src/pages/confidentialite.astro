@@ -1,0 +1,412 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+export const prerender = false;
+
+const { lang = 'fr' } = Astro.locals;
+const copy = {
+  fr: {
+    title: "Confidentialité & mentions  -  Le Trône des Lames",
+    description: "Ce que Le Trône des Lames fait de vos données, ce qu’il n’en fait pas, et les mentions légales liées à Renaissance Kingdoms.",
+    sections: [
+      { id: "nature", label: "Nature du site" },
+      { id: "donnees", label: "Données personnelles" },
+      { id: "renaissance-kingdoms", label: "Renaissance Kingdoms" },
+    ],
+    droits: [
+      "Accès",
+      "Rectification",
+      "Effacement",
+      "Opposition",
+      "Limitation",
+      "Portabilité",
+    ],
+    eyebrow: "Le Trône des Lames · Informations légales",
+    headingA: "Confidentialité",
+    headingB: "mentions",
+    lead: "Un site tenu par des joueurs, pour des joueurs. Voici ce qu’il fait de vos données, ce qu’il ne fait pas, et les mentions qui accompagnent tout site consacré à Renaissance Kingdoms.",
+    updated: "Dernière mise à jour · novembre 2026",
+    contents: "Sommaire",
+    s1Label: "01 · Statut",
+    s1Heading: "Nature du site",
+    s1Before: "Le Trône des Lames est un site communautaire de joueurs, lié à Renaissance Kingdoms.",
+    s1Strong: "Il n’est pas un site officiel de Celsius Online",
+    s1After: "et n’est ni développé, ni géré, ni reconnu par Celsius Online.",
+    s2Label: "02 · Données",
+    s2Heading: "Données personnelles",
+    gdpr: "(RGPD)",
+    noAccountH: "Aucun compte visiteur",
+    noAccountP1: "Aucune inscription, aucun compte visiteur, aucun mot de passe Renaissance Kingdoms n’est demandé. La garde-robe utilise un compte de service propre au site ; les identifiants de ce compte ne sont jamais transmis au navigateur.",
+    noAccountP2: "Seul le formulaire de proposition d’une animation collecte des informations, décrites plus bas.",
+    cookiesH: "Cookies",
+    cookieRkP: "httpOnly, SameSite=Lax, chiffré en AES-256-GCM, durée de 1 h glissante. Il contient la session du compte de service, aucune donnée personnelle du visiteur.",
+    cookieThemeP: "Votre préférence d’affichage clair/sombre, conservée 1 an.",
+    storageH: "Stockage local",
+    storageBefore: "Trois clés restent sur votre appareil :",
+    storageMid1: "(vos tenues),",
+    storageMid2: "(les noms de personnages récemment consultés) et",
+    storageAfter: ". Ces données ne sont jamais envoyées au serveur ; les réglages du navigateur suffisent à les effacer.",
+    eventsH: "Propositions d’animations",
+    eventsP: "Le formulaire de l’agenda enregistre le nom du joueur, la ville, le comté, le lien du sujet de forum, le nom et les dates de l’animation. Ces informations servent uniquement à vérifier la proposition et à publier l’animation approuvée ; elles ne sont ni revendues, ni utilisées pour du démarchage. Elles sont conservées en base le temps de leur utilité et supprimées sur demande. Le formulaire n’enregistre ni adresse IP ni adresse e-mail : l’IP ne sert qu’en mémoire, quelques minutes, à limiter le spam.",
+    adminCookieH: "Cookie d’administration",
+    adminCookieBefore: "Les organisateurs disposent d’un cookie",
+    adminCookieAfter: "signé, limité à leur espace de gestion. Il n’est jamais posé pour un visiteur.",
+    logsH: "Journaux serveur",
+    logsP: "L’hébergeur Vercel conserve des journaux techniques (adresse IP, user-agent, URL) pour la sécurité et le diagnostic, selon sa propre politique de conservation.",
+    trackersH: "Ni traceur, ni mesure d’audience",
+    trackersP: "Aucun traceur publicitaire, aucune mesure d’audience, aucun cookie tiers. Les polices sont servies par le site, sans requête vers Google Fonts.",
+    legalH: "Base légale",
+    legalP: "L’intérêt légitime, pour fournir le service et le sécuriser ; le consentement, pour publier une animation proposée ; la préférence d’affichage, pour le confort.",
+    processorsH: "Destinataires et sous-traitants",
+    processorsP: "Vercel pour l’hébergement et Turso/libSQL pour la base des animations. Des transferts hors Union européenne sont possibles, selon leurs politiques respectives.",
+    rightsH: "Vos droits",
+    rightsP1: "Accès, rectification, effacement, opposition, limitation et portabilité.",
+    rightsP2: "Pour les exercer, adressez un message privé aux organisateurs sur les forums Renaissance Kingdoms. Une réclamation reste possible auprès de la CNIL.",
+    note: "Le nom de personnage consulté est un pseudonyme public de jeu.",
+    s3Label: "03 · Mentions",
+    s3Heading: "Renaissance Kingdoms",
+    unofficialStrong: "Site non officiel.",
+    unofficialP: "Le site est en rapport avec Renaissance Kingdoms, mais il n’est pas un site officiel de Celsius Online.",
+    passwordStrong: "Mot de passe distinct.",
+    passwordP: "Il est vivement recommandé de ne pas utiliser le même mot de passe que sur Renaissance Kingdoms  -  le site ne le demande jamais.",
+    accuracyStrong: "Exactitude non garantie.",
+    accuracyP: "Les informations, guides et conseils sont établis par des joueurs et leur exactitude n’est pas garantie.",
+    privilegeLabel: "Aucun privilège lié au site",
+    privilegeP: "Aucun rôle in-game ou RP n’est conditionné à l’inscription ou à l’usage de ce site. Aucune discrimination n’est faite dans les candidatures : l’usage du site n’est ni requis ni pris en compte pour occuper un poste. Participation et candidatures se font dans le jeu et sur les forums officiels.",
+  },
+  en: {
+    title: "Privacy & legal notice  -  The Throne of Blades",
+    description: "What The Throne of Blades does with your data, what it does not do, and the legal notice relating to Renaissance Kingdoms.",
+    sections: [
+      { id: "nature", label: "Nature of the site" },
+      { id: "donnees", label: "Personal data" },
+      { id: "renaissance-kingdoms", label: "Renaissance Kingdoms" },
+    ],
+    droits: [
+      "Access",
+      "Rectification",
+      "Erasure",
+      "Objection",
+      "Restriction",
+      "Portability",
+    ],
+    eyebrow: "The Throne of Blades · Legal information",
+    headingA: "Privacy",
+    headingB: "legal notice",
+    lead: "A site run by players, for players. Here is what it does with your data, what it does not do, and the notices that accompany any site devoted to Renaissance Kingdoms.",
+    updated: "Last updated · November 2026",
+    contents: "Contents",
+    s1Label: "01 · Status",
+    s1Heading: "Nature of the site",
+    s1Before: "The Throne of Blades is a community site run by players, linked to Renaissance Kingdoms.",
+    s1Strong: "It is not an official Celsius Online site",
+    s1After: "and is neither developed, managed nor endorsed by Celsius Online.",
+    s2Label: "02 · Data",
+    s2Heading: "Personal data",
+    gdpr: "(GDPR)",
+    noAccountH: "No visitor account",
+    noAccountP1: "No registration, no visitor account, no Renaissance Kingdoms password is requested. The wardrobe uses a service account specific to the site; the credentials for that account are never sent to the browser.",
+    noAccountP2: "Only the event proposal form collects information, described below.",
+    cookiesH: "Cookies",
+    cookieRkP: "httpOnly, SameSite=Lax, encrypted with AES-256-GCM, 1-hour sliding duration. It holds the service account session, no personal data of the visitor.",
+    cookieThemeP: "Your light/dark display preference, kept for 1 year.",
+    storageH: "Local storage",
+    storageBefore: "Three keys remain on your device:",
+    storageMid1: "(your outfits),",
+    storageMid2: "(recently viewed character names) and",
+    storageAfter: ". This data is never sent to the server; your browser settings are enough to erase it.",
+    eventsH: "Event proposals",
+    eventsP: "The calendar form records the player's name, city, county, forum thread link, and the name and dates of the event. This information is used only to verify the proposal and to publish the approved event; it is neither resold nor used for marketing. It is kept in the database for as long as it is useful and deleted on request. The form records neither IP address nor email address: the IP is used only in memory, for a few minutes, to limit spam.",
+    adminCookieH: "Administration cookie",
+    adminCookieBefore: "Organisers have a signed",
+    adminCookieAfter: "cookie, limited to their management area. It is never set for a visitor.",
+    logsH: "Server logs",
+    logsP: "The host Vercel keeps technical logs (IP address, user-agent, URL) for security and diagnostics, in accordance with its own retention policy.",
+    trackersH: "No trackers, no analytics",
+    trackersP: "No advertising trackers, no analytics, no third-party cookies. Fonts are served by the site, with no request to Google Fonts.",
+    legalH: "Legal basis",
+    legalP: "Legitimate interest, to provide and secure the service; consent, to publish a proposed event; display preference, for convenience.",
+    processorsH: "Recipients and processors",
+    processorsP: "Vercel for hosting and Turso/libSQL for the events database. Transfers outside the European Union are possible, under their respective policies.",
+    rightsH: "Your rights",
+    rightsP1: "Access, rectification, erasure, objection, restriction and portability.",
+    rightsP2: "To exercise them, send a private message to the organisers on the Renaissance Kingdoms forums. You may also lodge a complaint with the CNIL.",
+    note: "The character name viewed is a public in-game pseudonym.",
+    s3Label: "03 · Notices",
+    s3Heading: "Renaissance Kingdoms",
+    unofficialStrong: "Unofficial site.",
+    unofficialP: "The site relates to Renaissance Kingdoms, but it is not an official Celsius Online site.",
+    passwordStrong: "Separate password.",
+    passwordP: "It is strongly recommended not to use the same password as on Renaissance Kingdoms  -  the site never asks for it.",
+    accuracyStrong: "Accuracy not guaranteed.",
+    accuracyP: "The information, guides and advice are compiled by players and their accuracy is not guaranteed.",
+    privilegeLabel: "No privileges linked to the site",
+    privilegeP: "No in-game or RP role is conditional on registering for or using this site. No discrimination is made in applications: use of the site is neither required nor taken into account for holding a position. Participation and applications take place in the game and on the official forums.",
+  },
+}[lang];
+---
+
+<Layout
+  title={copy.title}
+  description={copy.description}
+>
+  <section class="relative overflow-hidden border-b border-gold/15">
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_35%_0%,rgba(201,162,39,0.13),transparent_72%)]"
+      aria-hidden="true"
+    >
+    </div>
+
+    <div class="container-tdl relative py-14 sm:py-16">
+      <p class="label-caps reveal">{copy.eyebrow}</p>
+
+      <h1
+        class="reveal mt-4 font-display text-[2.1rem] font-bold leading-[1.05] tracking-[0.06em] text-parchment sm:text-5xl"
+      >
+        {copy.headingA} <span class="text-gold">&amp;</span> {copy.headingB}
+      </h1>
+
+      <div class="rule-gold reveal my-6 w-32"></div>
+
+      <p class="reveal max-w-lg leading-relaxed text-parchment-dim">
+        {copy.lead}
+      </p>
+
+      <p class="reveal mt-6 text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim/70">
+        {copy.updated}
+      </p>
+    </div>
+  </section>
+
+  <div class="container-tdl grid gap-10 py-12 sm:py-16 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16">
+    <aside class="lg:sticky lg:top-24 lg:self-start" aria-labelledby="sommaire-titre">
+      <div class="card-dark texture-noise p-5">
+        <p id="sommaire-titre" class="label-caps">{copy.contents}</p>
+        <div class="rule-gold my-4 w-full opacity-60"></div>
+        <ol class="space-y-1">
+          {copy.sections.map((section, index) => (
+            <li>
+              <a
+                href={`#${section.id}`}
+                class="group flex items-baseline gap-3 py-1.5 text-sm text-parchment-dim transition-colors hover:text-gold"
+              >
+                <span class="font-display text-[0.625rem] tracking-[0.1em] text-gold/50 group-hover:text-gold">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span class="border-b border-transparent pb-0.5 group-hover:border-gold/30">
+                  {section.label}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </aside>
+
+    <div class="min-w-0 space-y-14">
+      <section id="nature" class="scroll-mt-24" aria-labelledby="nature-titre">
+        <p class="label-caps">{copy.s1Label}</p>
+        <h2
+          id="nature-titre"
+          class="mt-3 font-display text-2xl leading-tight tracking-[0.04em] text-parchment sm:text-3xl"
+        >
+          {copy.s1Heading}
+        </h2>
+        <div class="rule-gold my-5 w-16"></div>
+        <p class="max-w-2xl leading-relaxed text-parchment-dim">
+          {copy.s1Before}
+          <strong class="font-semibold text-parchment">{copy.s1Strong}</strong>
+          {copy.s1After}
+        </p>
+      </section>
+
+      <section id="donnees" class="scroll-mt-24" aria-labelledby="donnees-titre">
+        <p class="label-caps">{copy.s2Label}</p>
+        <h2
+          id="donnees-titre"
+          class="mt-3 font-display text-2xl leading-tight tracking-[0.04em] text-parchment sm:text-3xl"
+        >
+          {copy.s2Heading} <span class="text-parchment-dim">{copy.gdpr}</span>
+        </h2>
+        <div class="rule-gold my-5 w-16"></div>
+
+        <div class="max-w-2xl space-y-8">
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.noAccountH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.noAccountP1}
+            </p>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.noAccountP2}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.cookiesH}
+            </h3>
+            <ul class="mt-3 space-y-3">
+              <li class="card-dark p-4">
+                <p class="text-sm">
+                  <span class="font-semibold tracking-[0.08em] text-gold">tdl_rk</span>
+                </p>
+                <p class="mt-1.5 text-sm leading-relaxed text-parchment-dim">
+                  {copy.cookieRkP}
+                </p>
+              </li>
+              <li class="card-dark p-4">
+                <p class="text-sm">
+                  <span class="font-semibold tracking-[0.08em] text-gold">tdl-theme</span>
+                </p>
+                <p class="mt-1.5 text-sm leading-relaxed text-parchment-dim">
+                  {copy.cookieThemeP}
+                </p>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.storageH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.storageBefore}
+              <span class="text-parchment">tdl.garde-robe.tenues</span> {copy.storageMid1}
+              <span class="text-parchment">tdl.garde-robe.personnages</span>
+              {copy.storageMid2}
+              <span class="text-parchment">tdl-theme</span>{copy.storageAfter}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.eventsH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.eventsP}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.adminCookieH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.adminCookieBefore}
+              <span class="text-parchment">tdl_admin</span> {copy.adminCookieAfter}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.logsH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.logsP}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.trackersH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.trackersP}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.legalH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.legalP}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.processorsH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.processorsP}
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-display text-base tracking-[0.06em] text-parchment">
+              {copy.rightsH}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-parchment-dim">
+              {copy.rightsP1}
+            </p>
+            <ul class="mt-3 flex flex-wrap gap-2">
+              {copy.droits.map((droit) => (
+                <li class="border border-gold/20 px-2.5 py-1 text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim">
+                  {droit}
+                </li>
+              ))}
+            </ul>
+            <p class="mt-3 text-sm leading-relaxed text-parchment-dim">
+              {copy.rightsP2}
+            </p>
+          </div>
+
+          <div class="border-l-2 border-gold/40 pl-4">
+            <p class="text-sm leading-relaxed text-parchment-dim">
+              {copy.note}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="renaissance-kingdoms"
+        class="scroll-mt-24"
+        aria-labelledby="rk-titre"
+      >
+        <p class="label-caps">{copy.s3Label}</p>
+        <h2
+          id="rk-titre"
+          class="mt-3 font-display text-2xl leading-tight tracking-[0.04em] text-parchment sm:text-3xl"
+        >
+          {copy.s3Heading}
+        </h2>
+        <div class="rule-gold my-5 w-16"></div>
+
+        <ol class="max-w-2xl space-y-5">
+          <li class="flex gap-4">
+            <span class="font-display text-lg leading-none text-gold/60" aria-hidden="true">I</span>
+            <p class="text-sm leading-relaxed text-parchment-dim">
+              <strong class="font-semibold text-parchment">{copy.unofficialStrong}</strong>
+              {copy.unofficialP}
+            </p>
+          </li>
+          <li class="flex gap-4">
+            <span class="font-display text-lg leading-none text-gold/60" aria-hidden="true">II</span>
+            <p class="text-sm leading-relaxed text-parchment-dim">
+              <strong class="font-semibold text-parchment">{copy.passwordStrong}</strong>
+              {copy.passwordP}
+            </p>
+          </li>
+          <li class="flex gap-4">
+            <span class="font-display text-lg leading-none text-gold/60" aria-hidden="true">III</span>
+            <p class="text-sm leading-relaxed text-parchment-dim">
+              <strong class="font-semibold text-parchment">{copy.accuracyStrong}</strong>
+              {copy.accuracyP}
+            </p>
+          </li>
+        </ol>
+
+        <div class="card-dark texture-noise mt-8 max-w-2xl p-5 sm:p-6">
+          <p class="label-caps">{copy.privilegeLabel}</p>
+          <p class="mt-3 text-sm leading-relaxed text-parchment-dim">
+            {copy.privilegeP}
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+</Layout>

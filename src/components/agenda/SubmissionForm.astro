@@ -1,4 +1,92 @@
 ---
+import type { Lang } from '../../i18n';
+
+interface Props {
+  lang?: Lang;
+}
+
+const { lang = 'fr' } = Astro.props;
+
+const copy = {
+  fr: {
+    eyebrow: 'Proposer',
+    heading: 'Inscrire une animation au registre',
+    lead: 'Fête, tournoi, marché, cérémonie : annoncez votre animation pour qu’elle figure dans la chronique des royaumes. Les dates sont incluses dans la durée.',
+    note: 'Toute proposition est relue par l’organisation. L’animation n’apparaît dans l’agenda qu’après validation.',
+    steps: [
+      { n: 'I', t: 'Vous inscrivez l’animation', d: 'Nom, ville, comté, dates et lien du forum.' },
+      { n: 'II', t: 'L’organisation vérifie', d: 'Les dates et le sujet du forum sont contrôlés.' },
+      { n: 'III', t: 'L’animation rejoint la chronique', d: 'Elle apparaît dans l’agenda à sa date.' },
+    ],
+    title: 'Nom de l’animation',
+    titleHint: '3 à 100 caractères.',
+    titlePlaceholder: 'Foire de la Saint-Martin',
+    rkName: 'Votre nom sur RK',
+    rkNameHint: 'Le nom du joueur qui organise.',
+    city: 'Ville',
+    cityHint: 'Ville où se tient l’animation.',
+    county: 'Comté',
+    countyHint: 'Comté ou duché de la ville.',
+    forum: 'Lien du forum',
+    forumHint: 'Sujet officiel sur le forum RK.',
+    start: 'Début',
+    end: 'Fin',
+    datesHint: 'Dates incluses, un an maximum.',
+    website: 'Site internet',
+    submit: 'Envoyer la proposition',
+    sending: 'Envoi en cours…',
+    required: 'Champs obligatoires',
+    successEyebrow: 'Proposition transmise',
+    successHeading: 'L’animation est entre les mains de l’organisation',
+    successBody: 'Merci. Votre proposition sera relue avant publication : elle apparaîtra dans la chronique une fois validée, à la date indiquée.',
+    again: 'Proposer une autre animation',
+    errorGeneric: 'La proposition n’a pas pu être envoyée. Vérifiez les informations et réessayez.',
+    errorRate: 'Trop de propositions envoyées coup sur coup. Réessayez dans quelques minutes.',
+    errorInvalid: 'Certaines informations sont incomplètes ou invalides. Vérifiez les champs et les dates.',
+    errorNetwork: 'Connexion impossible. Vérifiez votre réseau, puis réessayez.',
+    dateOrder: 'La date de fin doit suivre la date de début.',
+    dateMax: 'Une animation ne peut pas durer plus d’un an.',
+  },
+  en: {
+    eyebrow: 'Submit',
+    heading: 'Enter an event in the register',
+    lead: 'Festival, tournament, market, ceremony: announce your event so it appears in the realm’s chronicle. Dates are inclusive.',
+    note: 'Every submission is reviewed by the organisers. An event only appears in the calendar once approved.',
+    steps: [
+      { n: 'I', t: 'You enter the event', d: 'Name, town, county, dates and forum link.' },
+      { n: 'II', t: 'The organisers check', d: 'The dates and the forum thread are verified.' },
+      { n: 'III', t: 'The event joins the chronicle', d: 'It appears in the calendar on its date.' },
+    ],
+    title: 'Event name',
+    titleHint: '3 to 100 characters.',
+    titlePlaceholder: 'St Martin’s Fair',
+    rkName: 'Your RK name',
+    rkNameHint: 'The name of the player organising.',
+    city: 'Town',
+    cityHint: 'Town where the event takes place.',
+    county: 'County',
+    countyHint: 'County or duchy of the town.',
+    forum: 'Forum link',
+    forumHint: 'Official thread on the RK forum.',
+    start: 'Start',
+    end: 'End',
+    datesHint: 'Dates inclusive, one year maximum.',
+    website: 'Website',
+    submit: 'Send submission',
+    sending: 'Sending…',
+    required: 'Required fields',
+    successEyebrow: 'Submission sent',
+    successHeading: 'The event is now with the organisers',
+    successBody: 'Thank you. Your submission will be reviewed before publication: it will appear in the chronicle once approved, on the date given.',
+    again: 'Submit another event',
+    errorGeneric: 'The submission could not be sent. Check the details and try again.',
+    errorRate: 'Too many submissions sent in quick succession. Try again in a few minutes.',
+    errorInvalid: 'Some details are incomplete or invalid. Check the fields and dates.',
+    errorNetwork: 'Connection failed. Check your network, then try again.',
+    dateOrder: 'The end date must be on or after the start date.',
+    dateMax: 'An event cannot last longer than one year.',
+  },
+}[lang];
 ---
 
 <section id="proposer" class="mt-20 scroll-mt-24" aria-labelledby="proposer-titre">
@@ -7,14 +95,13 @@
 
     <div class="grid gap-10 px-6 py-9 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:py-12">
       <div>
-        <p class="label-caps">Proposer</p>
+        <p class="label-caps">{copy.eyebrow}</p>
         <h2 id="proposer-titre" class="mt-2 font-display text-2xl leading-snug tracking-[0.05em] text-parchment sm:text-3xl">
-          Inscrire une animation au registre
+          {copy.heading}
         </h2>
         <div class="rule-gold my-5 w-20"></div>
         <p class="max-w-md text-sm leading-relaxed text-parchment-dim">
-          Fête, tournoi, marché, cérémonie : annoncez votre animation pour qu’elle figure dans la
-          chronique des royaumes. Les dates sont incluses dans la durée.
+          {copy.lead}
         </p>
 
         <div class="mt-6 flex gap-3 border-l-2 border-gold/50 pl-4">
@@ -23,17 +110,12 @@
             <path d="M9 12l2 2 4-4" />
           </svg>
           <p class="text-xs leading-relaxed text-parchment-dim">
-            Toute proposition est relue par l’organisation. L’animation n’apparaît dans l’agenda
-            qu’après validation.
+            {copy.note}
           </p>
         </div>
 
         <ol class="mt-8 hidden space-y-4 sm:block">
-          {[
-            { n: 'I', t: 'Vous inscrivez l’animation', d: 'Nom, ville, comté, dates et lien du forum.' },
-            { n: 'II', t: 'L’organisation vérifie', d: 'Les dates et le sujet du forum sont contrôlés.' },
-            { n: 'III', t: 'L’animation rejoint la chronique', d: 'Elle apparaît dans l’agenda à sa date.' },
-          ].map((step) => (
+          {copy.steps.map((step) => (
             <li class="flex gap-3">
               <span class="step-num">{step.n}</span>
               <span class="min-w-0">
@@ -46,10 +128,21 @@
       </div>
 
       <div>
-        <form data-agenda-form class="grid gap-5 sm:grid-cols-2">
+        <form
+          data-agenda-form
+          class="grid gap-5 sm:grid-cols-2"
+          data-msg-sending={copy.sending}
+          data-msg-submit={copy.submit}
+          data-msg-error-generic={copy.errorGeneric}
+          data-msg-error-rate={copy.errorRate}
+          data-msg-error-invalid={copy.errorInvalid}
+          data-msg-error-network={copy.errorNetwork}
+          data-msg-date-order={copy.dateOrder}
+          data-msg-date-max={copy.dateMax}
+        >
           <div class="sm:col-span-2">
             <label for="ev-title" class="field-label">
-              Nom de l’animation <span class="text-gold" aria-hidden="true">*</span>
+              {copy.title} <span class="text-gold" aria-hidden="true">*</span>
             </label>
             <input
               id="ev-title"
@@ -59,16 +152,16 @@
               minlength="3"
               maxlength="100"
               autocomplete="off"
-              placeholder="Foire de la Saint-Martin"
+              placeholder={copy.titlePlaceholder}
               class="field"
               aria-describedby="ev-title-hint"
             />
-            <p id="ev-title-hint" class="field-hint">3 à 100 caractères.</p>
+            <p id="ev-title-hint" class="field-hint">{copy.titleHint}</p>
           </div>
 
           <div>
             <label for="ev-rk" class="field-label">
-              Votre nom sur RK <span class="text-gold" aria-hidden="true">*</span>
+              {copy.rkName} <span class="text-gold" aria-hidden="true">*</span>
             </label>
             <input
               id="ev-rk"
@@ -81,12 +174,12 @@
               class="field"
               aria-describedby="ev-rk-hint"
             />
-            <p id="ev-rk-hint" class="field-hint">Le nom du joueur qui organise.</p>
+            <p id="ev-rk-hint" class="field-hint">{copy.rkNameHint}</p>
           </div>
 
           <div>
             <label for="ev-city" class="field-label">
-              Ville <span class="text-gold" aria-hidden="true">*</span>
+              {copy.city} <span class="text-gold" aria-hidden="true">*</span>
             </label>
             <input
               id="ev-city"
@@ -99,12 +192,12 @@
               class="field"
               aria-describedby="ev-city-hint"
             />
-            <p id="ev-city-hint" class="field-hint">Ville où se tient l’animation.</p>
+            <p id="ev-city-hint" class="field-hint">{copy.cityHint}</p>
           </div>
 
           <div>
             <label for="ev-county" class="field-label">
-              Comté <span class="text-gold" aria-hidden="true">*</span>
+              {copy.county} <span class="text-gold" aria-hidden="true">*</span>
             </label>
             <input
               id="ev-county"
@@ -117,12 +210,12 @@
               class="field"
               aria-describedby="ev-county-hint"
             />
-            <p id="ev-county-hint" class="field-hint">Comté ou duché de la ville.</p>
+            <p id="ev-county-hint" class="field-hint">{copy.countyHint}</p>
           </div>
 
           <div>
             <label for="ev-url" class="field-label">
-              Lien du forum <span class="text-gold" aria-hidden="true">*</span>
+              {copy.forum} <span class="text-gold" aria-hidden="true">*</span>
             </label>
             <input
               id="ev-url"
@@ -136,14 +229,14 @@
               class="field"
               aria-describedby="ev-url-hint"
             />
-            <p id="ev-url-hint" class="field-hint">Sujet officiel sur le forum RK.</p>
+            <p id="ev-url-hint" class="field-hint">{copy.forumHint}</p>
           </div>
 
           <div class="sm:col-span-2">
             <div class="grid gap-5 sm:grid-cols-2">
               <div>
                 <label for="ev-start" class="field-label">
-                  Début <span class="text-gold" aria-hidden="true">*</span>
+                  {copy.start} <span class="text-gold" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="ev-start"
@@ -156,7 +249,7 @@
               </div>
               <div>
                 <label for="ev-end" class="field-label">
-                  Fin <span class="text-gold" aria-hidden="true">*</span>
+                  {copy.end} <span class="text-gold" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="ev-end"
@@ -168,12 +261,12 @@
                 />
               </div>
             </div>
-            <p id="ev-dates-hint" class="field-hint">Dates incluses, un an maximum.</p>
+            <p id="ev-dates-hint" class="field-hint">{copy.datesHint}</p>
           </div>
 
           <!-- Honeypot: invisible to humans, must stay empty. -->
           <div class="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
-            <label for="ev-website">Site internet</label>
+            <label for="ev-website">{copy.website}</label>
             <input id="ev-website" name="website" type="text" tabindex="-1" autocomplete="off" />
           </div>
 
@@ -182,10 +275,10 @@
 
             <div class="mt-1 flex flex-wrap items-center gap-4">
               <button type="submit" class="btn-gold" data-submit>
-                <span data-submit-label>Envoyer la proposition</span>
+                <span data-submit-label>{copy.submit}</span>
               </button>
               <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/60">
-                <span class="text-gold" aria-hidden="true">*</span> Champs obligatoires
+                <span class="text-gold" aria-hidden="true">*</span> {copy.required}
               </p>
             </div>
           </div>
@@ -198,18 +291,17 @@
                 <path d="M5 12.5l4.5 4.5L19 7.5" />
               </svg>
             </span>
-            <p class="label-caps">Proposition transmise</p>
+            <p class="label-caps">{copy.successEyebrow}</p>
           </div>
           <h3 class="mt-4 font-display text-xl tracking-[0.04em] text-parchment">
-            L’animation est entre les mains de l’organisation
+            {copy.successHeading}
           </h3>
           <div class="rule-gold my-4 w-16"></div>
           <p class="max-w-lg text-sm leading-relaxed text-parchment-dim">
-            Merci. Votre proposition sera relue avant publication : elle apparaîtra dans la chronique
-            une fois validée, à la date indiquée.
+            {copy.successBody}
           </p>
           <button type="button" class="btn-ghost mt-6" data-form-again>
-            Proposer une autre animation
+            {copy.again}
           </button>
         </div>
       </div>
@@ -294,6 +386,16 @@
   const againButton = document.querySelector<HTMLButtonElement>('[data-form-again]');
 
   if (form && success) {
+    const msg = {
+      sending: form.dataset.msgSending ?? '',
+      submit: form.dataset.msgSubmit ?? '',
+      errorGeneric: form.dataset.msgErrorGeneric ?? '',
+      errorRate: form.dataset.msgErrorRate ?? '',
+      errorInvalid: form.dataset.msgErrorInvalid ?? '',
+      errorNetwork: form.dataset.msgErrorNetwork ?? '',
+      dateOrder: form.dataset.msgDateOrder ?? '',
+      dateMax: form.dataset.msgDateMax ?? '',
+    };
     const status = form.querySelector<HTMLElement>('[data-form-status]');
     const submit = form.querySelector<HTMLButtonElement>('[data-submit]');
     const submitLabel = form.querySelector<HTMLElement>('[data-submit-label]');
@@ -318,9 +420,9 @@
           86_400_000 +
         1;
       if (endsOn.value < startsOn.value) {
-        endsOn.setCustomValidity('La date de fin doit suivre la date de début.');
+        endsOn.setCustomValidity(msg.dateOrder);
       } else if (days > 366) {
-        endsOn.setCustomValidity('Une animation ne peut pas durer plus d’un an.');
+        endsOn.setCustomValidity(msg.dateMax);
       } else {
         endsOn.setCustomValidity('');
       }
@@ -336,7 +438,7 @@
 
       if (status) status.hidden = true;
       if (submit) submit.disabled = true;
-      if (submitLabel) submitLabel.textContent = 'Envoi en cours…';
+      if (submitLabel) submitLabel.textContent = msg.sending;
 
       const payload = Object.fromEntries(new FormData(form));
 
@@ -357,11 +459,10 @@
           return;
         }
 
-        let message =
-          'La proposition n’a pas pu être envoyée. Vérifiez les informations et réessayez.';
+        let message = msg.errorGeneric;
 
         if (response.status === 429) {
-          message = 'Trop de propositions envoyées coup sur coup. Réessayez dans quelques minutes.';
+          message = msg.errorRate;
         } else if (response.status === 400) {
           const body = (await response.json().catch(() => null)) as
             | { error?: unknown; message?: unknown }
@@ -372,17 +473,15 @@
               : typeof body?.message === 'string'
                 ? body.message
                 : '';
-          message =
-            detail ||
-            'Certaines informations sont incomplètes ou invalides. Vérifiez les champs et les dates.';
+          message = detail || msg.errorInvalid;
         }
 
         showStatus(message);
       } catch {
-        showStatus('Connexion impossible. Vérifiez votre réseau, puis réessayez.');
+        showStatus(msg.errorNetwork);
       } finally {
         if (submit) submit.disabled = false;
-        if (submitLabel) submitLabel.textContent = 'Envoyer la proposition';
+        if (submitLabel) submitLabel.textContent = msg.submit;
       }
     });
 

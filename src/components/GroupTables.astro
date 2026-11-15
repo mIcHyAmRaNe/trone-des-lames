@@ -2,13 +2,38 @@
 import type { TournamentState } from '../lib/state';
 import { GROUPS } from '../lib/tournament';
 import { formatPoints } from '../lib/format';
+import { nf, type Lang } from '../i18n';
 
 interface Props {
   state: TournamentState;
+  lang?: Lang;
 }
 
-const { state } = Astro.props;
+const { state, lang = 'fr' } = Astro.props;
 const standings = state.standings;
+
+const copy = {
+  fr: {
+    group: 'GROUPE',
+    qualifiedCount: '2 qualifiés',
+    empty: 'Aucun combattant.',
+    fighter: 'Combattant',
+    wins: 'V',
+    points: 'Pts',
+    rank: 'Cl.',
+    qualified: 'Qualifié',
+  },
+  en: {
+    group: 'GROUP',
+    qualifiedCount: '2 qualified',
+    empty: 'No fighters.',
+    fighter: 'Fighter',
+    wins: 'W',
+    points: 'Pts',
+    rank: 'Pos.',
+    qualified: 'Qualified',
+  },
+}[lang];
 ---
 
 <div class="grid gap-6 lg:grid-cols-2">
@@ -18,24 +43,24 @@ const standings = state.standings;
       <section class="card-dark texture-noise" aria-labelledby={`groupe-${g}`}>
         <header class="flex items-center justify-between border-b border-gold/20 px-5 py-3.5">
           <h3 id={`groupe-${g}`} class="font-display text-sm tracking-[0.2em] text-gold">
-            GROUPE {g}
+            {copy.group} {g}
           </h3>
           <span class="text-[0.625rem] uppercase tracking-[0.18em] text-parchment-dim">
-            2 qualifiés
+            {copy.qualifiedCount}
           </span>
         </header>
 
         {rows.length === 0 ? (
-          <p class="px-5 py-8 text-center text-sm text-parchment-dim">Aucun combattant.</p>
+          <p class="px-5 py-8 text-center text-sm text-parchment-dim">{copy.empty}</p>
         ) : (
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead>
                 <tr class="border-b border-gold/10 text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim">
-                  <th scope="col" class="py-2.5 pl-5 pr-2 font-medium">Combattant</th>
-                  <th scope="col" class="px-2 py-2.5 text-center font-medium">V</th>
-                  <th scope="col" class="px-2 py-2.5 text-right font-medium">Pts</th>
-                  <th scope="col" class="py-2.5 pl-2 pr-5 text-right font-medium">Cl.</th>
+                  <th scope="col" class="py-2.5 pl-5 pr-2 font-medium">{copy.fighter}</th>
+                  <th scope="col" class="px-2 py-2.5 text-center font-medium">{copy.wins}</th>
+                  <th scope="col" class="px-2 py-2.5 text-right font-medium">{copy.points}</th>
+                  <th scope="col" class="py-2.5 pl-2 pr-5 text-right font-medium">{copy.rank}</th>
                 </tr>
               </thead>
               <tbody>
@@ -53,16 +78,16 @@ const standings = state.standings;
                         </span>
                         {r.qualified && (
                           <span class="border border-gold/50 px-1.5 py-0.5 text-[0.5rem] font-bold uppercase tracking-[0.14em] text-gold">
-                            Qualifié
+                            {copy.qualified}
                           </span>
                         )}
                       </span>
                     </td>
-                    <td class="px-2 py-3 text-center tabular-nums text-parchment-dim">{r.wins}</td>
+                    <td class="px-2 py-3 text-center tabular-nums text-parchment-dim">{nf(lang).format(r.wins)}</td>
                     <td class="px-2 py-3 text-right tabular-nums text-parchment">{formatPoints(r.points)}</td>
                     <td class="py-3 pl-2 pr-5 text-right tabular-nums">
                       <span class:list={[r.rank <= 2 ? 'text-gold' : 'text-parchment-dim', 'font-semibold']}>
-                        {r.rank}
+                        {nf(lang).format(r.rank)}
                       </span>
                     </td>
                   </tr>

@@ -1,17 +1,19 @@
 ---
 import type { TournamentState } from '../lib/state';
+import type { Lang } from '../i18n';
 
 interface Props {
   state: TournamentState;
+  lang?: Lang;
 }
 
-const { state } = Astro.props;
+const { state, lang = 'fr' } = Astro.props;
 
-const statusLabel: Record<string, string> = {
-  setup: 'Inscriptions ouvertes',
-  groups: 'Phase de poules',
-  bracket: 'Phase finale',
-  done: 'Tournoi terminé',
+const statusLabel: Record<string, Record<Lang, string>> = {
+  setup: { fr: 'Inscriptions ouvertes', en: 'Registration open' },
+  groups: { fr: 'Phase de poules', en: 'Group stage' },
+  bracket: { fr: 'Phase finale', en: 'Knockout stage' },
+  done: { fr: 'Tournoi terminé', en: 'Tournament complete' },
 };
 
 const statusTone: Record<string, string> = {
@@ -29,5 +31,5 @@ const statusTone: Record<string, string> = {
   ]}
 >
   <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
-  {statusLabel[state.edition.status] ?? 'Inscriptions ouvertes'}
+  {statusLabel[state.edition.status]?.[lang] ?? statusLabel.setup[lang]}
 </span>

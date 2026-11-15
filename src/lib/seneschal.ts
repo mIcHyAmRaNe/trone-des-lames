@@ -1,5 +1,5 @@
 /**
- * Le Sénéchal — outils d'aide pour les champs et les échoppes de Renaissance
+ * Le Sénéchal  -  outils d'aide pour les champs et les échoppes de Renaissance
  * Kingdoms. Données de jeu vérifiées sur le wiki officiel (octobre 2026).
  *
  * Règles retenues pour l'élevage de vaches :
@@ -42,6 +42,8 @@
  *   miel, 0-100 % de cire, 0-6 % de gelée par ruche et par récolte ;
  * - l'humeur baisse de 3 niveaux après chaque récolte ; second champ −15 %.
  */
+
+import type { Lang } from '../i18n/index.ts';
 
 export type SeneschalToolStatus = 'available' | 'soon';
 
@@ -1352,7 +1354,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   // Teintures capillaires
   {
     id: 'capillaire-blond-clair',
-    name: 'Teinture capillaire — Blond clair',
+    name: 'Teinture capillaire  -  Blond clair',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1367,7 +1369,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'capillaire-blond-dore',
-    name: 'Teinture capillaire — Blond doré',
+    name: 'Teinture capillaire  -  Blond doré',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1382,7 +1384,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'capillaire-blanc-glacial',
-    name: 'Teinture capillaire — Blanc glacial',
+    name: 'Teinture capillaire  -  Blanc glacial',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1396,7 +1398,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'capillaire-blond-miel',
-    name: 'Teinture capillaire — Blond miel',
+    name: 'Teinture capillaire  -  Blond miel',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1411,7 +1413,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'capillaire-chatain-fonce',
-    name: 'Teinture capillaire — Châtain foncé',
+    name: 'Teinture capillaire  -  Châtain foncé',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1426,7 +1428,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'capillaire-gris-argente',
-    name: 'Teinture capillaire — Gris argenté',
+    name: 'Teinture capillaire  -  Gris argenté',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1440,7 +1442,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'capillaire-noir-de-jais',
-    name: 'Teinture capillaire — Noir de jais',
+    name: 'Teinture capillaire  -  Noir de jais',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1454,7 +1456,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'capillaire-roux-cuivre',
-    name: 'Teinture capillaire — Roux cuivré',
+    name: 'Teinture capillaire  -  Roux cuivré',
     family: 'teintures-capillaires',
     output: 1,
     xp: 60,
@@ -1471,7 +1473,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   // Teintures pileuses
   {
     id: 'pileuse-blanc-glacial',
-    name: 'Teinture pileuse — Blanc glacial',
+    name: 'Teinture pileuse  -  Blanc glacial',
     family: 'teintures-pileuses',
     output: 1,
     xp: 60,
@@ -1485,7 +1487,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'pileuse-blond-miel',
-    name: 'Teinture pileuse — Blond miel',
+    name: 'Teinture pileuse  -  Blond miel',
     family: 'teintures-pileuses',
     output: 1,
     xp: 60,
@@ -1500,7 +1502,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'pileuse-chatain-fonce',
-    name: 'Teinture pileuse — Châtain foncé',
+    name: 'Teinture pileuse  -  Châtain foncé',
     family: 'teintures-pileuses',
     output: 1,
     xp: 60,
@@ -1515,7 +1517,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'pileuse-gris-argente',
-    name: 'Teinture pileuse — Gris argenté',
+    name: 'Teinture pileuse  -  Gris argenté',
     family: 'teintures-pileuses',
     output: 1,
     xp: 60,
@@ -1529,7 +1531,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'pileuse-noir-de-jais',
-    name: 'Teinture pileuse — Noir de jais',
+    name: 'Teinture pileuse  -  Noir de jais',
     family: 'teintures-pileuses',
     output: 1,
     xp: 60,
@@ -1543,7 +1545,7 @@ export const BOTANIST_RECIPES: BotanistRecipe[] = [
   },
   {
     id: 'pileuse-roux-cuivre',
-    name: 'Teinture pileuse — Roux cuivré',
+    name: 'Teinture pileuse  -  Roux cuivré',
     family: 'teintures-pileuses',
     output: 1,
     xp: 60,
@@ -1586,7 +1588,7 @@ export const BOTANIST_PLANTS: BotanistPlant[] = [
 ];
 
 export const BOTANIST_SKILLS = [
-  { name: 'Apprenti botaniste', effect: 'XP +5 à +25 %', prereq: '—', cost: '1 à 5 PC' },
+  { name: 'Apprenti botaniste', effect: 'XP +5 à +25 %', prereq: ' - ', cost: '1 à 5 PC' },
   {
     name: 'Floriculteur',
     effect: 'Pousse des fleurs −10 à −30 %',

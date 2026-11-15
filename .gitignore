@@ -29,3 +29,6 @@ local.db
 local.db-journal
 *.db
 .serena/
+
+# wiki audit cache
+.cache/

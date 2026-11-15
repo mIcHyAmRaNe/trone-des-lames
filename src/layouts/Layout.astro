@@ -1,22 +1,30 @@
 ---
 import '../styles/global.css';
 import ThemeToggle from '../components/ThemeToggle.astro';
+import LanguageToggle from '../components/LanguageToggle.astro';
+import { common, locale, type Lang } from '../i18n';
 
 interface Props {
   title?: string;
   description?: string;
 }
 
+const { lang = 'fr' } = Astro.locals as { lang?: Lang };
+const c = (key: Parameters<typeof common>[1]) => common(lang, key);
+
 const {
-  title = 'Le Trône des Lames — Tournoi Renaissance Kingdoms',
-  description = 'Seize combattants, quatre groupes, une seule couronne. Suivez le tournoi Le Trône des Lames : poules, classements et phase finale.',
+  title = lang === 'fr'
+    ? 'Le Trône des Lames  -  Tournoi Renaissance Kingdoms'
+    : 'The Throne of Blades  -  Renaissance Kingdoms tournament',
+  description = lang === 'fr'
+    ? 'Seize combattants, quatre groupes, une seule couronne. Suivez le tournoi Le Trône des Lames : poules, classements et phase finale.'
+    : 'Sixteen fighters, four groups, one crown. Follow the Throne of Blades tournament: groups, standings and the knockout stage.',
 } = Astro.props;
 
 const path = Astro.url.pathname;
 
 // Le cookie est écrit par le toggle : il permet de rendre le bon thème dès le
 // HTML (avant JS, avant le CSS), donc plus de page qui démarre en sombre.
-// Les pages prérendues n'ont pas de requête : le script client lit le cookie.
 let cookieTheme: string | undefined;
 if (!Astro.isPrerendered) {
   try {
@@ -25,17 +33,16 @@ if (!Astro.isPrerendered) {
 }
 const theme = cookieTheme === 'light' || cookieTheme === 'dark' ? cookieTheme : 'dark';
 const links = [
-  { href: '/', label: 'Accueil' },
-  { href: '/tournoi', label: 'Tournoi' },
-  { href: '/agenda', label: 'Agenda' },
-  { href: '/seneschal', label: 'Sénéchal' },
-  { href: '/garde-robe', label: 'Garde-robe' },
-  { href: '/catalogue', label: 'Catalogue' },
+  { href: '/', label: c('home') },
+  { href: '/agenda', label: c('agenda') },
+  { href: '/seneschal', label: c('seneschal') },
+  { href: '/garde-robe', label: c('wardrobe') },
+  { href: '/catalogue', label: c('catalogue') },
 ];
 ---
 
 <!doctype html>
-<html lang="fr" data-theme={theme}>
+<html lang={locale(lang)} data-theme={theme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -47,8 +54,6 @@ const links = [
       // sert de secours, sinon le choix ne survivrait pas au changement de page.
       (() => {
         const html = document.documentElement;
-        // Le serveur a déjà posé le thème depuis le cookie : on ne l'écrase
-        // que si localStorage contient un choix explicite plus récent.
         let theme = html.dataset.theme === 'light' ? 'light' : 'dark';
         let explicit = false;
         try {
@@ -75,28 +80,34 @@ const links = [
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body class="flex min-h-screen flex-col">
+    <div class="border-b border-gold/20 bg-gold/[0.07]">
+      <p class="container-tdl flex flex-wrap items-center justify-center gap-x-2 py-1.5 text-center text-[0.6875rem] leading-snug text-parchment-dim">
+        <span class="flex-none border border-gold/40 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-[0.16em] text-gold-light">
+          {c('alphaTag')}
+        </span>
+        {c('alpha')}
+      </p>
+    </div>
+
     <header class="sticky top-0 z-50 border-b border-gold/25 bg-ink/85 backdrop-blur-md">
       <div class="container-tdl flex h-16 flex-wrap content-center items-center justify-between gap-x-2 gap-y-0 sm:gap-x-3 lg:flex-nowrap">
-        <a href="/" class="group flex min-w-0 items-center gap-2.5" aria-label="Le Trône des Lames, accueil">
+        <a href="/" class="group flex min-w-0 items-center gap-2.5" aria-label={c('homeAria')}>
           <svg viewBox="0 0 24 24" class="h-6 w-6 flex-none text-gold transition-transform group-hover:rotate-6" fill="currentColor" aria-hidden="true">
             <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zm4.4 10h11.2l1-6.2L16 12 12 5.8 8 12 5.4 10.8l1 6.2zM6 20h12v2H6v-2z"/>
           </svg>
           <span class="truncate font-display text-xs font-bold tracking-[0.16em] text-parchment sm:text-sm sm:tracking-[0.18em]">
-            <span class="hidden sm:inline">LE TRÔNE DES LAMES</span>
+            <span class="hidden sm:inline">{c('site')}</span>
           </span>
         </a>
 
-        <ThemeToggle class="order-2 h-8 w-8 lg:order-3 lg:h-9 lg:w-9" />
+        <div class="order-2 flex items-center gap-1.5 lg:order-3">
+          <LanguageToggle lang={lang} />
+          <ThemeToggle class="h-8 w-8 lg:h-9 lg:w-9" />
+        </div>
 
-        <nav aria-label="Navigation principale" class="order-3 ml-auto w-full flex-none lg:order-2 lg:w-auto">
+        <nav aria-label={c('mainNav')} class="order-3 ml-auto w-full flex-none lg:order-2 lg:w-auto">
           <ul class="flex items-center justify-between gap-0 sm:justify-center sm:gap-1 lg:justify-end lg:gap-2">
             {links.map((l) => {
               const active = l.href === '/' ? path === '/' : path.startsWith(l.href);
@@ -129,10 +140,26 @@ const links = [
         <svg viewBox="0 0 24 24" class="h-7 w-7 text-gold/70" fill="currentColor" aria-hidden="true">
           <path d="M2 7l4 3 6-7 6 7 4-3-2 12H4L2 7zm4.4 10h11.2l1-6.2L16 12 12 5.8 8 12 5.4 10.8l1 6.2zM6 20h12v2H6v-2z"/>
         </svg>
-        <p class="font-display text-xs tracking-[0.24em] text-gold">LE TRÔNE DES LAMES</p>
+        <p class="font-display text-xs tracking-[0.24em] text-gold">{c('site')}</p>
         <p class="max-w-md text-xs leading-relaxed text-parchment-dim">
-          Tournoi &amp; agenda des animations Renaissance Kingdoms. Résultats et animations validés par l’organisation.
+          {c('footerTagline')}
         </p>
+
+        <div class="rule-gold my-3 w-24" aria-hidden="true"></div>
+
+        <div class="max-w-xl space-y-1.5 text-xs leading-relaxed text-parchment-dim">
+          <p>{c('footerUnofficial')}</p>
+          <p>{c('footerPassword')}</p>
+          <p>{c('footerGuides')}</p>
+          <p class="pt-1">
+            <a
+              href="/confidentialite"
+              class="text-gold/90 underline decoration-gold/30 underline-offset-4 transition-colors hover:text-gold hover:decoration-gold"
+            >
+              {c('privacy')}
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   </body>

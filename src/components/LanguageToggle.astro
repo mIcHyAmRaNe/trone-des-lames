@@ -1,0 +1,95 @@
+---
+import { LANGS, type Lang } from '../i18n';
+
+interface Props {
+  lang: Lang;
+  class?: string;
+}
+const { lang, class: className = '' } = Astro.props;
+---
+
+<div class:list={['relative inline-flex', className]}>
+  <button
+    type="button"
+    id="lang-toggle"
+    aria-haspopup="true"
+    aria-expanded="false"
+    aria-label={lang === 'fr' ? 'Langue' : 'Language'}
+    class="flex items-center gap-1 px-2 py-1.5 text-[0.625rem] font-bold uppercase tracking-[0.08em] transition-colors bg-ink/40 border border-gold/25 rounded"
+    title={lang === 'fr' ? 'Français' : 'English'}
+  >
+    <span class="text-gold">{lang.toUpperCase()}</span>
+    <svg class="h-3 w-3 text-parchment-dim" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  </button>
+
+  <div
+    id="lang-menu"
+    role="menu"
+    aria-labelledby="lang-toggle"
+    class="absolute right-0 top-full mt-1 min-w-[7rem] rounded border border-gold/25 bg-ink-3 shadow-deep opacity-0 invisible pointer-events-none transition-all duration-150 z-50"
+  >
+    {Object.entries(LANGS).map(([code, label]) => {
+      const active = code === lang;
+      return (
+        <button
+          type="button"
+          role="menuitem"
+          data-lang={code}
+          aria-selected={active}
+          class:list={[
+            'w-full px-3 py-2 text-left text-sm font-medium transition-colors',
+            active ? 'bg-gold/15 text-gold' : 'text-parchment hover:bg-gold/10 hover:text-gold',
+          ]}
+        >
+          {label}
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+<script>
+  const toggle = document.getElementById('lang-toggle');
+  const menu = document.getElementById('lang-menu');
+  let open = false;
+
+  function closeMenu() {
+    menu.classList.add('opacity-0', 'invisible', 'pointer-events-none');
+    menu.classList.remove('opacity-100', 'visible', 'pointer-events-auto');
+    toggle.setAttribute('aria-expanded', 'false');
+    open = false;
+  }
+
+  function openMenu() {
+    menu.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+    menu.classList.add('opacity-100', 'visible', 'pointer-events-auto');
+    toggle.setAttribute('aria-expanded', 'true');
+    open = true;
+  }
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    open ? closeMenu() : openMenu();
+  });
+
+  menu.querySelectorAll('[data-lang]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.cookie = `tdl-lang=${btn.dataset.lang}; path=/; max-age=31536000; samesite=lax`;
+      location.reload();
+    });
+  });
+
+  // Fermer au clic extérieur
+  document.addEventListener('click', (e) => {
+    if (open && !toggle.contains(e.target as Node) && !menu.contains(e.target as Node)) {
+      closeMenu();
+    }
+  });
+
+  // Fermer à l'échap
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && open) closeMenu();
+  });
+</script>

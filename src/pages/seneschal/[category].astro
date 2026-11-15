@@ -1,40 +1,69 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { SENESCHAL_CATEGORIES, type SeneschalCategory } from "../../lib/seneschal";
+import type { Lang } from "../../i18n";
 
-export const prerender = true;
+const { lang = 'fr' } = Astro.locals;
 
-export async function getStaticPaths() {
-  return SENESCHAL_CATEGORIES.map((category) => ({
-    params: { category: category.slug },
-    props: { category },
-  }));
-}
+const copy = {
+  fr: {
+    breadcrumb: "Le Sénéchal",
+    toolsTotal: (t: number, a: number) => `${t} outils ◆ ${a} disponible${a > 1 ? "s" : a === 1 ? "" : "Aucun disponible"}`,
+    calculatorsEyebrow: "Les calculateurs",
+    calculatorsSub: (n: number) => `${n} outil${n > 1 ? "s" : ""} disponible${n > 1 ? "s" : ""} · règles vérifiées en octobre 2026`,
+    statusAvailable: "Disponible",
+    echoppesTitle: "Le registre des échoppes",
+    echoppesPlanned: (n: number) => `${n} outils prévus`,
+    echoppesComing: "Les premières échoppes arrivent",
+    echoppesNote: "Boucher, fromager, boulanger : les comptes de l'atelier sont encore en cours de vérification sur le wiki officiel. Le registre des champs, lui, est déjà ouvert.",
+    openFieldsRegister: "Ouvrir le registre des champs",
+    otherToolsTitle: (isEchoppes: boolean) => isEchoppes ? "Les échoppes prévues" : "Les autres outils",
+    comingSoon: "En préparation",
+    statusComing: "À venir",
+    allRegisters: "Tous les registres",
+    estimatesNote: "Les calculs sont des estimations",
+  },
+  en: {
+    breadcrumb: "The Seneschal",
+    toolsTotal: (t: number, a: number) => `${t} tools ◆ ${a} available${a > 1 ? "s" : ""}`,
+    calculatorsEyebrow: "Calculators",
+    calculatorsSub: (n: number) => `${n} tool${n > 1 ? "s" : ""} available · rules verified October 2026`,
+    statusAvailable: "Available",
+    echoppesTitle: "The workshops register",
+    echoppesPlanned: (n: number) => `${n} tools planned`,
+    echoppesComing: "The first workshops are coming",
+    echoppesNote: "Butcher, cheesemaker, baker: workshop accounts are still being verified on the official wiki. The field register, however, is already open.",
+    openFieldsRegister: "Open the field register",
+    otherToolsTitle: (isEchoppes: boolean) => isEchoppes ? "Planned workshops" : "Other tools",
+    comingSoon: "In preparation",
+    statusComing: "Coming soon",
+    allRegisters: "All registers",
+    estimatesNote: "Calculations are estimates",
+  },
+}[lang];
 
-interface Props {
-  category: SeneschalCategory;
-}
-
-const { category } = Astro.props;
-const available = category.tools.filter((tool) => tool.status === "available");
-const soon = category.tools.filter((tool) => tool.status === "soon");
-const isEchoppes = category.slug === "echoppes";
+const { category } = Astro.params;
+const cat = SENESCHAL_CATEGORIES.find((c) => c.slug === category);
+if (!cat) return Astro.redirect('/seneschal');
+const available = cat.tools.filter((tool) => tool.status === "available");
+const soon = cat.tools.filter((tool) => tool.status === "soon");
+const isEchoppes = cat.slug === "echoppes";
 ---
 
 <Layout
-  title={`${category.name} — Le Sénéchal · Le Trône des Lames`}
-  description={`${category.description} Outils de calcul pour Renaissance Kingdoms, réglés sur les règles à jour.`}
+  title={`${cat.name}  -  The Seneschal · The Throne of Blades`}
+  description={`${cat.description} Calculators for Renaissance Kingdoms fields and workshops, calibrated to current game rules.`}
 >
   <nav
-    aria-label="Fil d’Ariane"
+    aria-label={lang === 'fr' ? "Fil d'Ariane" : "Breadcrumb"}
     class="sticky top-16 z-40 border-b border-gold/10 bg-ink/90 backdrop-blur-md"
   >
     <ol
       class="container-tdl flex flex-wrap items-center gap-2 py-3 text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim"
     >
-      <li><a href="/seneschal" class="transition-colors hover:text-gold">Le Sénéchal</a></li>
+      <li><a href="/seneschal" class="transition-colors hover:text-gold">{copy.breadcrumb}</a></li>
       <li aria-hidden="true" class="text-gold/40">/</li>
-      <li aria-current="page" class="text-parchment">{category.name}</li>
+      <li aria-current="page" class="text-parchment">{cat.name}</li>
     </ol>
   </nav>
 
@@ -46,22 +75,18 @@ const isEchoppes = category.slug === "echoppes";
     </div>
 
     <div class="container-tdl relative py-12 sm:py-16">
-      <p class="label-caps reveal">{category.kicker}</p>
+      <p class="label-caps reveal">{cat.kicker}</p>
       <h1
         class="reveal mt-3 font-display text-4xl font-bold tracking-[0.05em] text-parchment sm:text-5xl"
       >
-        {category.name}
+        {cat.name}
       </h1>
       <div class="rule-gold reveal my-5 w-28"></div>
       <p class="reveal max-w-xl text-sm leading-relaxed text-parchment-dim sm:text-base">
-        {category.description}
+        {cat.description}
       </p>
       <p class="reveal mt-5 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
-        {category.tools.length} outils
-        <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>
-        {available.length > 0
-          ? `${available.length} disponible${available.length > 1 ? "s" : ""}`
-          : "Aucun disponible"}
+        {copy.toolsTotal(cat.tools.length, available.length)}
       </p>
     </div>
   </section>
@@ -70,9 +95,9 @@ const isEchoppes = category.slug === "echoppes";
     {available.length > 0 && (
       <section aria-labelledby="calculateurs-titre">
         <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <h2 id="calculateurs-titre" class="label-caps">Les calculateurs</h2>
+          <h2 id="calculateurs-titre" class="label-caps">{copy.calculatorsEyebrow}</h2>
           <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
-            {available.length} outil{available.length > 1 ? "s" : ""} disponible{available.length > 1 ? "s" : ""} · règles vérifiées en octobre 2026
+            {copy.calculatorsSub(available.length)}
           </p>
         </div>
 
@@ -82,7 +107,7 @@ const isEchoppes = category.slug === "echoppes";
           {available.map((tool) => (
             <li>
               <a
-                href={tool.href ?? `/seneschal/${category.slug}/${tool.slug}`}
+                href={tool.href ?? `/seneschal/${cat.slug}/${tool.slug}`}
                 class="tool-card card-dark texture-noise flex h-full flex-col p-5"
               >
                 <div class="flex items-start justify-between gap-3">
@@ -90,7 +115,7 @@ const isEchoppes = category.slug === "echoppes";
                     {tool.name}
                   </h3>
                   <span class="flex-none border border-gold/40 px-2 py-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-gold">
-                    Disponible
+                    {copy.statusAvailable}
                   </span>
                 </div>
                 <p class="mt-2 text-xs leading-relaxed text-parchment-dim">{tool.summary}</p>
@@ -104,9 +129,9 @@ const isEchoppes = category.slug === "echoppes";
     {isEchoppes && available.length === 0 && (
       <section aria-labelledby="echoppes-titre">
         <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <h2 id="echoppes-titre" class="label-caps">Le registre des échoppes</h2>
+          <h2 id="echoppes-titre" class="label-caps">{copy.echoppesTitle}</h2>
           <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
-            {soon.length} outils prévus
+            {copy.echoppesPlanned(soon.length)}
           </p>
         </div>
 
@@ -117,15 +142,13 @@ const isEchoppes = category.slug === "echoppes";
             <path d="M7 15.1h10l2.1 4.2H4.9L7 15.1Z" />
           </svg>
           <p class="mt-4 font-display text-lg tracking-[0.06em] text-parchment sm:text-xl">
-            Les premières échoppes arrivent
+            {copy.echoppesComing}
           </p>
           <p class="mt-2 max-w-md text-sm leading-relaxed text-parchment-dim">
-            Boucher, fromager, boulanger : les comptes de l’atelier sont encore
-            en cours de vérification sur le wiki officiel. Le registre des
-            champs, lui, est déjà ouvert.
+            {copy.echoppesNote}
           </p>
           <a href="/seneschal/champs" class="btn-ghost mt-6">
-            Ouvrir le registre des champs
+            {copy.openFieldsRegister}
           </a>
         </div>
       </section>
@@ -135,10 +158,10 @@ const isEchoppes = category.slug === "echoppes";
       <section class="mt-12 sm:mt-16" aria-labelledby="autres-titre">
         <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <h2 id="autres-titre" class="label-caps">
-            {isEchoppes ? "Les échoppes prévues" : "Les autres outils"}
+            {copy.otherToolsTitle(isEchoppes)}
           </h2>
           <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
-            En préparation
+            {copy.comingSoon}
           </p>
         </div>
 
@@ -152,7 +175,7 @@ const isEchoppes = category.slug === "echoppes";
                   {tool.name}
                 </h3>
                 <span class="flex-none border border-parchment-dim/25 px-2 py-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim/80">
-                  À venir
+                  {copy.statusComing}
                 </span>
               </div>
               <p class="mt-2 text-xs leading-relaxed text-parchment-dim">{tool.summary}</p>
@@ -174,10 +197,10 @@ const isEchoppes = category.slug === "echoppes";
         >
           <path d="M19 12H5M11 18l-6-6 6-6" />
         </svg>
-        Tous les registres
+        {copy.allRegisters}
       </a>
       <p class="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/70">
-        Les calculs sont des estimations
+        {copy.estimatesNote}
       </p>
     </div>
   </div>

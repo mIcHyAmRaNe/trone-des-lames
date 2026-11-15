@@ -30,13 +30,13 @@ En dev, sans `.env`, le mot de passe admin par défaut est `trone`.
 | `ADMIN_SECRET` | oui | Clé de signature du cookie de session — sert aussi à chiffrer la session de la garde-robe |
 | `TURSO_DATABASE_URL` | oui | `libsql://…` en prod, `file:local.db` en dev |
 | `TURSO_AUTH_TOKEN` | oui | Jeton Turso |
-| `RK_USERNAME` / `RK_PASS` | non | Uniquement pour `npm run catalog:refresh` (jamais l'application) |
+| `RK_USERNAME` / `RK_PASS` | oui | Compte de service du site : connexion du jeu pour la garde-robe et pour `npm run catalog:refresh` |
 
 ## Déploiement Vercel
 
 1. Créer une base sur [turso.tech](https://turso.tech) et récupérer l'URL + le jeton.
 2. Importer le repo dans Vercel.
-3. Ajouter les 4 variables d'environnement ci-dessus.
+3. Ajouter les variables d'environnement ci-dessus, dont `RK_USERNAME` et `RK_PASS` (compte de service du site, sans quoi la garde-robe répond `502`).
 4. Déployer. Le schéma se crée automatiquement au premier appel API.
 
 ## Structure
@@ -73,12 +73,13 @@ src/
     seneschal/controls.tsx      # champs et selects partagés des calculateurs
   pages/
     index.astro · tournoi.astro · agenda.astro · garde-robe.astro · catalogue.astro · admin.astro
+    confidentialite.astro # politique de confidentialité (garde-robe incluse)
     seneschal/          # hub, catégories (champs/échoppes) et outils
     reglement.astro     # redirection 301 vers /tournoi?onglet=reglement
     api/tournament.ts
     api/events.ts
     api/calque/[...path].ts     # proxy same-origin des calques du jeu
-    api/garde-robe/{login,logout,me,fiche}.ts
+    api/garde-robe/{fiche}.ts
     api/admin/{session,fighters,draw,match,bracket,reset,events}.ts
 public/
   rk/catalog.json       # catalogue statique généré (948 objets, 1 792 entrées M/F)
@@ -96,20 +97,20 @@ La chronique se consulte globalement (`/agenda`) ou mois par mois via `/agenda?p
 
 Deux sections publiques issues de l'outil personnel `rk_wardrobe`, réécrites pour le langage visuel du site.
 
-- **`/garde-robe`** — connexion au jeu, chargement d'une fiche, habillage par catégorie de la garde-robe du jeu, aperçu des variantes au survol, tenues enregistrées localement, export PNG.
+- **`/garde-robe`** — accès direct avec un personnage par défaut, réglage du sexe et des traits du visage (famille « Corps », encodés dans `codeVisage`), chargement d'une fiche par son nom, habillage par catégorie de la garde-robe du jeu, aperçu des variantes au survol, tenues enregistrées localement, export PNG. La connexion au jeu utilise le compte de service du site.
 - **`/catalogue`** — les objets du jeu (nom, catégorie, sexes, z-index, déclinaisons), filtrables et paginés.
 
 ### Rendu du personnage
 
-`public/vendor/midas.js` est le moteur de portrait officiel du jeu, vendu tel quel. La fiche est un JSON `{ login, sexe, codeVisage, equipement }` ; le site ne réécrit que `equipement` — le corps, le visage et les cheveux viennent de `codeVisage` et ne sont jamais touchés.
+`public/vendor/midas.js` est le moteur de portrait officiel du jeu, vendu tel quel. La fiche est un JSON `{ login, sexe, codeVisage, equipement }`. Le site réécrit `equipement` (les objets essayés) et les chiffres de `codeVisage` (sexe, visage, couleurs, cheveux, émotions) quand on règle la famille « Corps » ; les index non éditables du code (style de barbe, iris, addition) sont conservés tels quels. Les plages de valeurs sont celles de la garde-robe de référence (`body.js` de ryence.de), le catalogue du jeu ne fournissant aucune métadonnée de visage.
 
 Les calques passent par `GET /api/calque/<chemin>` et non directement par le CDN. Trois raisons : le CDN du jeu redirige sans `Access-Control-Allow-Origin` (Chrome échoue à la redirection), un calque absent répond 404 sans CORS (le proxy renvoie un GIF transparent en 200), et le same-origin permet de maîtriser le cache. Le canvas reste non « tainted », donc l'export PNG fonctionne.
 
 ### Session et confidentialité
 
-Les identifiants ne vont qu'au serveur du site, qui ouvre une session auprès du jeu ; le mot de passe n'est jamais conservé. Le cookie de session du jeu est chiffré (AES-256-GCM, clé dérivée d'`ADMIN_SECRET`) dans un cookie `tdl_rk` `httpOnly`, `sameSite=lax`, d'une heure glissante. Aucune écriture en base : la session survit aux invocations Vercel. Les fiches publiques sont mises en cache cinq minutes en mémoire par instance ; la connexion est limitée à huit tentatives par IP et par dix minutes.
+Le visiteur ne saisit jamais d'identifiants : le serveur ouvre la session du jeu avec le compte de service du site (`RK_USERNAME` / `RK_PASS`) et ne demande que le nom du personnage dont la fiche publique est affichée en lecture seule. Le mot de passe du compte de service n'est jamais renvoyé au navigateur ni conservé dans un cookie. Le cookie de session du jeu est chiffré (AES-256-GCM, clé dérivée d'`ADMIN_SECRET`) dans un cookie `tdl_rk` `httpOnly`, `sameSite=lax`, d'une heure glissante. Aucune écriture en base : la session survit aux invocations Vercel. Le cookie du compte de service est aussi gardé quinze minutes en mémoire par instance pour éviter de rappeler le jeu ; les fiches publiques sont mises en cache cinq minutes. Il n'y a plus de limite de tentatives par IP, puisqu'aucun identifiant visiteur n'est transmis. Voir aussi la page `/confidentialite`.
 
-**En production, `ADMIN_SECRET` est indispensable** : sans lui, la connexion à la garde-robe échoue (comme l'admin).
+**En production, `ADMIN_SECRET`, `RK_USERNAME` et `RK_PASS` sont indispensables** : sans eux, la garde-robe échoue (comme l'admin).
 
 ### Catalogue
 
@@ -118,21 +119,36 @@ Les identifiants ne vont qu'au serveur du site, qui ouvre une session auprès du
 ```bash
 npm run catalog           # reconstruction complète depuis ryence.de (~1777 objets)
 npm run catalog:refresh   # connexion au jeu, ajout des objets manquants
+npm run catalog:wiki      # audit de couverture face au wiki officiel
 ```
 
-`catalog:refresh` lit `RK_USERNAME` / `RK_PASS` dans `.env` et n'est utilisé que par le script. Le jeu n'expose pas de catalogue : le script moissonne les pages qui rendent des objets et fusionne les `idItem` inconnus. Traiter le fichier comme un cache du jeu, pas comme une source de vérité.
+`catalog:refresh` lit `RK_USERNAME` / `RK_PASS` dans `.env` : c'est le même compte de service que celui utilisé par la garde-robe. Le jeu n'expose pas de catalogue : le script moissonne les pages qui rendent des objets et fusionne les `idItem` inconnus. Traiter le fichier comme un cache du jeu, pas comme une source de vérité.
+
+`catalog:wiki` balaie la page wiki « Vêtement » (16 tableaux, colonnes MIXTE / FEMME / HOMME), suit chaque objet jusqu'aux pages `Fichier:` de ses sprites et compare les noms d'assets CDN au catalogue. Résultat dans `data/wiki-gaps.json` : `gaps` (asset CDN absent → objet à ajouter), `namedOnly` (objet absent d'après son nom, mais le wiki ne documente pas d'asset) et `unknownAssets`. Le wiki ne donne ni `idItem` ni `zIndexCalques` : ces deux champs restent à récupérer côté jeu avant de fusionner une entrée.
+
+### Soumissions et modifications
+
+Le catalogue est en lecture seule côté contributeurs : toute proposition passe par `POST /api/submissions` (création ou modification d'un objet) puis par une validation admin (`/admin/catalog`). Aucun mot de passe n'est demandé : le contributeur saisit son pseudo en jeu, que le serveur vérifie auprès du jeu avec le compte de service (`RK_USERNAME` / `RK_PASS`) avant d'enregistrer la proposition. Les propositions approuvées sont écrites dans la table `catalog_overrides` (Turso) et fusionnées à la lecture par `GET /api/catalog` — `catalog:refresh` et `catalog:wiki` ne réécrivent que le catalogue de base, elles ne peuvent donc jamais écraser une modification approuvée.
+
+Cas traités côté serveur : pseudo inexistant (`unknown-player`), objet déjà au catalogue (`already-exists`), proposition déjà en attente sur le même objet (`duplicate-pending`, vérifiée par un `SELECT` car l'index partiel n'est pas fiable sur libsql), modification sans changement (`unchanged`), plafond de 20 propositions en attente par pseudo, plus un champ piège et un délai minimum pour décourager les robots.
+
+Chaque ligne du catalogue propose un menu « ⋮ » : **Modifier** (même formulaire, prérempli, en modale) et **Signaler** (objet en double, à supprimer, données erronées). Les signalements vont dans `catalog_reports` et s'affichent en bas de `/admin/catalog` ; un signalement ouvert par objet et par motif, plafond de 10 par heure et par IP.
 
 ### API
 
 | Route | Rôle |
 |---|---|
-| `POST /api/garde-robe/login` | `{login, password}` → cookie de session chiffré |
-| `GET /api/garde-robe/me` | joueur connecté ou `null` |
-| `POST /api/garde-robe/logout` | ferme la session |
-| `GET /api/garde-robe/fiche?login=` | fiche Midas (`401` sans session, `404` inconnu, `440` session de jeu expirée) |
+| `GET /api/garde-robe/fiche?login=` | fiche Midas (`400` nom invalide, `404` inconnu, `502` compte de service indisponible, `440` session de jeu expirée) |
 | `GET /api/calque/<chemin>` | un calque, caché et same-origin, jamais 404 pour un vêtement |
+| `GET /api/catalog` | catalogue fusionné (base + modifications approuvées) |
+| `POST /api/submissions` | proposer une création ou une modification (pseudo RK vérifié) |
+| `GET /api/submissions?status=` | file d'attente, admin seulement |
+| `GET /api/submissions/pending` | objets qui ont déjà une proposition en attente (public) |
+| `POST /api/submissions/<id>/approve` · `/reject` | validation admin |
+| `POST /api/reports` | signaler un objet (public, sans compte) |
+| `GET /api/reports?status=` · `POST /api/reports/<id>/close` | file des signalements, admin |
 
-Le cookie du jeu n'est jamais exposé au navigateur : seules les routes ci-dessus le manipulent, côté serveur.
+Le cookie du jeu n'est jamais exposé au navigateur : seule la route `fiche` le manipule, côté serveur.
 
 ## Le Sénéchal
 

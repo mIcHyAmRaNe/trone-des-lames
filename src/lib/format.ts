@@ -1,6 +1,6 @@
 /** Formats points with French decimal comma, dropping trailing zeros */
 export function formatPoints(n: number | null | undefined): string {
-  if (n == null || Number.isNaN(n)) return '—';
+  if (n == null || Number.isNaN(n)) return ' - ';
   if (Number.isInteger(n)) return String(n);
   return n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',');
 }

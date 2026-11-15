@@ -276,7 +276,7 @@ export default function BotanistCalculator() {
           <p className="label-caps">Coûts</p>
           <dl className="mt-2 space-y-1.5">
             {resultCorrect.lines.map((line) => (
-              <Line key={line.key} label={`${formatPoints(line.qty)} × ${formatPoints(line.unitPrice)} — ${line.label}`} value={line.cost} />
+              <Line key={line.key} label={`${formatPoints(line.qty)} × ${formatPoints(line.unitPrice)}  -  ${line.label}`} value={line.cost} />
             ))}
           </dl>
           <Total label="Total coûts" value={resultCorrect.ingredientCost} />

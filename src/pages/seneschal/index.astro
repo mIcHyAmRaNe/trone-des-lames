@@ -1,8 +1,82 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { SENESCHAL_CATEGORIES } from "../../lib/seneschal";
+import type { Lang } from "../../i18n";
 
-export const prerender = true;
+const { lang = 'fr' } = Astro.locals;
+
+const copy = {
+  fr: {
+    title: "Le Sénéchal  -  Les comptes du domaine · Le Trône des Lames",
+    description: "Les outils des champs et des échoppes de Renaissance Kingdoms : rendements, coûts et bénéfices calculés d'après les règles à jour.",
+    eyebrow: "Renaissance Kingdoms · Les comptes du domaine",
+    heading: "Le Sénéchal",
+    lead: "Le sénéchal tient les comptes du domaine : les outils des champs et des échoppes, réglés sur les règles actuelles de Renaissance Kingdoms. Un champ, un cycle, une marge  -  les chiffres avant l'achat.",
+    ctaTools: "Voir les calculateurs",
+    ctaRegisters: "Les registres",
+    registersEyebrow: "Le registre en chiffres",
+    registersLabel: "Registres",
+    toolsLabel: "Outils disponibles",
+    rulesDate: "Règles à jour",
+    registersIntroEyebrow: "Les registres",
+    registersIntroTitle: "Deux livres, tenus en parallèle",
+    registersIntroLead: "Le registre des champs pour les paysans, celui des échoppes pour les artisans. Chaque outil s'ouvre sur un calcul complet, du coût d'achat à la marge finale.",
+    toolsTotal: (t: number, a: number) => `${t} outils ◆ ${a} disponible${a > 1 ? "s" : a === 1 ? "" : "Aucun disponible"}`,
+    openRegister: "Ouvrir le registre",
+    allToolsEyebrow: "Tous les calculateurs",
+    allToolsTitle: "{n} outils, le même registre",
+    allToolsLead: "Chaque calculateur s'ouvre sur les mêmes chiffres : coût d'achat, rendement du cycle et marge finale. De quoi savoir, avant d'investir, ce que rapporte vraiment une parcelle ou un atelier.",
+    groupTools: (n: number) => `${n} outil${n > 1 ? "s" : ""} disponible${n > 1 ? "s" : ""}`,
+    openCalculator: "Ouvrir le calculateur",
+    statusAvailable: "Disponible",
+    rulesEyebrow: "Règles à jour",
+    rulesTitle: "Ce que le Sénéchal retient",
+    rulesDateLabel: "Vérifié en octobre 2026",
+    rulesNote: "Les calculs sont des estimations : les rendements réels du jeu peuvent varier selon les aléas de production et le moment de la récolte. Vérifiez les prix en jeu avant d'acheter.",
+    rules: [
+      { title: "Qualité 50 → 100 %", text: "Un champ part à 50 % de qualité ; son rendement double en atteignant le plafond." },
+      { title: "4 bêtes ou ruches max", text: "Par champ, avec un couteau pour 5 abattages et un seau pour 20 traites." },
+      { title: "Second champ réduit", text: "Le rendement du second champ suit son propre plafond, plus bas que le premier  -  en culture comme en élevage." },
+      { title: "Des estimations", text: "Les rendements réels varient selon les aléas du jeu et le moment de la récolte." },
+    ],
+  },
+  en: {
+    title: "The Seneschal  -  Domain accounts · The Throne of Blades",
+    description: "Tools for Renaissance Kingdoms fields and workshops: yields, costs and margins calculated from the current game rules.",
+    eyebrow: "Renaissance Kingdoms · Domain accounts",
+    heading: "The Seneschal",
+    lead: "The seneschal keeps the domain's accounts: tools for fields and workshops, calibrated to the current rules of Renaissance Kingdoms. One field, one cycle, one margin  -  the numbers before you buy.",
+    ctaTools: "View calculators",
+    ctaRegisters: "The registers",
+    registersEyebrow: "The register in numbers",
+    registersLabel: "Registers",
+    toolsLabel: "Tools available",
+    rulesDate: "Rules up to date",
+    registersIntroEyebrow: "The registers",
+    registersIntroTitle: "Two books, kept in parallel",
+    registersIntroLead: "The field register for farmers, the workshop register for artisans. Each tool opens a complete calculation, from purchase cost to final margin.",
+    toolsTotal: (t: number, a: number) => `${t} tools ◆ ${a} available${a > 1 ? "s" : ""}`,
+    openRegister: "Open the register",
+    allToolsEyebrow: "All calculators",
+    allToolsTitle: "{n} tools, one register",
+    allToolsLead: "Every calculator opens on the same figures: purchase cost, cycle yield and final margin. So you know, before investing, what a plot or workshop really returns.",
+    groupTools: (n: number) => `${n} tool${n > 1 ? "s" : ""} available`,
+    openCalculator: "Open the calculator",
+    statusAvailable: "Available",
+    rulesEyebrow: "Rules up to date",
+    rulesTitle: "What the Seneschal remembers",
+    rulesDateLabel: "Verified October 2026",
+    rulesNote: "Calculations are estimates: actual game yields may vary depending on production variances and harvest timing. Check in-game prices before buying.",
+    rules: [
+      { title: "Quality 50 → 100 %", text: "A field starts at 50 % quality; its yield doubles when it reaches the cap." },
+      { title: "Max 4 animals or hives", text: "Per field, with a knife for 5 slaughters and a bucket for 20 milkings." },
+      { title: "Second field reduced", text: "The second field's yield follows its own, lower cap  -  in both farming and husbandry." },
+      { title: "Estimates", text: "Actual yields vary with game variance and harvest timing." },
+    ],
+  },
+}[lang];
+
+export const prerender = false;
 
 const ROMAN = ["I", "II", "III", "IV"];
 
@@ -19,31 +93,9 @@ const groups = categories.map((category) => ({
   name: category.name,
   tools: category.tools.filter((tool) => tool.status === "available"),
 }));
-
-const rules = [
-  {
-    title: "Qualité 50 → 100 %",
-    text: "Un champ part à 50 % de qualité ; son rendement double en atteignant le plafond.",
-  },
-  {
-    title: "4 bêtes ou ruches max",
-    text: "Par champ, avec un couteau pour 5 abattages et un seau pour 20 traites.",
-  },
-  {
-    title: "Second champ réduit",
-    text: "Le rendement du second champ suit son propre plafond, plus bas que le premier — en culture comme en élevage.",
-  },
-  {
-    title: "Des estimations",
-    text: "Les rendements réels varient selon les aléas du jeu et le moment de la récolte.",
-  },
-];
 ---
 
-<Layout
-  title="Le Sénéchal — Les comptes du domaine · Le Trône des Lames"
-  description="Les outils des champs et des échoppes de Renaissance Kingdoms : rendements, coûts et bénéfices calculés d’après les règles à jour."
->
+<Layout title={copy.title} description={copy.description}>
   <section class="relative overflow-hidden border-b border-gold/15">
     <div
       class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_35%_0%,rgba(201,162,39,0.13),transparent_72%)]"
@@ -58,44 +110,39 @@ const rules = [
     </div>
 
     <div class="container-tdl relative py-14 sm:py-20">
-      <p class="label-caps reveal">Renaissance Kingdoms · Les comptes du domaine</p>
+      <p class="label-caps reveal">{copy.eyebrow}</p>
 
       <h1
         class="reveal mt-4 font-display text-[2.35rem] font-black leading-[1.03] tracking-[0.07em] text-parchment sm:text-5xl lg:text-6xl"
       >
-        Le{" "}
-        <span class="bg-gradient-to-b from-gold-light via-gold to-gold-dim bg-clip-text text-transparent">
-          Sénéchal
-        </span>
+        {copy.heading}
       </h1>
 
       <div class="rule-gold reveal my-6 w-32"></div>
 
       <p class="reveal max-w-xl text-balance leading-relaxed text-parchment-dim">
-        Le sénéchal tient les comptes du domaine : les outils des champs et des
-        échoppes, réglés sur les règles actuelles de Renaissance Kingdoms. Un
-        champ, un cycle, une marge — les chiffres avant l’achat.
+        {copy.lead}
       </p>
 
       <div class="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <a href="#calculateurs" class="btn-gold w-full justify-center sm:w-auto">
-          Voir les calculateurs
+          {copy.ctaTools}
         </a>
         <a href="#registres" class="btn-ghost w-full justify-center sm:w-auto">
-          Les registres
+          {copy.ctaRegisters}
         </a>
       </div>
     </div>
   </section>
 
-  <section class="border-b border-gold/15 bg-ink-2/40" aria-label="Le registre en chiffres">
+  <section class="border-b border-gold/15 bg-ink-2/40" aria-label={copy.registersEyebrow}>
     <div class="container-tdl grid grid-cols-2 py-8 sm:grid-cols-3 sm:py-10">
       <div class="pr-4 sm:pr-6">
         <p class="font-display text-3xl font-bold tracking-[0.06em] text-gold">
           {categories.length}
         </p>
         <p class="mt-1 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
-          Registres
+          {copy.registersLabel}
         </p>
       </div>
       <div class="border-l border-gold/15 pl-4 sm:pl-6">
@@ -103,13 +150,13 @@ const rules = [
           {totalAvailable}
         </p>
         <p class="mt-1 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
-          Outils disponibles
+          {copy.toolsLabel}
         </p>
       </div>
       <div class="col-span-2 mt-6 border-t border-gold/15 pt-5 sm:col-span-1 sm:mt-0 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
         <p class="font-display text-3xl font-bold tracking-[0.06em] text-gold">Oct. 2026</p>
         <p class="mt-1 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim">
-          Règles à jour
+          {copy.rulesDate}
         </p>
       </div>
     </div>
@@ -118,19 +165,16 @@ const rules = [
   <section id="registres" class="container-tdl scroll-mt-20 py-16 sm:py-20" aria-labelledby="registres-titre">
     <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <p class="label-caps">Les registres</p>
+        <p class="label-caps">{copy.registersIntroEyebrow}</p>
         <h2
           id="registres-titre"
           class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl"
         >
-          Deux livres,
-          <br class="hidden sm:block" /> tenus en parallèle
+          {copy.registersIntroTitle}
         </h2>
       </div>
       <p class="max-w-sm text-sm leading-relaxed text-parchment-dim lg:text-right">
-        Le registre des champs pour les paysans, celui des échoppes pour les
-        artisans. Chaque outil s’ouvre sur un calcul complet, du coût d’achat à
-        la marge finale.
+        {copy.registersIntroLead}
       </p>
     </div>
 
@@ -183,15 +227,11 @@ const rules = [
           </p>
 
           <p class="mt-5 text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
-            {category.total} outils
-            <span class="px-1.5 text-gold/40" aria-hidden="true">◆</span>
-            {category.available > 0
-              ? `${category.available} disponible${category.available > 1 ? "s" : ""}`
-              : "Aucun disponible"}
+            {copy.toolsTotal(category.total, category.available)}
           </p>
 
           <a href={`/seneschal/${category.slug}`} class="link-arrow mt-6">
-            Ouvrir le registre
+            {copy.openRegister}
             <svg
               viewBox="0 0 24 24"
               class="h-3.5 w-3.5"
@@ -216,19 +256,16 @@ const rules = [
     <div class="container-tdl py-16 sm:py-20">
       <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p class="label-caps">Tous les calculateurs</p>
+          <p class="label-caps">{copy.allToolsEyebrow}</p>
           <h2
             id="calculateurs-titre"
             class="mt-3 font-display text-3xl leading-tight tracking-[0.04em] text-parchment sm:text-4xl"
           >
-            {totalAvailable} outils,
-            <br class="hidden sm:block" /> le même registre
+            {copy.allToolsTitle.replace("{n}", String(totalAvailable))}
           </h2>
         </div>
         <p class="max-w-sm text-sm leading-relaxed text-parchment-dim lg:text-right">
-          Chaque calculateur s’ouvre sur les mêmes chiffres : coût d’achat,
-          rendement du cycle et marge finale. De quoi savoir, avant d’investir,
-          ce que rapporte vraiment une parcelle ou un atelier.
+          {copy.allToolsLead}
         </p>
       </div>
 
@@ -251,7 +288,7 @@ const rules = [
                 </h3>
               </div>
               <p class="text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
-                {group.tools.length} outil{group.tools.length > 1 ? "s" : ""} disponible{group.tools.length > 1 ? "s" : ""}
+                {copy.groupTools(group.tools.length)}
               </p>
             </div>
 
@@ -269,12 +306,12 @@ const rules = [
                         {tool.name}
                       </h4>
                       <span class="flex-none border border-gold/40 px-2 py-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-gold">
-                        Disponible
+                        {copy.statusAvailable}
                       </span>
                     </div>
                     <p class="mt-2 text-xs leading-relaxed text-parchment-dim">{tool.summary}</p>
                     <span class="mt-auto flex items-center gap-1.5 pt-5 text-[0.5625rem] font-bold uppercase tracking-[0.16em] text-gold/80">
-                      Ouvrir le calculateur
+                      {copy.openCalculator}
                       <svg
                         viewBox="0 0 24 24"
                         class="h-3 w-3 transition-transform duration-150 group-hover:translate-x-1"
@@ -299,23 +336,23 @@ const rules = [
   <section class="container-tdl py-16 sm:py-20" aria-labelledby="regles-titre">
     <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
       <div>
-        <p class="label-caps">Règles à jour</p>
+        <p class="label-caps">{copy.rulesEyebrow}</p>
         <h2
           id="regles-titre"
           class="mt-2 font-display text-2xl tracking-[0.05em] text-parchment sm:text-3xl"
         >
-          Ce que le Sénéchal retient
+          {copy.rulesTitle}
         </h2>
       </div>
       <p class="text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/80">
-        Vérifié en octobre 2026
+        {copy.rulesDateLabel}
       </p>
     </div>
 
     <div class="rule-gold mt-5 w-full opacity-70"></div>
 
     <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {rules.map((rule, index) => (
+      {copy.rules.map((rule, index) => (
         <li class="card-dark texture-noise p-5">
           <p class="font-display text-xs tracking-[0.16em] text-gold/60" aria-hidden="true">
             {ROMAN[index]}
@@ -329,9 +366,7 @@ const rules = [
     </ul>
 
     <p class="mt-8 max-w-2xl border-l border-gold/25 pl-4 text-xs leading-relaxed text-parchment-dim/80">
-      Les calculs sont des estimations : les rendements réels du jeu peuvent
-      varier selon les aléas de production et le moment de la récolte. Vérifiez
-      les prix en jeu avant d’acheter.
+      {copy.rulesNote}
     </p>
   </section>
 </Layout>

@@ -57,7 +57,7 @@ const sizeOptions: Option[] = COW_SIZES.map((size) => ({ value: size.value, labe
 
 const intelligenceOptions: Option[] = Array.from({ length: 21 }, (_, i) => ({
   value: i,
-  label: i === 20 ? `${i} — rendement doublé` : String(i),
+  label: i === 20 ? `${i}  -  rendement doublé` : String(i),
 }));
 
 const frequencyOptions = (optimal: number): Option[] => [
@@ -65,7 +65,7 @@ const frequencyOptions = (optimal: number): Option[] => [
   ...Array.from({ length: 8 }, (_, i) => {
     const value = i + 1;
     const base = value === 1 ? "Tous les jours" : `Tous les ${value} jours`;
-    return { value, label: value === optimal ? `${base} — optimal` : base };
+    return { value, label: value === optimal ? `${base}  -  optimal` : base };
   }),
 ];
 
@@ -529,14 +529,14 @@ export default function HerdCalculator({ herdId }: { herdId: string }) {
                 <Line
                   label={`${formatPoints(result.milkQty)} × ${formatPoints(
                     money(state.milkPrice),
-                  )} — ${productLabel.toLowerCase()}`}
+                  )}  -  ${productLabel.toLowerCase()}`}
                   value={result.milkRevenue}
                 />
               ) : null}
               <Line
                 label={`${formatPoints(result.carcasses)} × ${formatPoints(
                   money(state.carcassPrice),
-                )} — ${carcassLabel.toLowerCase()}`}
+                )}  -  ${carcassLabel.toLowerCase()}`}
                 value={result.carcassRevenue}
               />
             </dl>
@@ -672,7 +672,7 @@ export default function HerdCalculator({ herdId }: { herdId: string }) {
                       {animalName} {animal.index + 1}
                     </th>
                     <td className="whitespace-nowrap px-3 py-2.5 text-sm tabular-nums text-parchment-dim first:pl-0 last:pr-0">
-                      J{state.animals[animal.index]?.purchaseDay ?? "—"}
+                      J{state.animals[animal.index]?.purchaseDay ?? " - "}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-sm tabular-nums text-parchment-dim first:pl-0 last:pr-0">
                       J{animal.slaughterDay}
@@ -695,7 +695,7 @@ export default function HerdCalculator({ herdId }: { herdId: string }) {
                         animal.cumulativeRisk >= 20 ? "text-blood-light" : "text-parchment-dim"
                       }`}
                     >
-                      {herd.mortality ? `${formatPoints(round1(animal.cumulativeRisk))} %` : "—"}
+                      {herd.mortality ? `${formatPoints(round1(animal.cumulativeRisk))} %` : " - "}
                     </td>
                   </tr>
                 ))}

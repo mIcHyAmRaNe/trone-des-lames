@@ -388,11 +388,11 @@ export default function BotanistCycleCalculator() {
         <div className="mt-5 border-t border-gold/15 pt-4">
           <p className="label-caps">Coûts</p>
           <dl className="mt-2 space-y-1.5">
-            <Line label={`${result.pots} × ${formatPoints(money(potPriceStr))} — Pots de culture`} value={result.potCost} />
+            <Line label={`${result.pots} × ${formatPoints(money(potPriceStr))}  -  Pots de culture`} value={result.potCost} />
             {otherIngredients.map((ingredient) => (
               <Line
                 key={ingredient.key}
-                label={`${formatPoints(ingredient.qty * result.batchMax)} × ${formatPoints(money(prices[ingredient.key] ?? ""))} — ${ingredient.label}`}
+                label={`${formatPoints(ingredient.qty * result.batchMax)} × ${formatPoints(money(prices[ingredient.key] ?? ""))}  -  ${ingredient.label}`}
                 value={ingredient.qty * result.batchMax * money(prices[ingredient.key] ?? "")}
               />
             ))}

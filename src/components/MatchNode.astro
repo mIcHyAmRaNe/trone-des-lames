@@ -1,5 +1,6 @@
 ---
 import { formatPoints } from '../lib/format';
+import type { Lang } from '../i18n';
 
 interface MatchVM {
   id: number;
@@ -17,25 +18,31 @@ interface MatchVM {
 interface Props {
   m: MatchVM;
   phase: 'qf' | 'sf' | 'final';
+  lang?: Lang;
 }
 
-const { m, phase } = Astro.props;
+const { m, phase, lang = 'fr' } = Astro.props;
 const aWin = m.played && m.winnerId === m.a?.id;
 const bWin = m.played && m.winnerId === m.b?.id;
 const champion = phase === 'final' && m.played;
 const empty = m.a == null && m.b == null;
 
+const copy = {
+  fr: { awaiting: 'En attente', forfeit: 'Forfait' },
+  en: { awaiting: 'Awaiting', forfeit: 'Forfeit' },
+}[lang];
+
 const label = (isWinner: boolean, score: number | null) =>
-  m.forfeit ? (isWinner ? 'Forfait' : '—') : formatPoints(score);
+  m.forfeit ? (isWinner ? copy.forfeit : ' - ') : formatPoints(score);
 ---
 
 <div class:list={['match-node', `node-${phase}`, champion && 'is-champion', empty && 'is-empty']}>
   <div class:list={['match-side', aWin && 'is-winner', m.played && !aWin && 'is-loser']}>
-    <span class="match-name">{m.a?.name ?? 'En attente'}</span>
+    <span class="match-name">{m.a?.name ?? copy.awaiting}</span>
     <span class="match-score">{label(aWin, m.aScore)}</span>
   </div>
   <div class:list={['match-side', bWin && 'is-winner', m.played && !bWin && 'is-loser']}>
-    <span class="match-name">{m.b?.name ?? 'En attente'}</span>
+    <span class="match-name">{m.b?.name ?? copy.awaiting}</span>
     <span class="match-score">{label(bWin, m.bScore)}</span>
   </div>
 

@@ -4,6 +4,8 @@
 // survit pas d'une invocation à l'autre.
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import type { APIContext } from 'astro';
+// Extension explicite : les tests chargent ce fichier directement avec Node.
+import { rkLogin, rkFiche } from './rk.ts';
 
 const COOKIE = 'tdl_rk';
 export const RK_SESSION_SECONDS = 60 * 60;
@@ -71,9 +73,84 @@ export function clearRkSession(cookies: APIContext['cookies']): void {
   cookies.delete(COOKIE, { path: '/' });
 }
 
+/**
+ * Astro charge `.env` dans `import.meta.env` (pas dans `process.env`) en dev ;
+ * sur Vercel, les variables sont dans `process.env` à l'exécution. On lit les
+ * deux, le runtime d'abord pour qu'un changement d'env prod ne demande pas de
+ * reconstruction.
+ */
+function serviceEnv(name: string): string | undefined {
+  const runtime = process.env[name];
+  if (runtime) return runtime;
+  const vite = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+  return vite?.[name]?.trim() || undefined;
+}
+
+/** Cache mémoire par instance du cookie du compte de service : 15 minutes. */
+const SERVICE_TTL = 15 * 60 * 1000;
+let service: { at: number; gameCookie: string } | null = null;
+
+/**
+ * Session de jeu ouverte avec le compte de service du site (RK_USERNAME /
+ * RK_PASS) : le visiteur n'a jamais à saisir d'identifiants.
+ */
+export async function openRkSession(
+  cookies: APIContext['cookies'],
+  force = false,
+): Promise<RkSession> {
+  if (!force) {
+    const existing = readRkSession(cookies);
+    if (existing) return existing;
+  }
+  const login = serviceEnv('RK_USERNAME');
+  const password = serviceEnv('RK_PASS');
+  if (!login || !password) {
+    throw new Error('RK_USERNAME et RK_PASS doivent être définis pour ouvrir une session de jeu');
+  }
+  // Force = la session de jeu a expiré : le cache mémoire l'est aussi.
+  if (!force && service && Date.now() - service.at < SERVICE_TTL) {
+    const session: RkSession = { login, gameCookie: service.gameCookie };
+    setRkSession(cookies, session);
+    return session;
+  }
+  const { cookie } = await rkLogin(login, password);
+  service = { at: Date.now(), gameCookie: cookie };
+  const session: RkSession = { login, gameCookie: cookie };
+  setRkSession(cookies, session);
+  return session;
+}
+
 /** Cache mémoire par instance : évite de re-solliciter le jeu à chaque rendu. */
 const fiches = new Map<string, { at: number; data: unknown }>();
 const FICHE_TTL = 5 * 60 * 1000;
+
+/**
+ * Résout un pseudo saisi vers son orthographe officielle côté jeu, avec le
+ * compte de service. `null` si le personnage n'existe pas ; lève si le jeu est
+ * injoignable (la route renvoie alors 502).
+ */
+const players = new Map<string, { at: number; login: string | null }>();
+export async function resolvePlayer(
+  cookies: APIContext['cookies'],
+  login: string,
+): Promise<string | null> {
+  const cached = players.get(login.toLowerCase());
+  if (cached && Date.now() - cached.at < FICHE_TTL) return cached.login;
+
+  let session = await openRkSession(cookies);
+  let out = await rkFiche(session.gameCookie, login);
+  if (out.kind === 'expired') {
+    clearRkSession(cookies);
+    session = await openRkSession(cookies, true);
+    out = await rkFiche(session.gameCookie, login);
+  }
+  if (out.kind === 'expired') throw new Error('session de jeu expirée');
+
+  const name = out.kind === 'ok' ? out.avatar.login : null;
+  if (players.size > 500) players.clear();
+  players.set(login.toLowerCase(), { at: Date.now(), login: name });
+  return name;
+}
 
 export function cachedFiche(login: string): unknown | null {
   const c = fiches.get(login);

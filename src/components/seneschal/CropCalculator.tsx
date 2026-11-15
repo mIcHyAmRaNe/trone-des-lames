@@ -42,7 +42,7 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 
 const statOptions: Option[] = Array.from({ length: 21 }, (_, i) => ({
   value: i,
-  label: i === 20 ? `${i} — maximum` : String(i),
+  label: i === 20 ? `${i}  -  maximum` : String(i),
 }));
 
 const cultivatorOptions: Option[] = [0, 5, 10, 15, 20, 25].map((value) => ({
@@ -221,7 +221,7 @@ export default function CropCalculator({ cropId }: { cropId: string }) {
               {field.seed ? (
                 <MoneyField
                   id="crop-prix-semence"
-                  label={`Semence — ${field.seed}`}
+                  label={`Semence  -  ${field.seed}`}
                   value={state.seedPrice}
                   onChange={(value) => patch("seedPrice", value)}
                 />
@@ -306,7 +306,7 @@ export default function CropCalculator({ cropId }: { cropId: string }) {
             <Line
               label={`${formatPoints(result.yieldQty)} × ${formatPoints(
                 money(state.producePrice),
-              )} — ${field.produce.toLowerCase()}`}
+              )}  -  ${field.produce.toLowerCase()}`}
               value={result.revenue}
             />
           </dl>
@@ -322,7 +322,7 @@ export default function CropCalculator({ cropId }: { cropId: string }) {
                 value={result.seedCost}
               />
             ) : (
-              <Line label="Semence — aucun semis" value={0} />
+              <Line label="Semence  -  aucun semis" value={0} />
             )}
             <Line
               label={`${field.workSessions} session${field.workSessions > 1 ? "s" : ""} × ${formatPoints(
