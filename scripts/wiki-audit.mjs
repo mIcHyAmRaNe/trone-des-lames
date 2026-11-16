@@ -557,12 +557,18 @@ async function main() {
       list.push({ ...byAsset.get(twin.from).get(twin.nom.toLowerCase()), id: twin.id });
       console.log(`+ ${twin.sex} ${twin.nom} (id ${twin.id})`);
     }
+    const now = new Date().toISOString();
+    catalog.refreshedAt = now;
+    catalog.wikiUpdatedAt = now;
     await writeFile(CATALOG, JSON.stringify(catalog));
     console.log(`catalogue : ${catalog.sexes.M.length} M / ${catalog.sexes.F.length} F`);
   }
 
   const imported = process.argv.includes('--import') ? importWikiItems(catalog, gaps, namedOnly) : null;
   if (imported) {
+    const now = new Date().toISOString();
+    catalog.refreshedAt = now;
+    catalog.wikiUpdatedAt = now;
     await writeFile(CATALOG, JSON.stringify(catalog));
     console.log(`+${imported.added} fiches wiki importées (${imported.objects} objets)`);
     console.log(`catalogue : ${catalog.sexes.M.length} M / ${catalog.sexes.F.length} F`);

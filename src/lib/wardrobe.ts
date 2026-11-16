@@ -36,6 +36,10 @@ export interface Catalog {
   source?: string;
   generatedAt: string;
   refreshedAt?: string;
+  /** Dernier passage du remplissage wiki (URL CDN, fiches complétées). */
+  wikiUpdatedAt?: string;
+  /** Dernier import d'objets depuis le wiki (`wiki-audit`). */
+  wikiImportedAt?: string;
   sexes: Record<Sexe, CatalogItem[]>;
 }
 

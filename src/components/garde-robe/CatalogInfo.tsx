@@ -12,6 +12,7 @@ const STR = {
     variants: "Déclinaisons",
     snapshot: "Instantané",
     updated: "Dernière mise à jour",
+    wikiPass: "Dernier passage wiki",
     note:
       "Instantané du jeu, régénéré régulièrement : un objet absent du catalogue ne peut pas être essayé.",
     orphans: "Catégories hors garde-robe",
@@ -25,6 +26,7 @@ const STR = {
     variants: "Variants",
     snapshot: "Snapshot",
     updated: "Last updated",
+    wikiPass: "Last wiki pass",
     note:
       "A snapshot of the game, refreshed regularly: an item missing from the catalogue cannot be tried.",
     orphans: "Categories outside the wardrobe",
@@ -133,6 +135,12 @@ export default function CatalogInfo({
             <span className="flex justify-between">
               <span>{s.updated}</span>
               <b className="text-parchment">{when(catalog?.refreshedAt, lang)}</b>
+            </span>
+            <span className="flex justify-between">
+              <span>{s.wikiPass}</span>
+              <b className="text-parchment">
+                {when(catalog?.wikiUpdatedAt ?? catalog?.wikiImportedAt, lang)}
+              </b>
             </span>
           </span>
           <span className="mt-2 block border-t border-gold/15 pt-2">

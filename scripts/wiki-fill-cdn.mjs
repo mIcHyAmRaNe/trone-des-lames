@@ -525,6 +525,11 @@ console.log(`sans CDN trouvé sur le wiki : ${unresolved.length}`);
 for (const u of unresolved) console.log(`  ? ${u}`);
 
 if (WRITE) {
+  // Le catalogue est modifié : les dates affichées dans la garde-robe doivent
+  // le refléter.
+  const now = new Date().toISOString();
+  catalog.refreshedAt = now;
+  catalog.wikiUpdatedAt = now;
   await writeFile(CATALOG, JSON.stringify(catalog));
   console.log('catalog.json réécrit');
 } else {

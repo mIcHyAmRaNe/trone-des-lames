@@ -57,6 +57,8 @@ for (const sex of ['M', 'F']) {
 }
 
 if (WRITE) {
+  const now = new Date().toISOString();
+  catalog.refreshedAt = now;
   await writeFile(CATALOG, JSON.stringify(catalog));
   console.log('catalog.json réécrit');
 } else {
