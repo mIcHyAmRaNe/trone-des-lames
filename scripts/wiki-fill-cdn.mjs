@@ -58,9 +58,13 @@ const CATEGORIES_EN = [
   { wiki: 'Special_object', category: null },
 ];
 
-// Les pages Fichier: du wiki ne sont pas toutes sur l'hôte CDN : beaucoup
-// pointent vers `https://www.renaissancekingdoms.com/images/personnages_midas/…`,
-// qui redirige ensuite vers le CDN. On accepte les deux formes.
+// Titres wiki à ne jamais importer (en-têtes de section, redirections vides, etc.)
+const BLACKLIST = new Set([
+  'arme', 'lac', 'pecher', 'verger',           // slugs canoniques
+  'Arme', 'Lac', 'Pêcher', 'Verger',           // titres FR exacts
+  'Weapon', 'Lake', 'Fishing', 'Orchard',      // titres EN exacts
+]);
+
 const CDN_RE = /https?:\/\/[^\s"'<>)\]]*personnages_midas\/[^\s"'<>)\]]+\.(?:png|webp|gif|jpg)/gi;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -201,6 +205,7 @@ async function crawlCategories(categories, lang) {
     const titles = await categoryMembers(cat.wiki, lang);
     process.stderr.write(`${lang.toUpperCase()} ${cat.wiki}: ${titles.length} pages\n`);
     for (const title of titles) {
+      if (BLACKLIST.has(title)) continue;
       const entry = wikiItems.get(title) ?? { title, lang, categories: [], names: new Set(), texts: {} };
       entry.categories.push(cat);
       entry.texts[lang] = '';
@@ -528,6 +533,7 @@ function twinOf(sex, name) {
 }
 
 for (const item of wikiItems.values()) {
+  if (BLACKLIST.has(item.title)) continue;
   const infos = assetsByItem.get(item.title) ?? [];
   if (!infos.length) continue;
   const name = templateField(item.text ?? '', 'nom') || item.title;
