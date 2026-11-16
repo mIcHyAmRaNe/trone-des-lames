@@ -38,6 +38,10 @@ const CATEGORIES = [
   { wiki: 'Panoplie', category: 'Panoplies' },
   { wiki: 'Tatouage', category: 'Tatouages' },
   { wiki: 'Vêtement événementiel', category: 'Evenementiels' },
+  // Catégories parentes : elles portent les fiches d'objets dont les fichiers
+  // ne sont pas listés ailleurs (les panoplies en pack, par exemple).
+  { wiki: 'Vêtement', category: null },
+  { wiki: 'Objet spécial', category: null },
 ];
 
 // Les pages Fichier: du wiki ne sont pas toutes sur l'hôte CDN : beaucoup
@@ -280,18 +284,20 @@ const unambiguousZ = new Map(
 );
 
 /** URL calculée par l'appli (pour savoir si lasset existe). */
-function computedUrl(item, sex, nom = item.nom, flags = {}) {
+function computedUrl(item, sex, nom = item.nom, flags = {}, declinaison = 0) {
   if (!nom) return null;
   const cat = item.slot || item.slotGardeRobe || '';
   let name = nom;
+  if (declinaison > 0) name += `_d${declinaison}`;
   if (flags.peau) name += '_p0';
   if (flags.mainG) name += '_m0';
   if (flags.mainD) name += '_n0';
   const dir = sex === 'F' ? 'femmes' : 'hommes';
   if (cat === 'Fonds') return `${CDN_ROOT}fonds/${name}_0_@1X.png`;
   if (cat === 'Cadres') return `${CDN_ROOT}cadres/${name}_0_@1X.png`;
-  if (cat === 'Barbes') return `${CDN_ROOT}hommes/corps/${nom.replace(/^barbe/, 'barbe_')}_c0_e0_@1X.png`;
-  if (cat === 'Coiffures') return `${CDN_ROOT}${dir}/corps/cheveuxAvants_${nom.replace(/^coiffure/, '')}_c0_@1X.png`;
+  // Les sprites de corps portent la teinte dans `_c<teinte>`.
+  if (cat === 'Barbes') return `${CDN_ROOT}hommes/corps/${nom.replace(/^barbe/, 'barbe_')}_c${declinaison}_e0_@1X.png`;
+  if (cat === 'Coiffures') return `${CDN_ROOT}${dir}/corps/cheveuxAvants_${nom.replace(/^coiffure/, '')}_c${declinaison}_@1X.png`;
   return `${CDN_ROOT}${dir}/vetements/${name}_0_@1X.png`;
 }
 
@@ -353,8 +359,24 @@ function pathsFor(infos, sex) {
 for (const sex of ['M', 'F']) {
   const list = catalog.sexes[sex];
   for (const it of list) {
+    const cat = it.slot || it.slotGardeRobe || '';
+    // Les teintes des sprites de corps (barbe, cheveux) sont dans `_cN` et le
+    // wiki ne les liste pas toujours : on sonde le CDN, même sans fiche wiki.
+    if (!it.declinaisons.length && it.nom && (cat === 'Barbes' || cat === 'Coiffures')) {
+      const probe = [];
+      for (let d = 0; d <= 9; d++) {
+        if (await exists(computedUrl(it, sex, it.nom, {}, d))) probe.push(d);
+      }
+      if (probe.length) it.declinaisons = probe;
+    }
+
     const key = normalizeName(it.nameFr) || normalizeName(it.nameEn);
-    const hit = byName.get(key) ?? (it.nom ? byAsset.get(it.nom.toLowerCase()) : undefined);
+    const named = byName.get(key);
+    // Une page d'objet sans image (les fichiers vivent sur la page de la
+    // panoplie) ne doit pas bloquer le repli par nom d'asset.
+    const hit = named?.infos.length
+      ? named
+      : ((it.nom ? byAsset.get(it.nom.toLowerCase()) : undefined) ?? named);
     if (!hit) continue;
     const infos = hit.infos;
     if (!infos.length) {
@@ -381,13 +403,31 @@ for (const sex of ['M', 'F']) {
         if (!beforeNom) filled.push(`${sex} ${it.nameFr} -> ${it.nom}`);
         else corrected.push(`${sex} ${it.nameFr} : ${beforeNom} -> ${it.nom}`);
       }
-      // L'URL calculée reste cassée : on garde l'URL exacte du wiki.
-      if (!(await exists(computedUrl(it, sex)))) it.cdn = usable;
     }
 
-    if (!it.declinaisons.length) {
+    // Une teinte peut manquer alors que la teinte 0 répond (`capePillard_1`
+    // s'écrit sans `_d`) : dès qu'une variante casse, on fige les chemins exacts.
+    const flags = {
+      peau: it.dependCouleurPeau,
+      mainG: it.dependPostureMainG,
+      mainD: it.dependPostureMainD,
+    };
+    let broken = !(await exists(computedUrl(it, sex)));
+    for (const d of broken ? [] : it.declinaisons) {
+      if (!(await exists(computedUrl(it, sex, it.nom, flags, d)))) broken = true;
+    }
+    if (broken) it.cdn = usable;
+
+    if (!it.declinaisons.length && cat !== 'Barbes' && cat !== 'Coiffures') {
+      // Vêtements : la teinte vient du `_dN` documenté sur le wiki, retenue
+      // seulement si le fichier correspondant existe.
       const decls = [...new Set(infos.map((i) => i.decl).filter((d) => d != null))].sort((a, b) => a - b);
-      if (decls.length) it.declinaisons = decls;
+      const valid = [];
+      for (const d of decls) {
+        const url = `${CDN_ROOT}${sex === 'F' ? 'femmes' : 'hommes'}/vetements/${it.nom}${d ? `_d${d}` : ''}_0_@1X.png`;
+        if (await exists(url)) valid.push(d);
+      }
+      if (valid.length) it.declinaisons = valid;
     }
     if (!it.zIndex.length) {
       const z = unambiguousZ.get(it.slot || it.slotGardeRobe || '') ?? unambiguousZ.get(categoryOfAsset(asset) ?? '');
@@ -400,7 +440,11 @@ for (const sex of ['M', 'F']) {
 const known = new Set();
 for (const sex of ['M', 'F']) {
   for (const it of catalog.sexes[sex]) {
-    if (it.nom) known.add(`${it.nom.toLowerCase()}|${sex}`);
+    if (it.nom) {
+      known.add(`${it.nom.toLowerCase()}|${sex}`);
+      // `concours16_m0` (wiki) et `concours16` (catalogue) sont le même asset.
+      known.add(`${it.nom.toLowerCase().replace(/_[mn]\d+$/, '')}|${sex}`);
+    }
     known.add(`${normalizeName(it.nameFr)}|${sex}`);
     known.add(`${normalizeName(it.nameEn)}|${sex}`);
   }
@@ -423,7 +467,10 @@ for (const item of wikiItems.values()) {
   const nameEn = templateField(item.text ?? '', 'anNom') || null;
   const sexes = [...new Set(infos.map((i) => i.sex).filter(Boolean))];
   if (!sexes.length) sexes.push('M', 'F');
-  const category = item.categories.find((c) => c.category)?.category ?? categoryOfAsset(infos[0]) ?? 'Autres';
+  // Seules les catégories d'objets explicites créent des fiches : les
+  // catégories parentes ne servent qu'à retrouver des fichiers.
+  const category = item.categories.find((c) => c.category)?.category ?? categoryOfAsset(infos[0]);
+  if (!category) continue;
   const slug = normalizeName(item.title).replace(/[^a-z0-9]+/g, '-') || 'objet';
   for (const sex of sexes) {
     const asset = infos.find((i) => i.sex === sex) ?? infos[0];
@@ -442,7 +489,7 @@ for (const item of wikiItems.values()) {
       continue;
     }
 
-    if (known.has(`${asset.nom.toLowerCase()}|${sex}`)) continue;
+    if (known.has(`${asset.nom.toLowerCase().replace(/_[mn]\d+$/, '')}|${sex}`)) continue;
     if (known.has(`${normalizeName(name)}|${sex}`)) continue;
     const paths = pathsFor(infos, sex);
     const usable = [];

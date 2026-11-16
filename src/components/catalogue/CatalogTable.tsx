@@ -75,7 +75,7 @@ function buildRows(catalog: Catalog, lang: Lang): Row[] {
       ['F', pair.f],
     ] as const)
       .filter(([, it]) => it?.nom)
-      .flatMap(([sexe, it]) => midasAssetUrls(it!, sexe, it!.declinaisons[0] ?? 0));
+      .flatMap(([sexe, it]) => midasAssetUrls(it!, sexe));
     rows.push({
       id,
       name: itemLabel(item, lang),

@@ -510,7 +510,8 @@ export function isIncomplete(item: CatalogItem): boolean {
 export const CDN_ROOT = 'https://lesroyaumes.cdn.oxv.fr/images/personnages_midas/';
 
 /**
- * URL des calques Midas pour l'aperçu, construites comme `midas.js`.
+ * Toutes les URL CDN d'un objet, une par déclinaison, construites comme
+ * `midas.js` — c'est la liste que montre le catalogue.
  * - fonds / cadres : racine sans segment de sexe (`fonds/`, `cadres/`).
  * - barbes / coiffures : les sprites de corps ne suivent pas la règle des
  *   vêtements. Une barbe est `corps/barbe_<style>_c<teinte>_e0`, une coiffure
@@ -518,7 +519,7 @@ export const CDN_ROOT = 'https://lesroyaumes.cdn.oxv.fr/images/personnages_midas
  * - le reste : `nom[_d{teinte}][_p{peau}][_m{main G}][_n{main D}]_0_@1X.png`
  *   sous `{sexe}/vetements/`. Postures et peau figées à 0 : aperçu d'objet.
  */
-export function midasAssetUrls(item: CatalogItem, sexe: Sexe, declinaison = 0): string[] {
+export function midasAssetUrls(item: CatalogItem, sexe: Sexe): string[] {
   if (!item.nom) return [];
   // URL exacte relevée sur le wiki : elle fait foi quand le nom ne suffit pas.
   if (item.cdn?.length) return item.cdn.map((path) => `${CDN_ROOT}${path}`);
@@ -526,10 +527,13 @@ export function midasAssetUrls(item: CatalogItem, sexe: Sexe, declinaison = 0): 
   // Les fiches importées du wiki n'ont pas de slot technique : la catégorie
   // de garde-robe prend le relais ('Fonds', 'Cadres', 'Barbes', 'Coiffures').
   const category = item.slot || item.slotGardeRobe || '';
+  const declinaisons = item.declinaisons.length ? item.declinaisons : [0];
 
   if (category === 'Barbes' || category === 'Barbe') {
     const style = assetStyleNumber(item.nom, 'barbe');
-    if (style !== null) return [`${CDN_ROOT}hommes/corps/barbe_${style}_c${declinaison}_e0_@1X.png`];
+    if (style !== null) {
+      return declinaisons.map((d) => `${CDN_ROOT}hommes/corps/barbe_${style}_c${d}_e0_@1X.png`);
+    }
   }
 
   if (category === 'Coiffures' || category === 'Coiffure') {
@@ -537,24 +541,26 @@ export function midasAssetUrls(item: CatalogItem, sexe: Sexe, declinaison = 0): 
     if (style !== null) {
       // ponytail: la couche `cheveuxIntermediaires` (styles 2, 4, 5, 11) n'est
       // pas listée : sa présence n'est pas déductible sans requête.
-      return ['cheveuxArrieres', 'cheveuxAvants'].map(
-        (layer) => `${CDN_ROOT}${dir}/corps/${layer}_${style}_c${declinaison}_@1X.png`,
+      return declinaisons.flatMap((d) =>
+        ['cheveuxArrieres', 'cheveuxAvants'].map((layer) => `${CDN_ROOT}${dir}/corps/${layer}_${style}_c${d}_@1X.png`),
       );
     }
   }
 
-  let name = item.nom;
-  if (declinaison > 0) name += `_d${declinaison}`;
-  if (item.dependCouleurPeau) name += '_p0';
-  if (item.dependPostureMainG) name += '_m0';
-  if (item.dependPostureMainD) name += '_n0';
   const root =
     category === 'Fond' || category === 'Fonds'
       ? `${CDN_ROOT}fonds/`
       : category === 'Cadre' || category === 'Cadres'
         ? `${CDN_ROOT}cadres/`
         : `${CDN_ROOT}${dir}/vetements/`;
-  return [`${root}${name}_0_@1X.png`];
+  return declinaisons.map((d) => {
+    let name = item.nom!;
+    if (d > 0) name += `_d${d}`;
+    if (item.dependCouleurPeau) name += '_p0';
+    if (item.dependPostureMainG) name += '_m0';
+    if (item.dependPostureMainD) name += '_n0';
+    return `${root}${name}_0_@1X.png`;
+  });
 }
 
 /** Texte comparable pour la recherche : libellé, nom CDN, slot, deux langues. */
