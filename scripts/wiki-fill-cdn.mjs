@@ -268,21 +268,6 @@ for (const item of wikiItems.values()) {
 // --- 3. catalogue ------------------------------------------------------------
 const catalog = JSON.parse(await readFile(CATALOG, 'utf8'));
 
-/** z-index par catégorie : uniquement si la catégorie n'a qu'une valeur. */
-const zSets = new Map();
-for (const sex of ['M', 'F']) {
-  for (const it of catalog.sexes[sex]) {
-    if (!it.nom || !it.zIndex.length) continue;
-    const key = it.slot || it.slotGardeRobe || '';
-    const set = zSets.get(key) ?? new Set();
-    set.add(it.zIndex.join(','));
-    zSets.set(key, set);
-  }
-}
-const unambiguousZ = new Map(
-  [...zSets.entries()].filter(([, set]) => set.size === 1).map(([key, set]) => [key, [...set][0].split(',').map(Number)]),
-);
-
 /** URL calculée par l'appli (pour savoir si lasset existe). */
 function computedUrl(item, sex, nom = item.nom, flags = {}, declinaison = 0) {
   if (!nom) return null;
@@ -429,10 +414,6 @@ for (const sex of ['M', 'F']) {
       }
       if (valid.length) it.declinaisons = valid;
     }
-    if (!it.zIndex.length) {
-      const z = unambiguousZ.get(it.slot || it.slotGardeRobe || '') ?? unambiguousZ.get(categoryOfAsset(asset) ?? '');
-      if (z) it.zIndex = z;
-    }
   }
 }
 
@@ -467,6 +448,9 @@ for (const item of wikiItems.values()) {
   const nameEn = templateField(item.text ?? '', 'anNom') || null;
   const sexes = [...new Set(infos.map((i) => i.sex).filter(Boolean))];
   if (!sexes.length) sexes.push('M', 'F');
+  // Une page de pack (`elementPano` > 1) liste les sprites de ses éléments,
+  // qui ont chacun leur fiche : elle ne doit pas créer d'objet.
+  if (Number(templateField(item.text ?? '', 'elementPano')) > 1) continue;
   // Seules les catégories d'objets explicites créent des fiches : les
   // catégories parentes ne servent qu'à retrouver des fichiers.
   const category = item.categories.find((c) => c.category)?.category ?? categoryOfAsset(infos[0]);
@@ -508,7 +492,6 @@ for (const item of wikiItems.values()) {
       continue;
     }
 
-    const z = unambiguousZ.get(category) ?? [];
     const entry = {
       id: `wiki:${slug}`,
       nom: asset.nom,
@@ -517,7 +500,7 @@ for (const item of wikiItems.values()) {
       slotGardeRobe: category,
       miniature: 'o',
       declinaisons: decls,
-      zIndex: z,
+      zIndex: [],
       dependCouleurPeau: !!asset.flags.peau,
       dependPostureMainG: !!asset.flags.mainG,
       dependPostureMainD: !!asset.flags.mainD,
@@ -528,7 +511,7 @@ for (const item of wikiItems.values()) {
     catalog.sexes[sex].push(entry);
     known.add(`${asset.nom.toLowerCase()}|${sex}`);
     known.add(`${normalizeName(name)}|${sex}`);
-    added.push(`${sex} ${name} -> ${asset.nom}${z.length ? '' : ' (sans z-index)'}`);
+    added.push(`${sex} ${name} -> ${asset.nom}`);
   }
 }
 
