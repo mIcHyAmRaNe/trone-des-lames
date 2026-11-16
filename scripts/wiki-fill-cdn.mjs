@@ -187,10 +187,20 @@ function assetInfo(url) {
   }
 
   const beard = withoutDecl.match(/^barbe_(\d+)/i);
-  if (beard) return { path, sex, nom: `barbe${beard[1]}`, kind: 'corps', decl, flags: {} };
+  if (beard) {
+    // Pour les barbes, la teinte est dans _cN (ex: barbe_14_c3)
+    const colorMatch = withoutDecl.match(/_c(\d+)$/);
+    const cdecl = colorMatch ? Number(colorMatch[1]) : null;
+    return { path, sex, nom: `barbe${beard[1]}`, kind: 'corps', decl: cdecl, flags: {} };
+  }
 
   const hair = withoutDecl.match(/^cheveux(?:Avants|Arrieres|Intermediaires)_(\d+)/i);
-  if (hair) return { path, sex, nom: `coiffure${hair[1]}`, kind: 'corps', decl, flags: {} };
+  if (hair) {
+    // Pour les coiffures, la teinte est dans _cN (ex: cheveuxAvants_37_c1)
+    const colorMatch = withoutDecl.match(/_c(\d+)$/);
+    const cdecl = colorMatch ? Number(colorMatch[1]) : null;
+    return { path, sex, nom: `coiffure${hair[1]}`, kind: 'corps', decl: cdecl, flags: {} };
+  }
 
   const flags = {};
   let nom = withoutDecl;
@@ -304,8 +314,53 @@ for (const p of targetPagesEn) {
   if (existing) existing.textEn = p.text;
 }
 
+// --- Merge FR/EN pages by template name (nom/anNom) ---
+// Some items have different page titles in FR/EN (e.g. "Coiffure radieuse" vs "Radiant hairstyle")
+// but the same template 'nom' field. Merge them to combine file lists.
+const pageByName = new Map();
+for (const [title, page] of pageByTitle) {
+  const names = [];
+  // Extract nom from FR text
+  const nomFr = templateField(page.text, 'nom');
+  if (nomFr) names.push(nomFr);
+  // Extract anNom from FR text (English name in FR template)
+  const anNomFr = templateField(page.text, 'anNom');
+  if (anNomFr) names.push(anNomFr);
+  // Extract nom from EN text
+  const nomEn = templateField(page.textEn, 'nom');
+  if (nomEn) names.push(nomEn);
+  // Extract anNom from EN text
+  const anNomEn = templateField(page.textEn, 'anNom');
+  if (anNomEn) names.push(anNomEn);
+
+  // If no template names found, use the page title as fallback
+  if (names.length === 0) {
+    names.push(title);
+  }
+
+  for (const name of names) {
+    const key = normalizeName(name);
+    if (!key) continue;
+    const existing = pageByName.get(key);
+    if (existing) {
+      // Merge files
+      existing.files = [...new Set([...existing.files, ...page.files])];
+      // Keep texts: prefer existing FR text (has template fields), only add EN text
+      if (!existing.text && page.text) existing.text = page.text;
+      if (page.textEn) existing.textEn = page.textEn;
+    } else {
+      pageByName.set(key, { ...page, files: [...page.files] });
+    }
+  }
+}
+
+// Use merged pages for file fetching
+
+// Use merged pages for file fetching
+const mergedPages = [...pageByName.values()];
+
 const fileTitles = [...new Set(
-  [...pageByTitle.values()].flatMap((p) => p.files)
+  mergedPages.flatMap((p) => p.files)
 )];
 process.stderr.write(`\n${fileTitles.length} fichiers\n`);
 
@@ -332,15 +387,31 @@ for (const lang of ['fr', 'en']) {
 }
 
 const assetsByItem = new Map();
-for (const [title, page] of pageByTitle) {
+// Track which original titles map to which merged page
+const titleToMerged = new Map();
+for (const page of mergedPages) {
+  const title = page.title;
   const source = pageByTitle.get(redirectTarget(page.text) ?? page.title) ?? page;
   const infos = [];
-  for (const file of source.files) infos.push(...(fileAssets.get(file) ?? []));
+  // Use the merged page's files directly (includes EN files from merge)
+  for (const file of page.files) {
+    const fileInfos = fileAssets.get(file) ?? [];
+    infos.push(...fileInfos);
+  }
   assetsByItem.set(title, infos);
+  // Map all original titles that were merged into this page
+  for (const name of [page.text, page.textEn].filter(Boolean)) {
+    for (const value of [
+      templateField(name, 'nom'),
+      templateField(name, 'anNom'),
+    ]) {
+      if (value) titleToMerged.set(normalizeName(value), title);
+    }
+  }
+  titleToMerged.set(normalizeName(title), title);
   const item = wikiItems.get(title);
   if (!item) continue;
   item.text = source.text;
-  // Extract names from both FR and EN page texts
   const texts = [source.text, source.textEn].filter(Boolean);
   for (const text of texts) {
     for (const value of [
@@ -350,6 +421,46 @@ for (const [title, page] of pageByTitle) {
       source.title,
     ]) {
       if (value) item.names.add(value);
+    }
+  }
+}
+
+// Propagate merged assets to all original titles (using original titles as keys)
+for (const [origTitle, origPage] of pageByTitle) {
+  // Find which merged page this original title belongs to
+  const origNames = [normalizeName(origTitle)];
+  for (const text of [origPage.text, origPage.textEn].filter(Boolean)) {
+    for (const value of [
+      templateField(text, 'nom'),
+      templateField(text, 'anNom'),
+    ]) {
+      if (value) origNames.push(normalizeName(value));
+    }
+  }
+  // Find the merged title for this original title
+  let mergedTitle = null;
+  for (const n of origNames) {
+    const merged = titleToMerged.get(n);
+    if (merged) {
+      mergedTitle = merged;
+      break;
+    }
+  }
+  if (mergedTitle && assetsByItem.has(mergedTitle)) {
+    assetsByItem.set(origTitle, assetsByItem.get(mergedTitle));
+  }
+}
+
+// Also merge wikiItems by name for phase 4 (new items)
+// This ensures items with different titles but same name are treated as one
+const wikiItemsByName = new Map();
+for (const item of wikiItems.values()) {
+  for (const name of item.names) {
+    const key = normalizeName(name);
+    if (!key) continue;
+    const existing = wikiItemsByName.get(key);
+    if (!existing || (item.infos?.length ?? 0) > (existing.infos?.length ?? 0)) {
+      wikiItemsByName.set(key, item);
     }
   }
 }
@@ -564,7 +675,7 @@ function twinOf(sex, name) {
   );
 }
 
-for (const item of wikiItems.values()) {
+for (const item of wikiItemsByName.values()) {
   if (BLACKLIST.has(item.title)) continue;
   const infos = assetsByItem.get(item.title) ?? [];
   if (!infos.length) continue;
