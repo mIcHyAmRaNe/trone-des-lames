@@ -11,7 +11,7 @@ import {
   itemHaystack,
   itemLabel,
   loadCatalog,
-  midasAssetUrl,
+  midasAssetUrls,
   sexeLabel,
 } from '../../lib/wardrobe';
 import type { PendingList, Sex } from '../../lib/catalog-submit';
@@ -75,7 +75,7 @@ function buildRows(catalog: Catalog, lang: Lang): Row[] {
       ['F', pair.f],
     ] as const)
       .filter(([, it]) => it?.nom)
-      .map(([sexe, it]) => midasAssetUrl(it!, sexe, it!.declinaisons[0] ?? 0));
+      .flatMap(([sexe, it]) => midasAssetUrls(it!, sexe, it!.declinaisons[0] ?? 0));
     rows.push({
       id,
       name: itemLabel(item, lang),

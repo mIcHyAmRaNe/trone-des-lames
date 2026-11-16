@@ -25,6 +25,11 @@ export interface CatalogItem {
   slotsMasques: string[];
   nameEn: string | null;
   nameFr: string | null;
+  /**
+   * Chemins CDN exacts relevés sur le wiki (relatifs à `CDN_ROOT`), pour les
+   * objets dont l'URL ne se déduit pas du nom d'asset (variantes, extension).
+   */
+  cdn?: string[];
 }
 
 export interface Catalog {
@@ -505,18 +510,51 @@ export function isIncomplete(item: CatalogItem): boolean {
 export const CDN_ROOT = 'https://lesroyaumes.cdn.oxv.fr/images/personnages_midas/';
 
 /**
- * URL d'un calque Midas pour l'aperçu, construite comme `midas.js` :
- * `nom[_d{teinte}][_p{peau}][_m{main G}][_n{main D}]_0_@1X.png`.
- * Les postures et la couleur de peau sont figées à 0 : c'est un aperçu d'objet.
+ * URL des calques Midas pour l'aperçu, construites comme `midas.js`.
+ * - fonds / cadres : racine sans segment de sexe (`fonds/`, `cadres/`).
+ * - barbes / coiffures : les sprites de corps ne suivent pas la règle des
+ *   vêtements. Une barbe est `corps/barbe_<style>_c<teinte>_e0`, une coiffure
+ *   est découpée en deux calques `cheveuxArrieres` / `cheveuxAvants`.
+ * - le reste : `nom[_d{teinte}][_p{peau}][_m{main G}][_n{main D}]_0_@1X.png`
+ *   sous `{sexe}/vetements/`. Postures et peau figées à 0 : aperçu d'objet.
  */
-export function midasAssetUrl(item: CatalogItem, sexe: Sexe, declinaison = 0): string {
-  if (!item.nom) return '';
+export function midasAssetUrls(item: CatalogItem, sexe: Sexe, declinaison = 0): string[] {
+  if (!item.nom) return [];
+  // URL exacte relevée sur le wiki : elle fait foi quand le nom ne suffit pas.
+  if (item.cdn?.length) return item.cdn.map((path) => `${CDN_ROOT}${path}`);
+  const dir = sexe === 'F' ? 'femmes' : 'hommes';
+  // Les fiches importées du wiki n'ont pas de slot technique : la catégorie
+  // de garde-robe prend le relais ('Fonds', 'Cadres', 'Barbes', 'Coiffures').
+  const category = item.slot || item.slotGardeRobe || '';
+
+  if (category === 'Barbes' || category === 'Barbe') {
+    const style = assetStyleNumber(item.nom, 'barbe');
+    if (style !== null) return [`${CDN_ROOT}hommes/corps/barbe_${style}_c${declinaison}_e0_@1X.png`];
+  }
+
+  if (category === 'Coiffures' || category === 'Coiffure') {
+    const style = assetStyleNumber(item.nom, 'coiffure');
+    if (style !== null) {
+      // ponytail: la couche `cheveuxIntermediaires` (styles 2, 4, 5, 11) n'est
+      // pas listée : sa présence n'est pas déductible sans requête.
+      return ['cheveuxArrieres', 'cheveuxAvants'].map(
+        (layer) => `${CDN_ROOT}${dir}/corps/${layer}_${style}_c${declinaison}_@1X.png`,
+      );
+    }
+  }
+
   let name = item.nom;
   if (declinaison > 0) name += `_d${declinaison}`;
   if (item.dependCouleurPeau) name += '_p0';
   if (item.dependPostureMainG) name += '_m0';
   if (item.dependPostureMainD) name += '_n0';
-  return `${CDN_ROOT}${sexe === 'F' ? 'femmes' : 'hommes'}/vetements/${name}_0_@1X.png`;
+  const root =
+    category === 'Fond' || category === 'Fonds'
+      ? `${CDN_ROOT}fonds/`
+      : category === 'Cadre' || category === 'Cadres'
+        ? `${CDN_ROOT}cadres/`
+        : `${CDN_ROOT}${dir}/vetements/`;
+  return [`${root}${name}_0_@1X.png`];
 }
 
 /** Texte comparable pour la recherche : libellé, nom CDN, slot, deux langues. */
