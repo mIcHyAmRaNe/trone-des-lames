@@ -23,12 +23,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CATALOG = join(ROOT, 'public/rk/catalog.json');
 const CACHE = join(ROOT, '.cache/wiki-fill');
 const WIKI = 'https://wiki.renaissancekingdoms.com';
-const API = `${WIKI}/fr/api.php`;
+const API_FR = `${WIKI}/fr/api.php`;
+const API_EN = `${WIKI}/en/api.php`;
 const CDN_ROOT = 'https://lesroyaumes.cdn.oxv.fr/images/personnages_midas/';
 const UA = 'trone-des-lames-cdn-fill/1.0';
 const WRITE = process.argv.includes('--write');
 
-const CATEGORIES = [
+const CATEGORIES_FR = [
   { wiki: 'Accessoire', category: 'Accessoires' },
   { wiki: 'Apparence', category: null },
   { wiki: 'Arme', category: 'Armes' },
@@ -38,10 +39,23 @@ const CATEGORIES = [
   { wiki: 'Panoplie', category: 'Panoplies' },
   { wiki: 'Tatouage', category: 'Tatouages' },
   { wiki: 'Vêtement événementiel', category: 'Evenementiels' },
-  // Catégories parentes : elles portent les fiches d'objets dont les fichiers
-  // ne sont pas listés ailleurs (les panoplies en pack, par exemple).
   { wiki: 'Vêtement', category: null },
   { wiki: 'Objet spécial', category: null },
+];
+
+const CATEGORIES_EN = [
+  { wiki: 'Accessory', category: 'Accessoires' },
+  { wiki: 'Appearance', category: null },
+  { wiki: 'Weapon', category: 'Armes' },
+  { wiki: 'Frame', category: 'Cadres' },
+  { wiki: 'Background', category: 'Fonds' },
+  { wiki: 'Pet', category: 'Familiers' },
+  { wiki: 'Outfit', category: 'Panoplies' },
+  { wiki: 'Tattoo', category: 'Tatouages' },
+  { wiki: 'Event_clothing', category: 'Evenementiels' },
+  // Parent categories for asset lookup (no catalog entries created)
+  { wiki: 'Clothing', category: null },
+  { wiki: 'Special_object', category: null },
 ];
 
 // Les pages Fichier: du wiki ne sont pas toutes sur l'hôte CDN : beaucoup
@@ -64,36 +78,37 @@ async function cached(key, load) {
   return text;
 }
 
-async function api(params) {
+async function api(params, lang = 'fr') {
+  const base = lang === 'fr' ? API_FR : API_EN;
   const body = new URLSearchParams({ format: 'json', formatversion: '2', ...params });
   return JSON.parse(
-    await cached(`POST ${API}?${body}`, async () => {
+    await cached(`${lang} POST ${base}?${body}`, async () => {
       for (let attempt = 0; ; attempt++) {
-        const res = await fetch(API, {
+        const res = await fetch(base, {
           method: 'POST',
           headers: { 'user-agent': UA, 'content-type': 'application/x-www-form-urlencoded' },
           body,
         });
         if (res.ok) return res.text();
-        if (attempt >= 3) throw new Error(`API ${res.status}`);
+        if (attempt >= 3) throw new Error(`${lang} API ${res.status}`);
         await sleep(1000 * (attempt + 1));
       }
     }),
   );
 }
 
-async function categoryMembers(title) {
+async function categoryMembers(title, lang = 'fr') {
   const out = [];
   let cont = {};
   for (;;) {
     const res = await api({
       action: 'query',
       list: 'categorymembers',
-      cmtitle: `Catégorie:${title}`,
+      cmtitle: lang === 'fr' ? `Catégorie:${title}` : `Category:${title}`,
       cmnamespace: '0',
       cmlimit: '500',
       ...cont,
-    });
+    }, lang);
     out.push(...(res.query?.categorymembers ?? []).map((m) => m.title));
     if (!res.continue) break;
     cont = res.continue;
@@ -101,12 +116,12 @@ async function categoryMembers(title) {
   return out;
 }
 
-async function inBatches(titles, params, pick) {
+async function inBatches(titles, params, pick, lang = 'fr') {
   const out = [];
   for (let i = 0; i < titles.length; i += 50) {
-    const res = await api({ ...params, titles: titles.slice(i, i + 50).join('|') });
+    const res = await api({ ...params, titles: titles.slice(i, i + 50).join('|') }, lang);
     out.push(...(res.query?.pages ?? []).map(pick));
-    if (i % 500 === 0) process.stderr.write(`\r${i}/${titles.length}`);
+    if (i % 500 === 0) process.stderr.write(`\r${lang} ${i}/${titles.length}`);
   }
   return out;
 }
@@ -178,17 +193,24 @@ function categoryOfAsset(info) {
   return null;
 }
 
-// --- 1. crawl des catégories -------------------------------------------------
+// --- 1. crawl des catégories (FR + EN) ---------------------------------------
 const wikiItems = new Map();
-for (const cat of CATEGORIES) {
-  const titles = await categoryMembers(cat.wiki);
-  process.stderr.write(`${cat.wiki}: ${titles.length} pages\n`);
-  for (const title of titles) {
-    const entry = wikiItems.get(title) ?? { title, categories: [], names: new Set() };
-    entry.categories.push(cat);
-    wikiItems.set(title, entry);
+
+async function crawlCategories(categories, lang) {
+  for (const cat of categories) {
+    const titles = await categoryMembers(cat.wiki, lang);
+    process.stderr.write(`${lang.toUpperCase()} ${cat.wiki}: ${titles.length} pages\n`);
+    for (const title of titles) {
+      const entry = wikiItems.get(title) ?? { title, lang, categories: [], names: new Set(), texts: {} };
+      entry.categories.push(cat);
+      entry.texts[lang] = '';
+      wikiItems.set(title, entry);
+    }
   }
 }
+
+await crawlCategories(CATEGORIES_FR, 'fr');
+await crawlCategories(CATEGORIES_EN, 'en');
 
 const titles = [...wikiItems.keys()];
 const pickPage = (p) => ({
@@ -196,53 +218,117 @@ const pickPage = (p) => ({
   text: p.revisions?.[0]?.slots?.main?.content ?? '',
   files: (p.images ?? []).map((im) => im.title).filter((t) => /\.(png|gif|jpe?g|webp)$/i.test(t)),
 });
-// `redirects` est volontairement absent : les pages de redirection
-// (« Fête - 1 » -> « Panoplie Fête ») doivent garder leur titre d'origine,
-// sinon leur nom ne correspond plus à aucune fiche du catalogue.
-const pages = await inBatches(
+
+// Fetch pages from both languages
+const pagesFr = await inBatches(
   titles,
   { action: 'query', prop: 'images|revisions', imlimit: 'max', rvprop: 'content', rvslots: 'main' },
   pickPage,
+  'fr',
+);
+const pagesEn = await inBatches(
+  titles,
+  { action: 'query', prop: 'images|revisions', imlimit: 'max', rvprop: 'content', rvslots: 'main' },
+  pickPage,
+  'en',
 );
 
+// Merge pages by title, keeping both texts and files
+const pageByTitle = new Map();
+for (const p of [...pagesFr, ...pagesEn]) {
+  const existing = pageByTitle.get(p.title);
+  if (existing) {
+    existing.files = [...new Set([...existing.files, ...p.files])];
+    existing.text = existing.text || p.text; // prefer FR text
+    existing.textEn = p.text;
+  } else {
+    pageByTitle.set(p.title, { ...p, textEn: p.text === p.text ? '' : '' }); // will set below
+  }
+}
+
+// Ensure textEn is set for EN pages
+for (const p of pagesEn) {
+  const existing = pageByTitle.get(p.title);
+  if (existing) existing.textEn = p.text;
+}
+
+// Redirect handling
 const redirectTarget = (text) =>
   (text.match(/^\s*#(?:REDIRECTION|REDIRECT)\s*:?\s*\[\[\s*([^\]|#]+)/i) ?? [])[1]?.trim() ?? null;
 
-const targets = [...new Set(pages.map((p) => redirectTarget(p.text)).filter(Boolean))].filter(
-  (t) => !pages.some((p) => p.title === t),
-);
-const targetPages = targets.length
-  ? await inBatches(targets, { action: 'query', prop: 'images|revisions', imlimit: 'max', rvprop: 'content', rvslots: 'main' }, pickPage)
-  : [];
-const pageByTitle = new Map([...pages, ...targetPages].map((p) => [p.title, p]));
+const targets = [...new Set(
+  [...pagesFr, ...pagesEn].map((p) => redirectTarget(p.text)).filter(Boolean)
+)].filter((t) => !pageByTitle.has(t));
 
-const fileTitles = [...new Set([...pages, ...targetPages].flatMap((p) => p.files))];
+const targetPagesFr = targets.length
+  ? await inBatches(targets, { action: 'query', prop: 'images|revisions', imlimit: 'max', rvprop: 'content', rvslots: 'main' }, pickPage, 'fr')
+  : [];
+const targetPagesEn = targets.length
+  ? await inBatches(targets, { action: 'query', prop: 'images|revisions', imlimit: 'max', rvprop: 'content', rvslots: 'main' }, pickPage, 'en')
+  : [];
+
+for (const p of [...targetPagesFr, ...targetPagesEn]) {
+  const existing = pageByTitle.get(p.title);
+  if (existing) {
+    existing.files = [...new Set([...existing.files, ...p.files])];
+    if (!existing.text) existing.text = p.text;
+    existing.textEn = p.text;
+  } else {
+    pageByTitle.set(p.title, { ...p, textEn: '' });
+  }
+}
+for (const p of targetPagesEn) {
+  const existing = pageByTitle.get(p.title);
+  if (existing) existing.textEn = p.text;
+}
+
+const fileTitles = [...new Set(
+  [...pageByTitle.values()].flatMap((p) => p.files)
+)];
 process.stderr.write(`\n${fileTitles.length} fichiers\n`);
-const fileAssets = new Map(
-  (
-    await inBatches(fileTitles, { action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main' }, (p) => ({
-      title: p.title,
-      infos: [...(p.revisions?.[0]?.slots?.main?.content ?? '').matchAll(CDN_RE)].map((m) => assetInfo(m[0])),
-    }))
-  ).map((f) => [f.title, f.infos]),
-);
+
+// Fetch file pages from both languages
+const fileAssets = new Map();
+for (const lang of ['fr', 'en']) {
+  const batch = await inBatches(fileTitles, { action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main' }, (p) => ({
+    title: p.title,
+    infos: [...(p.revisions?.[0]?.slots?.main?.content ?? '').matchAll(CDN_RE)].map((m) => assetInfo(m[0])),
+  }), lang);
+  for (const f of batch) {
+    const existing = fileAssets.get(f.title) ?? [];
+    const merged = [...existing, ...f.infos];
+    const unique = [];
+    const seen = new Set();
+    for (const info of merged) {
+      if (!seen.has(info.path)) {
+        seen.add(info.path);
+        unique.push(info);
+      }
+    }
+    fileAssets.set(f.title, unique);
+  }
+}
 
 const assetsByItem = new Map();
-for (const page of pages) {
+for (const [title, page] of pageByTitle) {
   const source = pageByTitle.get(redirectTarget(page.text) ?? page.title) ?? page;
   const infos = [];
   for (const file of source.files) infos.push(...(fileAssets.get(file) ?? []));
-  assetsByItem.set(page.title, infos);
-  const item = wikiItems.get(page.title);
+  assetsByItem.set(title, infos);
+  const item = wikiItems.get(title);
   if (!item) continue;
   item.text = source.text;
-  for (const value of [
-    templateField(source.text, 'nom'),
-    templateField(source.text, 'anNom'),
-    page.title,
-    source.title,
-  ]) {
-    if (value) item.names.add(value);
+  // Extract names from both FR and EN page texts
+  const texts = [source.text, source.textEn].filter(Boolean);
+  for (const text of texts) {
+    for (const value of [
+      templateField(text, 'nom'),
+      templateField(text, 'anNom'),
+      title,
+      source.title,
+    ]) {
+      if (value) item.names.add(value);
+    }
   }
 }
 
