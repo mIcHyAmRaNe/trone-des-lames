@@ -165,15 +165,32 @@ function assetInfo(url) {
   const sub = parts.length > 2 ? parts[1] : null;
   const file = parts[parts.length - 1];
   const sex = sexFolder === 'hommes' ? 'M' : sexFolder === 'femmes' ? 'F' : null;
-  const bare = file.replace(/\.\w+$/, '').replace(/_@\d+X$/i, '').replace(/_\d+$/, '');
-  const decl = bare.match(/_d(\d+)(?:_|$)/i);
-  const withoutDecl = decl ? bare.replace(/_d\d+(?:_|$)/i, '') : bare;
+  // Strip extension and @1X/@2X suffix
+  const bare = file.replace(/\.\w+$/, '').replace(/_@\d+X$/i, '');
+  // Standard format: asset_dN_0  -> decl = N
+  const declStandard = bare.match(/_d(\d+)(?:_|$)/i);
+  // Wiki format: asset_N_@1X (no _d, no _0 frame) -> decl = N
+  const declWiki = !declStandard ? bare.match(/_(\d+)$/) : null;
+  // Remove decl part to get asset name
+  let withoutDecl = bare;
+  let decl = null;
+  if (declStandard) {
+    withoutDecl = bare.replace(/_d\d+(?:_|$)/i, '');
+    decl = Number(declStandard[1]);
+  } else if (declWiki) {
+    const n = Number(declWiki[1]);
+    // Toujours retirer le suffixe _N (même pour _0), mais ne mettre decl que si N > 0
+    withoutDecl = bare.replace(/_\d+$/, '');
+    if (n > 0) decl = n;
+  } else {
+    withoutDecl = bare.replace(/_0$/, ''); // strip frame _0
+  }
 
   const beard = withoutDecl.match(/^barbe_(\d+)/i);
-  if (beard) return { path, sex, nom: `barbe${beard[1]}`, kind: 'corps', decl: null, flags: {} };
+  if (beard) return { path, sex, nom: `barbe${beard[1]}`, kind: 'corps', decl, flags: {} };
 
   const hair = withoutDecl.match(/^cheveux(?:Avants|Arrieres|Intermediaires)_(\d+)/i);
-  if (hair) return { path, sex, nom: `coiffure${hair[1]}`, kind: 'corps', decl: null, flags: {} };
+  if (hair) return { path, sex, nom: `coiffure${hair[1]}`, kind: 'corps', decl, flags: {} };
 
   const flags = {};
   let nom = withoutDecl;
@@ -188,7 +205,7 @@ function assetInfo(url) {
     nom = nom.replace(posture[1], '');
   }
   const kind = sub === 'corps' ? 'corps' : sexFolder === 'fonds' || sexFolder === 'cadres' ? 'decor' : 'vetement';
-  return { path, sex, nom, kind, decl: decl ? Number(decl[1]) : null, flags };
+  return { path, sex, nom, kind, decl, flags };
 }
 
 /** Catégorie de garde-robe déduite de l'asset (cheveux, barbe…). */
@@ -493,6 +510,21 @@ for (const sex of ['M', 'F']) {
       if (!(await exists(computedUrl(it, sex, it.nom, flags, d)))) broken = true;
     }
     if (broken) it.cdn = usable;
+
+    // Re-détecter les déclinaisons depuis le wiki si celui-ci en a plus
+    // que la fiche actuelle (ex: capeNoel2020 a 0,1,2 sur le wiki mais 0,1 en base)
+    // On déduit les déclinaisons depuis les URLs `usable` (plus fiable que i.decl
+    // car decl 0 n'est pas capturé par assetInfo pour les URLs wiki _0_@1X.png)
+    const usableDecls = [];
+    for (const p of usable) {
+      const m = p.match(/_(\d+)_@1X\.png$/);
+      if (m) usableDecls.push(Number(m[1]));
+    }
+    const uniqueUsableDecls = [...new Set(usableDecls)].sort((a, b) => a - b);
+    if (uniqueUsableDecls.length > it.declinaisons.length) {
+      it.declinaisons = uniqueUsableDecls;
+      it.cdn = usable;
+    }
 
     if (!it.declinaisons.length && cat !== 'Barbes' && cat !== 'Coiffures') {
       // Vêtements : la teinte vient du `_dN` documenté sur le wiki, retenue
