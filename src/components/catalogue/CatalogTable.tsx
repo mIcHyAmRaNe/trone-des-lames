@@ -600,6 +600,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
                             setNotice(null);
                             setReporting(r);
                           }}
+                          assetName={r.items.M?.nom ?? r.items.F?.nom}
                         />
                       </td>
                     </tr>

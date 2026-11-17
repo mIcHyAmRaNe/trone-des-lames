@@ -1,7 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { Lang } from '../../i18n';
 
 const MENU_WIDTH = 184;
+
+const STR = {
+  fr: {
+    copyAsset: 'Copier le nom d\'asset',
+    copied: 'Copié !',
+  },
+  en: {
+    copyAsset: 'Copy asset name',
+    copied: 'Copied!',
+  },
+};
 
 /**
  * Menu « ⋮ » d'une ligne du catalogue. Rendu dans un portail en position fixe :
@@ -12,12 +24,17 @@ export default function RowMenu({
   editDisabled,
   onEdit,
   onReport,
+  assetName,
+  lang = 'fr',
 }: {
   label: string;
   /** Une proposition est déjà en attente sur cet objet. */
   editDisabled: boolean;
   onEdit: () => void;
   onReport: () => void;
+  /** Nom d'asset CDN à copier (ex: capeOriental). */
+  assetName?: string;
+  lang?: Lang;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -126,6 +143,26 @@ export default function RowMenu({
             >
               Signaler
             </button>
+            {assetName && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  navigator.clipboard.writeText(assetName);
+                  // Feedback visuel temporaire
+                  const btn = document.activeElement as HTMLButtonElement;
+                  if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = STR[lang].copied;
+                    setTimeout(() => { btn.textContent = originalText; }, 1500);
+                  }
+                }}
+                className={item}
+              >
+                {STR[lang].copyAsset}
+              </button>
+            )}
           </div>,
           document.body,
         )}
