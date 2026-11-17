@@ -7,9 +7,9 @@ import type { Lang } from '../../i18n';
 type StatusTab = 'pending' | 'approved' | 'rejected';
 
 const STATUS_TABS: { value: StatusTab; labelKey: string }[] = [
-  { value: 'pending', labelKey: 'pending' },
-  { value: 'approved', labelKey: 'approved' },
-  { value: 'rejected', labelKey: 'rejected' },
+  { value: 'pending', labelKey: 'tabPending' },
+  { value: 'approved', labelKey: 'tabApproved' },
+  { value: 'rejected', labelKey: 'tabRejected' },
 ];
 
 interface StrMap {
