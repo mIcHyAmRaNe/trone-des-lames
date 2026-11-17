@@ -144,6 +144,19 @@ const templateField = (text, field) => {
   return m ? clean(m[1]) : '';
 };
 
+/** Extrait le sexe depuis le champ vetementGenre du template FR.
+ *  Retourne 'M', 'F', 'MF' (les deux), ou null si non trouvé. */
+function extractSexFromTemplate(text) {
+  const genre = templateField(text, 'vetementGenre');
+  if (!genre) return null;
+  const g = genre.toLowerCase();
+  if (g.includes('homme') && !g.includes('femme')) return 'M';
+  if (g.includes('femme') && !g.includes('homme')) return 'F';
+  if (g.includes('homme') && g.includes('femme')) return 'MF';
+  if (g.includes('mixte') || g.includes('les deux') || g.includes('both')) return 'MF';
+  return null;
+}
+
 function normalizeName(value) {
   return `${value ?? ''}`
     .normalize('NFD')
@@ -651,6 +664,68 @@ for (const sex of ['M', 'F']) {
   }
 }
 
+// --- 3.5. correction du sexe des fiches existantes selon le wiki ------------
+// Construit une map nom -> sexes corrects depuis les données wiki
+const correctSexes = new Map();
+for (const item of wikiItemsByName.values()) {
+  const infos = assetsByItem.get(item.title) ?? [];
+  if (!infos.length) continue;
+  const name = templateField(item.text ?? '', 'nom') || item.title;
+  const templateSex = extractSexFromTemplate(item.text ?? '');
+  let sexes;
+  if (templateSex === 'M') sexes = ['M'];
+  else if (templateSex === 'F') sexes = ['F'];
+  else if (templateSex === 'MF') sexes = ['M', 'F'];
+  else {
+    sexes = [...new Set(infos.map((i) => i.sex).filter(Boolean))];
+    if (!sexes.length) sexes.push('M', 'F');
+  }
+  correctSexes.set(normalizeName(name), sexes);
+}
+
+// Applique les sexes corrects aux fiches du catalogue existantes
+const sexCorrected = [];
+for (const sex of ['M', 'F']) {
+  const list = catalog.sexes[sex];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const it = list[i];
+    const key = normalizeName(it.nameFr) || normalizeName(it.nameEn);
+    const correct = correctSexes.get(key);
+    if (!correct) continue;
+    const hasM = correct.includes('M');
+    const hasF = correct.includes('F');
+    const inM = sex === 'M';
+    const inF = sex === 'F';
+    
+    // Si le sexe actuel n'est pas dans les sexes corrects, on déplace l'entrée
+    if ((inM && !hasM) || (inF && !hasF)) {
+      const targetSex = hasM ? 'M' : 'F';
+      if (targetSex !== sex) {
+        const moved = list.splice(i, 1)[0];
+        catalog.sexes[targetSex].push(moved);
+        sexCorrected.push(`${sex} ${it.nameFr} -> ${targetSex} (wiki: ${correct.join(',')})`);
+      }
+    }
+    // Si l'entrée devrait exister dans les deux sexes mais n'est que dans un,
+    // on la copie dans l'autre (cas rare, mais pour complétude)
+    else if (correct.length === 2 && ((inM && !hasF) || (inF && !hasM))) {
+      // L'entrée existe déjà dans ce sexe, on la copie dans l'autre si absent
+      const otherSex = sex === 'M' ? 'F' : 'M';
+      const existsInOther = catalog.sexes[otherSex].some(
+        (o) => normalizeName(o.nameFr) === key || normalizeName(o.nameEn) === key
+      );
+      if (!existsInOther) {
+        const copy = { ...it };
+        catalog.sexes[otherSex].push(copy);
+        sexCorrected.push(`${sex} ${it.nameFr} -> copié vers ${otherSex} (wiki: MF)`);
+      }
+    }
+  }
+}
+
+console.log(`sexe corrigé : ${sexCorrected.length}`);
+for (const s of sexCorrected) console.log(`  ~ ${s}`);
+
 // --- 4. objets du wiki absents du catalogue ----------------------------------
 const known = new Set();
 for (const sex of ['M', 'F']) {
@@ -681,8 +756,19 @@ for (const item of wikiItemsByName.values()) {
   if (!infos.length) continue;
   const name = templateField(item.text ?? '', 'nom') || item.title;
   const nameEn = templateField(item.text ?? '', 'anNom') || null;
-  const sexes = [...new Set(infos.map((i) => i.sex).filter(Boolean))];
-  if (!sexes.length) sexes.push('M', 'F');
+  
+  // Déterminer le sexe depuis le template FR (vetementGenre) en priorité,
+  // sinon depuis les assets, sinon défaut MF.
+  const templateSex = extractSexFromTemplate(item.text ?? '');
+  let sexes;
+  if (templateSex === 'M') sexes = ['M'];
+  else if (templateSex === 'F') sexes = ['F'];
+  else if (templateSex === 'MF') sexes = ['M', 'F'];
+  else {
+    sexes = [...new Set(infos.map((i) => i.sex).filter(Boolean))];
+    if (!sexes.length) sexes.push('M', 'F');
+  }
+  
   // Une page de pack (`elementPano` > 1) liste les sprites de ses éléments,
   // qui ont chacun leur fiche : elle ne doit pas créer d'objet.
   if (Number(templateField(item.text ?? '', 'elementPano')) > 1) continue;
