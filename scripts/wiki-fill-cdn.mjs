@@ -63,6 +63,10 @@ const BLACKLIST = new Set([
   'arme', 'lac', 'pecher', 'verger',           // slugs canoniques
   'Arme', 'Lac', 'Pêcher', 'Verger',           // titres FR exacts
   'Weapon', 'Lake', 'Fishing', 'Orchard',      // titres EN exacts
+  // Catégories wiki parentes qui listent des sous-objets (pas des items)
+  'Cats', 'Chick', 'Clam',                      // EN category pages
+  'Chats', 'Poussin', 'Palourde',               // FR category pages (si existants)
+  'Pets', 'Familiers',                          // catégories génériques
 ]);
 
 const CDN_RE = /https?:\/\/[^\s"'<>)\]]*personnages_midas\/[^\s"'<>)\]]+\.(?:png|webp|gif|jpg)/gi;
