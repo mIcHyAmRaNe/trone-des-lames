@@ -1,65 +1,132 @@
-import { useEffect, useState } from 'react';
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { submissionDiff, fieldValue, SUBMISSION_FIELDS } from '../../lib/catalog-submit.js';
 import type { Submission } from '../../lib/catalog-submit.js';
 import CatalogReports from './CatalogReports';
 import type { Lang } from '../../i18n';
 
-const STR = {
+type StatusTab = 'pending' | 'approved' | 'rejected';
+
+const STATUS_TABS: { value: StatusTab; labelKey: string }[] = [
+  { value: 'pending', labelKey: 'pending' },
+  { value: 'approved', labelKey: 'approved' },
+  { value: 'rejected', labelKey: 'rejected' },
+];
+
+interface StrMap {
+  loading: string;
+  loadError: (status: number) => string;
+  networkError: string;
+  pendingCount: (n: number) => string;
+  allClear: string;
+  noPending: string;
+  diffLabel: string;
+  sourceLabel: string;
+  noteLabel: string;
+  notePlaceholder: string;
+  noteAria: string;
+  approve: string;
+  reject: string;
+  approved: (name: string) => string;
+  rejected: (name: string) => string;
+  actionError: (action: string, id: string, status: number) => string;
+  kindCreate: string;
+  kindEdit: string;
+  searchPlaceholder: string;
+  tabPending: string;
+  tabApproved: string;
+  tabRejected: string;
+  emptyState: string;
+  decidedBy: string;
+  decidedAt: string;
+  adminNoteLabel: string;
+  submittedBy: string;
+  submittedAt: string;
+  viewItem: string;
+  noResults: string;
+}
+
+const STR: Record<Lang, StrMap> = {
   fr: {
     loading: 'Chargement…',
-    loadError: (status: number) => `Impossible de charger (erreur ${status}).`,
+    loadError: (status: number): string => `Impossible de charger (erreur ${status}).`,
     networkError: 'Serveur injoignable. Vérifiez votre connexion.',
-    pendingCount: (n: number) => `<b className="text-parchment">${n}</b> en attente`,
+    pendingCount: (n: number): string => `${n} soumission${n > 1 ? 's' : ''} en attente`,
     allClear: 'Tout est à jour.',
     noPending: 'Aucune soumission en attente.',
     diffLabel: 'Diff',
     sourceLabel: 'source',
     noteLabel: 'note',
-    notePlaceholder: 'Note optionnelle',
+    notePlaceholder: 'Note de modération (optionnelle)',
     noteAria: 'Note de modération',
     approve: 'Approuver',
     reject: 'Rejeter',
-    approved: (name: string) => `« ${name} » approuvé.`,
-    rejected: (name: string) => `« ${name} » rejeté.`,
-    actionError: (action: string, id: string, status: number) => `Échec (${action} ${id} : erreur ${status}).`,
+    approved: (name: string): string => `« ${name} » approuvé.`,
+    rejected: (name: string): string => `« ${name} » rejeté.`,
+    actionError: (action: string, id: string, status: number): string => `Échec (${action} ${id} : erreur ${status}).`,
     kindCreate: 'Création',
     kindEdit: 'Modification',
+    searchPlaceholder: 'Rechercher (nom, auteur, ID…)',
+    tabPending: 'En attente',
+    tabApproved: 'Approuvées',
+    tabRejected: 'Rejetées',
+    emptyState: 'Aucune soumission.',
+    decidedBy: 'par',
+    decidedAt: 'le',
+    adminNoteLabel: 'Note admin :',
+    submittedBy: 'par',
+    submittedAt: 'le',
+    viewItem: 'Voir la fiche',
+    noResults: 'Aucun résultat.',
   },
   en: {
     loading: 'Loading…',
-    loadError: (status: number) => `Could not load (error ${status}).`,
+    loadError: (status: number): string => `Could not load (error ${status}).`,
     networkError: 'Server unreachable. Check your connection.',
-    pendingCount: (n: number) => `<b className="text-parchment">${n}</b> pending`,
+    pendingCount: (n: number): string => `${n} submission${n > 1 ? 's' : ''} pending`,
     allClear: 'All up to date.',
     noPending: 'No pending submissions.',
     diffLabel: 'Diff',
     sourceLabel: 'source',
     noteLabel: 'note',
-    notePlaceholder: 'Optional note',
+    notePlaceholder: 'Moderation note (optional)',
     noteAria: 'Moderation note',
     approve: 'Approve',
     reject: 'Reject',
-    approved: (name: string) => `“${name}” approved.`,
-    rejected: (name: string) => `“${name}” rejected.`,
-    actionError: (action: string, id: string, status: number) => `Failed (${action} ${id}: error ${status}).`,
+    approved: (name: string): string => `“${name}” approved.`,
+    rejected: (name: string): string => `“${name}” rejected.`,
+    actionError: (action: string, id: string, status: number): string => `Failed (${action} ${id}: error ${status}).`,
     kindCreate: 'Creation',
     kindEdit: 'Edit',
+    searchPlaceholder: 'Search (name, author, ID…)',
+    tabPending: 'Pending',
+    tabApproved: 'Approved',
+    tabRejected: 'Rejected',
+    emptyState: 'No submissions.',
+    decidedBy: 'by',
+    decidedAt: 'on',
+    adminNoteLabel: 'Admin note:',
+    submittedBy: 'by',
+    submittedAt: 'on',
+    viewItem: 'View item',
+    noResults: 'No results.',
   },
 };
 
 export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
   const s = STR[lang];
-  const [rows, setRows] = useState<Submission[] | null>(null);
+  const [allRows, setAllRows] = useState<Submission[]>([]);
   const [message, setMessage] = useState(s.loading);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<StatusTab>('pending');
+  const [search, setSearch] = useState('');
 
   async function refresh() {
     try {
-      const res = await fetch('/api/submissions?status=pending');
+      const res = await fetch('/api/submissions');
       if (!res.ok) return setMessage(s.loadError(res.status));
-      setRows(await res.json());
+      const data = await res.json();
+      setAllRows(data);
       setMessage('');
     } catch {
       setMessage(s.networkError);
@@ -81,48 +148,133 @@ export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
       });
       if (!res.ok) return setMessage(s.actionError(action, id, res.status));
       const label = action === 'approve' ? s.approved : s.rejected;
-      setMessage(label(rows?.find(r => r.id === id)?.payload.nameFr ?? id));
+      const sub = allRows.find((r) => r.id === id);
+      setMessage(label(sub?.payload.nameFr ?? sub?.payload.nom ?? id));
       refresh();
     } finally {
       setBusy(null);
     }
   }
 
-  if (rows === null) {
+  const counts = useMemo(() => {
+    const c = { pending: 0, approved: 0, rejected: 0 };
+    for (const r of allRows) c[r.status]++;
+    return c;
+  }, [allRows]);
+
+  const filteredRows = useMemo(() => {
+    let rows = allRows.filter((r) => r.status === activeTab);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter((r) =>
+        r.id.toLowerCase().includes(q) ||
+        r.submittedBy.toLowerCase().includes(q) ||
+        r.payload.nameFr?.toLowerCase().includes(q) ||
+        r.payload.nameEn?.toLowerCase().includes(q) ||
+        r.payload.nom?.toLowerCase().includes(q)
+      );
+    }
+    return rows;
+  }, [allRows, activeTab, search]);
+
+  const dateLocale = lang === 'fr' ? 'fr-FR' : 'en-GB';
+
+  if (allRows.length === 0 && !message) {
     return (
-      <div className="card-dark texture-noise rounded-lg p-6" role="status" aria-live="polite">
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 w-1/3 rounded bg-gold/[0.07]" />
-          <div className="h-20 rounded-xl bg-gold/[0.05]" />
-          <div className="h-20 rounded-xl bg-gold/[0.05]" />
+      <div>
+        <div className="card-dark texture-noise flex items-center justify-between gap-2 rounded-lg border border-gold/15 px-4 py-2.5">
+          <p className="text-sm text-parchment-dim" role="status">
+            {s.allClear}
+          </p>
         </div>
-        <p className="mt-3 text-xs text-parchment-dim">{message}</p>
+        <CatalogReports lang={lang} />
       </div>
     );
   }
 
   return (
     <div>
-      <div className="card-dark texture-noise flex items-center justify-between gap-2 rounded-lg border border-gold/15 px-4 py-2.5">
-        <p className="text-sm text-parchment-dim" role="status">
-          {message || <>{s.pendingCount(rows.length)}</>}
-        </p>
+      {/* Header with counts */}
+      <div className="card-dark texture-noise flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold/15 px-4 py-2.5">
+        <div className="flex items-center gap-4 flex-wrap">
+          <p className="text-sm text-parchment-dim" role="status">
+            {message || <>{(s.pendingCount as (n: number) => string)(counts.pending)}</>}
+          </p>
+          <nav aria-label={lang === 'fr' ? 'Filtres de statut' : 'Status filters'} className="flex gap-1">
+            {STATUS_TABS.map((tab) => {
+              const count = counts[tab.value];
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => { setActiveTab(tab.value); setSearch(''); }}
+                  className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.625rem] font-bold uppercase tracking-[0.12em] transition-colors ${
+                    activeTab === tab.value
+                      ? 'bg-gold/[0.08] text-gold'
+                      : 'text-parchment-dim hover:bg-gold/[0.03] hover:text-parchment'
+                  }`}
+                >
+                  {(s as unknown as Record<string, string>)[tab.labelKey]}
+                  {count > 0 && (
+                    <span className={`h-4 min-w-4 flex items-center justify-center rounded-full px-1.5 text-[0.5rem] font-bold ${
+                      activeTab === tab.value
+                        ? 'bg-gold text-ink'
+                        : 'bg-gold/15 text-gold'
+                    }`}>
+                    {count}
+                  </span>
+                )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
       </div>
-      {rows.length === 0 ? (
+
+      {/* Search */}
+      <div className="mt-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={s.searchPlaceholder}
+          className="w-full sm:w-[22rem] rounded border border-gold/25 bg-ink/60 px-3 py-2 text-sm text-parchment placeholder:text-parchment-dim/50 focus:border-gold/60 focus:outline-none transition-colors"
+          aria-label={s.searchPlaceholder}
+        />
+      </div>
+
+      {/* Submissions list */}
+      {filteredRows.length === 0 ? (
         <div className="card-dark texture-noise mt-3 rounded-lg p-10 text-center">
-          <p className="font-display text-xl text-parchment">{s.allClear}</p>
-          <p className="mt-1 text-xs text-parchment-dim">{s.noPending}</p>
+          <p className="font-display text-xl text-parchment">{activeTab === 'pending' ? s.allClear : s.emptyState}</p>
+          <p className="mt-1 text-xs text-parchment-dim">
+            {search.trim()
+              ? s.noResults
+              : activeTab === 'pending'
+              ? s.noPending
+              : undefined}
+          </p>
         </div>
       ) : (
-        <ul className="mt-3 space-y-3">
-          {rows.map((sub) => (
+        <ul className="mt-3 space-y-3" role="list" aria-label={s[activeTab === 'pending' ? 'tabPending' : activeTab === 'approved' ? 'tabApproved' : 'tabRejected'] as keyof typeof s}>
+          {filteredRows.map((sub) => (
             <li key={sub.id} className="card-dark texture-noise rounded-lg border border-gold/10 p-4 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-display text-base font-semibold text-parchment">
                   {sub.kind === 'create' ? s.kindCreate : s.kindEdit}  -  {sub.payload.nameFr ?? sub.payload.nom ?? sub.targetKey}
                 </span>
-                <span className="text-[0.6875rem] text-parchment-dim">{sub.submittedBy} · {new Date(sub.submittedAt).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-GB')}</span>
+                <div className="flex items-center gap-3 text-[0.6875rem] text-parchment-dim">
+                  <span>
+                    {s.submittedBy} {sub.submittedBy} · {s.submittedAt} {new Date(sub.submittedAt).toLocaleString(dateLocale)}
+                  </span>
+                  {sub.status !== 'pending' && sub.decidedBy && (
+                    <span className="text-gold-light/80">
+                      {s.decidedBy} {sub.decidedBy} · {s.decidedAt} {new Date(sub.decidedAt!).toLocaleString(dateLocale)}
+                    </span>
+                  )}
+                </div>
               </div>
+
               {sub.kind === 'edit' && sub.before && (
                 <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs text-parchment-dim sm:grid-cols-[auto_1fr_auto_1fr]">
                   <dt className="font-semibold text-parchment">{s.diffLabel}</dt>
@@ -138,6 +290,7 @@ export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
                   ))}
                 </dl>
               )}
+
               {sub.kind === 'create' && (
                 <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs text-parchment-dim sm:grid-cols-[auto_1fr_auto_1fr]">
                   {SUBMISSION_FIELDS.map(([key, label]) => {
@@ -152,6 +305,7 @@ export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
                   })}
                 </dl>
               )}
+
               {(sub.payload.sourceUrl || sub.payload.note) && (
                 <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs text-parchment-dim">
                   {sub.payload.sourceUrl && (
@@ -167,29 +321,39 @@ export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
                   )}
                 </dl>
               )}
-              <div className="mt-3 flex gap-1.5">
-                <input
-                  value={notes[sub.id] ?? ''}
-                  onChange={(e) => setNotes({ ...notes, [sub.id]: (e.target as HTMLInputElement).value })}
-                  placeholder={s.notePlaceholder}
-                  aria-label={s.noteAria}
-                  className="field !py-1 !text-xs flex-1"
-                />
-                <button
-                  onClick={() => act(sub.id, 'approve')}
-                  disabled={busy !== null}
-                  className="btn-gold !py-1 !text-xs flex-none disabled:opacity-50"
-                >
-                  {busy === sub.id + 'approve' ? '...' : s.approve}
-                </button>
-                <button
-                  onClick={() => act(sub.id, 'reject')}
-                  disabled={busy !== null}
-                  className="btn-ghost !py-1 !text-xs flex-none disabled:opacity-50 border-gold/20 text-parchment-dim hover:bg-gold/5"
-                >
-                  {busy === sub.id + 'reject' ? '...' : s.reject}
-                </button>
-              </div>
+
+              {sub.adminNote && (
+                <p className="mt-2 text-[0.6875rem] text-parchment-dim/70">
+                  <span className="font-semibold text-gold-light">{s.adminNoteLabel}</span>{' '}
+                  {sub.adminNote}
+                </p>
+              )}
+
+              {sub.status === 'pending' && (
+                <div className="mt-3 flex gap-1.5">
+                  <input
+                    value={notes[sub.id] ?? ''}
+                    onChange={(e) => setNotes({ ...notes, [sub.id]: (e.target as HTMLInputElement).value })}
+                    placeholder={s.notePlaceholder}
+                    aria-label={s.noteAria}
+                    className="field !py-1 !text-xs flex-1"
+                  />
+                  <button
+                    onClick={() => act(sub.id, 'approve')}
+                    disabled={busy !== null}
+                    className="btn-gold !py-1 !text-xs flex-none disabled:opacity-50"
+                  >
+                    {busy === sub.id + 'approve' ? '...' : s.approve}
+                  </button>
+                  <button
+                    onClick={() => act(sub.id, 'reject')}
+                    disabled={busy !== null}
+                    className="btn-ghost !py-1 !text-xs flex-none disabled:opacity-50 border-gold/20 text-parchment-dim hover:bg-gold/5"
+                  >
+                    {busy === sub.id + 'reject' ? '...' : s.reject}
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>
