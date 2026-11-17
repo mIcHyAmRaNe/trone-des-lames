@@ -608,7 +608,9 @@ export default function CatalogEditDialog({
                             onChange={(e) => setDependCouleurPeau(e.target.checked)}
                             className="h-4 w-4 accent-gold"
                           />
-                          {lang === 'en' ? 'Depends on skin colour' : 'Dépend de la couleur de peau'}
+                          {lang === 'en'
+                            ? 'Layer changes with skin colour'
+                            : 'Le calque change selon la couleur de peau'}
                         </label>
                         <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
                           <input
@@ -618,8 +620,8 @@ export default function CatalogEditDialog({
                             className="h-4 w-4 accent-gold"
                           />
                           {lang === 'en'
-                            ? 'Cut according to the left hand'
-                            : 'Découpé selon la main gauche'}
+                            ? 'Layer cut by left hand posture'
+                            : 'Le calque est découpé selon la posture main gauche'}
                         </label>
                         <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
                           <input
@@ -629,8 +631,8 @@ export default function CatalogEditDialog({
                             className="h-4 w-4 accent-gold"
                           />
                           {lang === 'en'
-                            ? 'Cut according to the right hand'
-                            : 'Découpé selon la main droite'}
+                            ? 'Layer cut by right hand posture'
+                            : 'Le calque est découpé selon la posture main droite'}
                         </label>
                       </div>
                       <span className={HELP}>{help.depends}</span>
@@ -638,16 +640,21 @@ export default function CatalogEditDialog({
 
                     <div className="sm:col-span-2">
                       <label htmlFor={`${uid}-sourceUrl`} className="label-caps">
-                        {lang === 'en' ? 'Source link' : 'Lien source'}
+                        {lang === 'en' ? 'Wiki source URL' : 'URL source wiki'}
                       </label>
                       <input
                         id={`${uid}-sourceUrl`}
                         value={sourceUrl}
                         onChange={(e) => setSourceUrl(e.target.value)}
                         inputMode="url"
-                        placeholder="https://…"
+                        placeholder={lang === 'en' ? 'https://wiki.renaissancekingdoms.com/…' : 'https://wiki.renaissancekingdoms.com/…'}
                         className={`${FIELD_INPUT} mt-1.5`}
                       />
+                      <span className={HELP}>
+                        {lang === 'en'
+                          ? 'Link to the wiki page (FR or EN) describing the item. CDN URLs are filled automatically by our scripts.'
+                          : 'Lien vers la page wiki (FR ou EN) qui décrit l\'objet. Les URLs CDN sont remplies automatiquement par nos scripts.'}
+                      </span>
                     </div>
                   </div>
                 </div>

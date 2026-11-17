@@ -72,11 +72,12 @@ const STR = {
     slotsMasques: 'Slots masqués',
     slotsMasquesPlaceholder: 'ex. Chemise, Cape',
     depends: 'Calques dépendants',
-    dependSkin: 'Dépend de la couleur de peau',
-    dependLeft: 'Découpé selon la main gauche',
-    dependRight: 'Découpé selon la main droite',
-    sourceLink: 'Lien source',
-    sourceLinkPlaceholder: 'https://…',
+    dependSkin: 'Le calque change selon la couleur de peau',
+    dependLeft: 'Le calque est découpé selon la posture main gauche',
+    dependRight: 'Le calque est découpé selon la posture main droite',
+    sourceLink: 'URL source wiki',
+    sourceLinkPlaceholder: 'https://wiki.renaissancekingdoms.com/…',
+    sourceLinkHelp: 'Lien vers la page wiki (FR ou EN) qui décrit l\'objet. Les URLs CDN sont remplies automatiquement par nos scripts.',
     submit: 'Envoyer la proposition',
     // Error messages from server
     fieldError: {
@@ -138,11 +139,12 @@ const STR = {
     slotsMasques: 'Masked slots',
     slotsMasquesPlaceholder: 'ex. Shirt, Cape',
     depends: 'Dependent layers',
-    dependSkin: 'Depends on skin colour',
-    dependLeft: 'Cut according to the left hand',
-    dependRight: 'Cut according to the right hand',
-    sourceLink: 'Source link',
-    sourceLinkPlaceholder: 'https://…',
+    dependSkin: 'Layer changes with skin colour',
+    dependLeft: 'Layer cut by left hand posture',
+    dependRight: 'Layer cut by right hand posture',
+    sourceLink: 'Wiki source URL',
+    sourceLinkPlaceholder: 'https://wiki.renaissancekingdoms.com/…',
+    sourceLinkHelp: 'Lien vers la page wiki (FR ou EN) qui décrit l\'objet. Les URLs CDN sont remplies automatiquement par nos scripts.',
     submit: 'Submit proposal',
     // Error messages from server
     fieldError: {
@@ -525,6 +527,7 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
                   autoComplete="url"
                   className={`${FIELD_INPUT} mt-1.5`}
                 />
+                <span className={HELP}>{s.sourceLinkHelp}</span>
               </label>
             </div>
           </div>
