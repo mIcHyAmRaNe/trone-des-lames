@@ -323,10 +323,12 @@ function payload(match: Match, draft: Draft) {
 type AdminView = 'tournoi' | 'agenda' | 'catalog';
 
 const ADMIN_TABS = [
-  { view: 'tournoi', href: '/admin', label: 'Tournoi' },
-  { view: 'agenda', href: '/admin/agenda', label: 'Agenda' },
-  { view: 'catalog', href: '/admin/catalog', label: 'Catalogue' },
+  { view: 'tournoi', href: '/admin', labelKey: 'tournoi' },
+  { view: 'agenda', href: '/admin/agenda', labelKey: 'agenda' },
+  { view: 'catalog', href: '/admin/catalog', labelKey: 'catalog' },
 ] as const;
+
+type PendingCounts = { catalog: number; agenda: number };
 
 export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: Lang }) {
   const s = STR[lang];
@@ -334,6 +336,27 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [state, setState] = useState<TournamentState | null>(null);
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
+  const [pendingCounts, setPendingCounts] = useState<PendingCounts>({ catalog: 0, agenda: 0 });
+
+  async function fetchPendingCounts() {
+    try {
+      const [subRes, evRes] = await Promise.all([
+        fetch('/api/submissions?status=pending'),
+        fetch('/api/admin/events'),
+      ]);
+      if (subRes.ok) {
+        const subs = await subRes.json();
+        setPendingCounts((c) => ({ ...c, catalog: subs.length }));
+      }
+      if (evRes.ok) {
+        const { events } = await evRes.json();
+        const pending = events.filter((e: { status: string }) => e.status === 'pending').length;
+        setPendingCounts((c) => ({ ...c, agenda: pending }));
+      }
+    } catch {
+      // silencieux
+    }
+  }
 
   const notify = useCallback((kind: 'ok' | 'err', msg: string) => {
     setToast({ kind, msg });
@@ -349,6 +372,7 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
     api('/api/admin/session', undefined, lang)
       .then(() => {
         setAuthed(true);
+        fetchPendingCounts();
         return refresh();
       })
       .catch(() => setAuthed(false));
@@ -368,6 +392,13 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
     },
     [refresh, notify, s.genericError],
   );
+
+  // Rafraîchir les badges quand on change de vue (catalog/agenda)
+  useEffect(() => {
+    if (view === 'catalog' || view === 'agenda') {
+      fetchPendingCounts();
+    }
+  }, [view, lang]);
 
   if (authed === null) {
     return (
@@ -408,30 +439,40 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
       </div>
 
       <nav aria-label={s.navAria} className="flex gap-1 border-b border-gold/15">
-        {ADMIN_TABS.map((tab) => (
-          <a
-            key={tab.view}
-            href={tab.href}
-            aria-current={tab.view === view ? 'page' : undefined}
-            className={`relative inline-flex items-center gap-2 px-3 py-3 text-[0.6875rem] font-bold uppercase tracking-[0.12em] transition-colors sm:px-5 sm:tracking-[0.18em] ${
-              tab.view === view
-                ? 'bg-gold/[0.05] text-gold'
-                : 'text-parchment-dim hover:bg-gold/[0.03] hover:text-parchment'
-            }`}
-          >
-            <span
-              className={`h-1 w-1 rotate-45 ${tab.view === view ? 'bg-gold' : 'bg-gold/30'}`}
-              aria-hidden="true"
-            />
-            {s.tabs[tab.view]}
-            {tab.view === view && (
+        {ADMIN_TABS.map((tab) => {
+          const count = tab.view === 'catalog' ? pendingCounts.catalog : tab.view === 'agenda' ? pendingCounts.agenda : 0;
+          return (
+            <a
+              key={tab.view}
+              href={tab.href}
+              aria-current={tab.view === view ? 'page' : undefined}
+              className={`relative inline-flex items-center gap-2 px-3 py-3 text-[0.6875rem] font-bold uppercase tracking-[0.12em] transition-colors sm:px-5 sm:tracking-[0.18em] ${
+                tab.view === view
+                  ? 'bg-gold/[0.05] text-gold'
+                  : 'text-parchment-dim hover:bg-gold/[0.03] hover:text-parchment'
+              }`}
+            >
               <span
-                className="absolute inset-x-2 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent"
+                className={`h-1 w-1 rotate-45 ${tab.view === view ? 'bg-gold' : 'bg-gold/30'}`}
                 aria-hidden="true"
               />
-            )}
-          </a>
-        ))}
+              <span className="flex items-center gap-1.5">
+                {s.tabs[tab.view]}
+                {count > 0 && (
+                  <span className="h-5 min-w-5 flex items-center justify-center rounded-full px-1.5 text-[0.5rem] font-bold bg-blood text-parchment animate-pulse">
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+              </span>
+              {tab.view === view && (
+                <span
+                  className="absolute inset-x-2 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-gold to-transparent"
+                  aria-hidden="true"
+                />
+              )}
+            </a>
+          );
+        })}
       </nav>
 
       {view === 'catalog' ? (
