@@ -63,6 +63,14 @@ const BLACKLIST = new Set([
   'arme', 'lac', 'pecher', 'verger',           // slugs canoniques
   'Arme', 'Lac', 'Pêcher', 'Verger',           // titres FR exacts
   'Weapon', 'Lake', 'Fishing', 'Orchard',      // titres EN exacts
+  // Pages qui listent les variantes d'un objet, pas un objet unique
+  'Foulard du teinturier', 'Tenue du teinturier',
+  'Foulards du teinturier', 'Tenues du teinturier',
+  'Les foulards du teinturier', 'Les tenues du teinturier',
+  'Panoplie Troubadour', "Panoplie 'Troubadour'", 'Troubadour set',
+  'Troubadour - 1', 'Troubadour - 2', 'Troubadour - 3',
+  'Panoplie Mariage', "Panoplie 'Mariage'", 'Wedding set',
+  'Mariage - 1', 'Mariage - 2', 'Mariage - 3',
   // Catégories wiki parentes qui listent des sous-objets (pas des items)
   'Cats', 'Chick', 'Clam',                      // EN category pages
   'Chats', 'Poussin', 'Palourde',               // FR category pages (si existants)
@@ -178,12 +186,31 @@ function normalizeName(value) {
     .replace(/[^a-z0-9]+/g, '');
 }
 
+/** Nom FR affiché : tel que sur le wiki, sans article initial ajouté. */
+const wikiDisplayName = (value) => {
+  const bare = `${value ?? ''}`
+    .replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, '$1')
+    .replace(/\[\[([^\]]*)\]\]/g, '$1')
+    .replace(/^(?:l['’]|le |la |les |un |une |des |du |de |d')/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return bare ? bare[0].toUpperCase() + bare.slice(1) : '';
+};
+
+/** Ramène un chemin CDN relevé sur le wiki à la forme attendue par la cabine
+ *  d'essayage : séparateurs simples et suffixe _@1X (le rendu Midas est en X1). */
+function normalizeCdnPath(path) {
+  return path.replace(/\/{2,}/g, '/').replace(/_@\d+X(\.\w+)$/i, '_@1X$1');
+}
+
 /**
  * Décompose une URL CDN en chemin, nom d'asset et variantes.
  * `vetements/gantMineur_m0_n0_d1_0_@1X.webp` -> nom `gantMineur`, flags main G/D.
  */
 function assetInfo(url) {
-  const path = decodeURIComponent(url.slice(url.indexOf('personnages_midas/') + 'personnages_midas/'.length));
+  const path = normalizeCdnPath(
+    decodeURIComponent(url.slice(url.indexOf('personnages_midas/') + 'personnages_midas/'.length)),
+  );
   const parts = path.split('/');
   const sexFolder = parts[0];
   const sub = parts.length > 2 ? parts[1] : null;
@@ -494,6 +521,9 @@ const byName = new Map();
 const byAsset = new Map();
 for (const item of wikiItems.values()) {
   const infos = assetsByItem.get(item.title) ?? [];
+  // Une page de panoplie porte les sprites de ses éléments (`elementPano > 1`) :
+  // ses assets ne doivent jamais être proposés aux fiches de ces éléments.
+  if (Number(templateField(item.text ?? '', 'elementPano')) > 1) continue;
   for (const name of item.names) {
     const key = normalizeName(name);
     if (!key) continue;
@@ -584,6 +614,19 @@ function pathsFor(infos, sex) {
   return [...new Set(paths)];
 }
 
+/** Le wiki liste souvent le même sprite en .webp et en .png (l'une des URL
+ *  portant un `//` dédoublé). Une seule forme par asset ; le .png est préféré
+ *  quand il répond, comme l'URL que l'appli recalcule sans champ cdn. */
+function dedupeCdnPaths(paths) {
+  const byAsset = new Map();
+  for (const p of paths) {
+    const key = p.replace(/\.\w+$/, '');
+    const prev = byAsset.get(key);
+    if (!prev || /\.png$/i.test(p)) byAsset.set(key, p);
+  }
+  return [...byAsset.values()];
+}
+
 for (const sex of ['M', 'F']) {
   const list = catalog.sexes[sex];
   for (const it of list) {
@@ -621,6 +664,11 @@ for (const sex of ['M', 'F']) {
       if (await exists(CDN_ROOT + p)) usable.push(p);
     }
     if (!usable.length) continue;
+    const unique = dedupeCdnPaths(usable);
+    if (unique.length !== usable.length) {
+      usable.length = 0;
+      usable.push(...unique);
+    }
 
     const asset = infos.find((i) => i.sex === sex) ?? infos[0];
 
@@ -676,7 +724,10 @@ for (const sex of ['M', 'F']) {
     // Mettre à jour les noms FR/EN depuis le wiki si disponibles
     const wikiItem = hit.item;
     if (wikiItem) {
-      const wikiNameFr = templateField(wikiItem.text ?? '', 'nom');
+      // Un item peut être rapproché de sa page EN : son `nom` est alors anglais.
+      // Ne jamais écraser un libellé FR avec un titre EN.
+      const frNom = wikiItem.lang === 'fr' ? templateField(wikiItem.text ?? '', 'nom') : '';
+      const wikiNameFr = frNom ? wikiDisplayName(frNom) : '';
       const wikiNameEn = templateField(wikiItem.textEn ?? '', 'nom') || templateField(wikiItem.textEn ?? '', 'anNom');
       if (wikiNameFr && wikiNameFr !== it.nameFr) {
         it.nameFr = wikiNameFr;
@@ -691,21 +742,23 @@ for (const sex of ['M', 'F']) {
 }
 
 // --- 3.5. correction du sexe des fiches existantes selon le wiki ------------
+// Le wiki étiquette parfois le sprite du bon sexe avec le mauvais dossier CDN
+// (`Item819f.png` -> `hommes/...`) : on garde ces cas explicites.
+const SEX_OVERRIDES = new Map([['renardpolaire', ['F']]]);
 // Construit une map nom -> sexes corrects depuis les données wiki
 const correctSexes = new Map();
 for (const item of wikiItemsByName.values()) {
   const infos = assetsByItem.get(item.title) ?? [];
-  if (!infos.length) continue;
   const name = templateField(item.text ?? '', 'nom') || item.title;
   const templateSex = extractSexFromTemplate(item.text ?? '');
   let sexes;
   if (templateSex === 'M') sexes = ['M'];
   else if (templateSex === 'F') sexes = ['F'];
   else if (templateSex === 'MF') sexes = ['M', 'F'];
-  else {
+  else if (infos.length) {
     sexes = [...new Set(infos.map((i) => i.sex).filter(Boolean))];
-    if (!sexes.length) sexes.push('M', 'F');
-  }
+    if (!sexes.length) continue;
+  } else continue; // ni genre déclaré ni asset : on ne devine pas le sexe
   correctSexes.set(normalizeName(name), sexes);
 }
 
@@ -716,7 +769,7 @@ for (const sex of ['M', 'F']) {
   for (let i = list.length - 1; i >= 0; i--) {
     const it = list[i];
     const key = normalizeName(it.nameFr) || normalizeName(it.nameEn);
-    const correct = correctSexes.get(key);
+    const correct = (it.id.startsWith('wiki:') && SEX_OVERRIDES.get(key)) || correctSexes.get(key);
     if (!correct) continue;
     const hasM = correct.includes('M');
     const hasF = correct.includes('F');
@@ -783,7 +836,8 @@ for (const item of wikiItemsByName.values()) {
   
   // nameFr: depuis le template FR (nom), fallback titre
   // nameEn: depuis le template EN (nom ou anNom), fallback nameFr
-  const nameFr = templateField(item.text ?? '', 'nom') || item.title;
+  const frNom = item.lang === 'fr' ? templateField(item.text ?? '', 'nom') : '';
+  const nameFr = wikiDisplayName(frNom || (item.lang === 'fr' ? item.title : '')) || item.title;
   const nameEn = templateField(item.textEn ?? '', 'nom') || templateField(item.textEn ?? '', 'anNom') || null;
   
   // Nom d'affichage principal (FR prioritaire)
@@ -832,6 +886,11 @@ for (const item of wikiItemsByName.values()) {
     const usable = [];
     for (const p of paths) if (await exists(CDN_ROOT + p)) usable.push(p);
     if (!usable.length) continue;
+    const unique = dedupeCdnPaths(usable);
+    if (unique.length !== usable.length) {
+      usable.length = 0;
+      usable.push(...unique);
+    }
     const decls = [...new Set(infos.map((i) => i.decl).filter((d) => d != null))].sort((a, b) => a - b);
 
     // Même objet déjà complet pour l'autre sexe : on recopie l'entrée (même

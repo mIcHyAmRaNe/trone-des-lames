@@ -63,14 +63,25 @@ interface Row {
 
 const plural = (n: number) => (n > 1 ? 's' : '');
 
-/** Fusionne M et F par id : un objet présent des deux côtés devient « Mixte ». */
+/**
+ * Fusionne M et F par id **et par nom** : un objet vraiment mixte garde une
+ * seule ligne, mais quand le nom change selon le sexe (pièces de panoplie
+ * genrées : « Gants de cuir » / « Gants de mariée »), ce sont deux objets —
+ * deux lignes, chacune avec son libellé et ses propres URLs CDN.
+ */
 function buildRows(catalog: Catalog, lang: Lang): Row[] {
-  const byId = new Map<string, { m?: CatalogItem; f?: CatalogItem }>();
-  for (const m of catalog.sexes.M) byId.set(m.id, { ...byId.get(m.id), m });
-  for (const f of catalog.sexes.F) byId.set(f.id, { ...byId.get(f.id), f });
+  const byLabel = new Map<string, { m?: CatalogItem; f?: CatalogItem }>();
+  const add = (item: CatalogItem, sexe: 'm' | 'f') => {
+    const label = `${item.nameFr ?? item.nameEn ?? item.nom ?? item.id}`.trim().toLowerCase();
+    const key = `${item.id}|${label}`;
+    byLabel.set(key, { ...byLabel.get(key), [sexe]: item });
+  };
+  for (const m of catalog.sexes.M) add(m, 'm');
+  for (const f of catalog.sexes.F) add(f, 'f');
   const rows: Row[] = [];
-  for (const [id, pair] of byId) {
+  for (const pair of byLabel.values()) {
     const item = pair.m ?? pair.f!;
+    const id = item.id;
     const previews = ([
       ['M', pair.m],
       ['F', pair.f],
@@ -514,7 +525,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
                   const pending = pendingKeys.has(r.id);
                   return (
                     <tr
-                      key={r.id}
+                      key={`${r.id}-${r.sexe}`}
                       className="border-b border-gold/10 transition-colors last:border-b-0 hover:bg-gold/[0.04]"
                     >
                       <td className="px-4 py-2.5 font-medium text-parchment">

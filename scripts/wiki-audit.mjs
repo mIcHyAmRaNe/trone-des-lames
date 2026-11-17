@@ -22,6 +22,27 @@ const CACHE = join(ROOT, '.cache/wiki-audit');
 const WIKI = 'https://wiki.renaissancekingdoms.com';
 const API = `${WIKI}/fr/api.php`;
 const UA = 'trone-des-lames-catalog-audit/1.0';
+// Pages de section/catégorie qui listent des objets sans être des items.
+// Même liste que wiki-fill-cdn.mjs : sans elle, `--import` recrée des fiches fantômes.
+const BLACKLIST = new Set([
+  'arme', 'lac', 'pecher', 'verger',
+  'Arme', 'Lac', 'Pêcher', 'Verger',
+  'Weapon', 'Lake', 'Fishing', 'Orchard',
+  // Pages qui listent les variantes d'un objet, pas un objet unique
+  'Foulard du teinturier', 'Tenue du teinturier',
+  'Foulards du teinturier', 'Tenues du teinturier',
+  'Les foulards du teinturier', 'Les tenues du teinturier',
+  'Panoplie Troubadour', "Panoplie 'Troubadour'", 'Troubadour set',
+  'Troubadour - 1', 'Troubadour - 2', 'Troubadour - 3',
+  'Panoplie Mariage', "Panoplie 'Mariage'", 'Wedding set',
+  'Mariage - 1', 'Mariage - 2', 'Mariage - 3',
+  'Cats', 'Chick', 'Clam', 'Chats', 'Poussin', 'Palourde',
+  'Pets', 'Familiers', 'Duck', 'Jousting horses', 'Jousting horse',
+  'Doodled background', 'Doodled',
+  'Common duck', 'Rare duck', 'Epic duck', 'Duck family',
+  'Jousting horse (bay)', 'Jousting horse (white)',
+  'Jousting horse (isabelline)', 'Jousting horse (jet black)',
+]);
 const CDN_RE =
   /https:\/\/lesroyaumes\.cdn\.oxv\.fr\/images\/personnages_midas\/(hommes|femmes)\/vetements\/([^\s"'<>)\]]+\.(?:png|webp|gif|jpg))/gi;
 
@@ -102,7 +123,7 @@ async function readWikiPage() {
         const sexes = col === 1 ? ['M', 'F'] : col === 2 ? ['F'] : ['M'];
         for (const a of cells[col].matchAll(/<a [^>]*href="\/fr\/[^"]+"[^>]*title="([^"]+)"/g)) {
           const title = decodeEntities(a[1]);
-          if (title.startsWith('Fichier:') || title.startsWith('Catégorie:')) continue;
+          if (title.startsWith('Fichier:') || title.startsWith('Catégorie:') || BLACKLIST.has(title)) continue;
           const entry = items.get(title) ?? { title, section, sexes: new Set() };
           sexes.forEach((s) => entry.sexes.add(s));
           items.set(title, entry);
@@ -341,6 +362,7 @@ function groupForImport(rows) {
       name: r.name,
       nameEn: r.nameEn ?? null,
       section: r.section,
+      genre: r.genre ?? null,
       sexes: new Set(),
       assets: {},
     };
@@ -372,7 +394,14 @@ function importWikiItems(catalog, gaps, namedOnly) {
   let added = 0;
   for (const entry of byTitle.values()) {
     const id = wikiId(entry.title);
-    for (const sex of entry.sexes) {
+    // `VetementGenre` du wiki prime sur la colonne du tableau « Vêtement »,
+    // qui range parfois un objet « pour homme » sous FEMME.
+    const g = `${entry.genre ?? ''}`.toLowerCase();
+    const sexes =
+      g.includes('femme') && !g.includes('homme') ? ['F'] :
+      g.includes('homme') && !g.includes('femme') ? ['M'] :
+      g.includes('mixte') ? ['M', 'F'] : [...entry.sexes];
+    for (const sex of sexes) {
       if (catalog.sexes[sex].some((it) => it.id === id)) continue;
       const asset = entry.assets[sex];
       catalog.sexes[sex].push({

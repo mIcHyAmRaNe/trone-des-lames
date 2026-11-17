@@ -1,95 +1,32 @@
 {
-  "generatedAt": "2026-11-13T07:41:51.285Z",
+  "generatedAt": "2026-11-17T22:54:28.131Z",
   "source": "https://wiki.renaissancekingdoms.com/fr/V%C3%AAtement",
   "catalog": {
     "generatedAt": "2026-10-05T14:07:27.714Z",
-    "refreshedAt": "2026-11-13T07:14:52.060Z"
+    "refreshedAt": "2026-11-17T22:54:28.124Z"
   },
   "counts": {
-    "wikiItems": 1014,
+    "wikiItems": 1002,
     "tables": 16,
-    "itemSexPairs": 1962,
-    "resolvedByAsset": 1005,
-    "resolvedByName": 940,
+    "itemSexPairs": 1938,
+    "resolvedByAsset": 1035,
+    "resolvedByName": 893,
     "crossSex": 0,
     "gaps": 0,
-    "probable": 17,
-    "namedOnly": 0
+    "probable": 2,
+    "namedOnly": 8
   },
   "gaps": [],
   "crossSex": [],
   "probable": [
     {
-      "title": "Étole des Cinq Rivières",
-      "name": "L'étole des Cinq Rivières",
-      "section": "I.a CHAPEAUX",
-      "sex": "F",
-      "id": "1892",
-      "nom": "etoleCinqRivieres",
-      "nameFr": null
-    },
-    {
-      "title": "Fleur",
-      "name": "La fleur",
-      "section": "I.a CHAPEAUX",
-      "sex": "F",
-      "id": "191",
-      "nom": "fleur",
-      "nameFr": null
-    },
-    {
-      "title": "Fleur",
-      "name": "La fleur",
-      "section": "I.a CHAPEAUX",
-      "sex": "M",
-      "id": "191",
-      "nom": "fleur",
-      "nameFr": null
-    },
-    {
-      "title": "Anneau de nez",
-      "name": "L'anneau de nez",
+      "title": "Collier en pierre fine (cornaline)",
+      "name": "Le collier en pierre fine (cornaline)",
       "section": "V. BIJOUX",
       "sex": "M",
-      "id": "1897",
-      "nom": "anneauNez",
-      "nameFr": null
-    },
-    {
-      "title": "Anneau de nez",
-      "name": "L'anneau de nez",
-      "section": "V. BIJOUX",
-      "sex": "F",
-      "id": "1897",
-      "nom": "anneauNez",
-      "nameFr": null
-    },
-    {
-      "title": "Bijou étincelant",
-      "name": "Le bijou étincelant",
-      "section": "V. BIJOUX",
-      "sex": "F",
-      "id": "1898",
-      "nom": "bijouEtincelant",
-      "nameFr": null
-    },
-    {
-      "title": "Collier en perles de jade",
-      "name": "Le collier en perles de jade",
-      "section": "V. BIJOUX",
-      "sex": "M",
-      "id": "1899",
-      "nom": "collierPerlesJade",
-      "nameFr": null
-    },
-    {
-      "title": "Collier en perles de jade",
-      "name": "Le collier en perles de jade",
-      "section": "V. BIJOUX",
-      "sex": "F",
-      "id": "1899",
-      "nom": "collierPerlesJade",
-      "nameFr": null
+      "id": "1902",
+      "nom": "collierPierreFineCornaline",
+      "nameFr": "Colliers en pierre fine"
     },
     {
       "title": "Collier en pierre fine (cornaline)",
@@ -98,81 +35,90 @@
       "sex": "F",
       "id": "1902",
       "nom": "collierPierreFineCornaline",
-      "nameFr": null
-    },
-    {
-      "title": "Chevaux de joute",
-      "name": "Le cheval de joute (bai)",
-      "section": "VII FAMILIERS",
-      "sex": "M",
-      "id": "1137",
-      "nom": "chevalJoute",
-      "nameFr": "Cheval de joute (blanc)"
-    },
-    {
-      "title": "Chevaux de joute",
-      "name": "Le cheval de joute (bai)",
-      "section": "VII FAMILIERS",
-      "sex": "F",
-      "id": "1137",
-      "nom": "chevalJoute",
-      "nameFr": "Cheval de joute (blanc)"
-    },
-    {
-      "title": "Tissage des Cinq Rivières",
-      "name": "Le tissage des Cinq Rivières",
-      "section": "X.b MANTELS",
-      "sex": "F",
-      "id": "1891",
-      "nom": "tissageCinqRivieres",
-      "nameFr": null
-    },
-    {
-      "title": "Haut des Cinq Rivières",
-      "name": "Le haut des Cinq Rivières",
-      "section": "XI.b CHEMISES",
-      "sex": "M",
-      "id": "1890",
-      "nom": "hautCinqRivieres",
-      "nameFr": null
-    },
-    {
-      "title": "Haut des Cinq Rivières",
-      "name": "Le haut des Cinq Rivières",
-      "section": "XI.b CHEMISES",
-      "sex": "F",
-      "id": "1890",
-      "nom": "hautCinqRivieres",
-      "nameFr": null
-    },
-    {
-      "title": "Haut des dunes",
-      "name": "Le haut des dunes",
-      "section": "XI.b CHEMISES",
-      "sex": "F",
-      "id": "1922",
-      "nom": "hautDunes",
-      "nameFr": null
-    },
-    {
-      "title": "Panoplie Raptor Master",
-      "name": "La panoplie Raptor Master",
-      "section": "XII. PANOPLIES",
-      "sex": "F",
-      "id": "796",
-      "nom": "PanoplieRaptorMaster",
-      "nameFr": null
-    },
-    {
-      "title": "Foulard des dunes",
-      "name": "Le foulard des dunes",
-      "section": "XIII.d COU",
-      "sex": "F",
-      "id": "1926",
-      "nom": "foulardDunes",
-      "nameFr": null
+      "nameFr": "Colliers en pierre fine"
     }
   ],
-  "namedOnly": [],
+  "namedOnly": [
+    {
+      "title": "Rituel - 3",
+      "name": "L'accessoire de Rituel, appelé aussi Rituel - 3 ou Coiffe (femme) ou Étole (homme),",
+      "nameEn": "M: ritual stole; F: ritual wimple",
+      "section": "I.a CHAPEAUX",
+      "sex": "F",
+      "genre": null,
+      "emplacement": "",
+      "missingPage": false
+    },
+    {
+      "title": "Rituel - 3",
+      "name": "L'accessoire de Rituel, appelé aussi Rituel - 3 ou Coiffe (femme) ou Étole (homme),",
+      "nameEn": "M: ritual stole; F: ritual wimple",
+      "section": "I.a CHAPEAUX",
+      "sex": "M",
+      "genre": null,
+      "emplacement": "",
+      "missingPage": false
+    },
+    {
+      "title": "Collier en pierre fine (ambre)",
+      "name": "Le collier en pierre fine (ambre)",
+      "nameEn": "Gemstone necklace (amber)",
+      "section": "V. BIJOUX",
+      "sex": "M",
+      "genre": "mixte",
+      "emplacement": "V. : Bijoux",
+      "missingPage": false
+    },
+    {
+      "title": "Collier en pierre fine (apatite)",
+      "name": "Le collier en pierre fine (apatite)",
+      "nameEn": "Gemstone necklace (apatite)",
+      "section": "V. BIJOUX",
+      "sex": "F",
+      "genre": "mixte",
+      "emplacement": "V. : Bijoux",
+      "missingPage": false
+    },
+    {
+      "title": "Collier en pierre fine (péridot)",
+      "name": "Le collier en pierre fine (péridot)",
+      "nameEn": "Gemstone necklace (peridot)",
+      "section": "V. BIJOUX",
+      "sex": "M",
+      "genre": "mixte",
+      "emplacement": "V. : Bijoux",
+      "missingPage": false
+    },
+    {
+      "title": "Collier en pierre fine (péridot)",
+      "name": "Le collier en pierre fine (péridot)",
+      "nameEn": "Gemstone necklace (peridot)",
+      "section": "V. BIJOUX",
+      "sex": "F",
+      "genre": "mixte",
+      "emplacement": "V. : Bijoux",
+      "missingPage": false
+    },
+    {
+      "title": "Chemise de l'Abeilleur",
+      "name": "La Chemise de l'Abeilleur",
+      "nameEn": "Honey Farmer's Shirt",
+      "section": "XI.b CHEMISES",
+      "sex": "F",
+      "genre": "pour homme",
+      "emplacement": "XI.b : Chemises",
+      "missingPage": false
+    },
+    {
+      "title": "Léine celtique",
+      "name": "Le Léine celtique",
+      "nameEn": "Celtic léine",
+      "section": "XI.b CHEMISES",
+      "sex": "F",
+      "genre": "pour homme",
+      "emplacement": "XI.b. : Chemises",
+      "missingPage": false
+    }
+  ],
   "unknownAssets": []
 }
