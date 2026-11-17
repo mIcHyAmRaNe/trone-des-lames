@@ -43,8 +43,11 @@ const BLACKLIST = new Set([
   'Jousting horse (bay)', 'Jousting horse (white)',
   'Jousting horse (isabelline)', 'Jousting horse (jet black)',
 ]);
+// Les pages Fichier: du wiki utilisent plusieurs hôtes (www.renaissancekingdoms.com,
+// beta.lesroyaumes.com, CDN oxv) et parfois un double slash. Ne pas les filtrer par
+// hôte, sinon l'asset passe pour absent et la fiche est importée sans CDN.
 const CDN_RE =
-  /https:\/\/lesroyaumes\.cdn\.oxv\.fr\/images\/personnages_midas\/(hommes|femmes)\/vetements\/([^\s"'<>)\]]+\.(?:png|webp|gif|jpg))/gi;
+  /https?:\/\/[^\s"'<>)\]]*personnages_midas\/(hommes|femmes)\/*\/vetements\/([^\s"'<>)\]]+\.(?:png|webp|gif|jpg))/gi;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

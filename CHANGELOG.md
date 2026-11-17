@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-18 — Colliers en pierre fine : variantes mixtes et CDN
+
+### Corrigé
+
+- Les trois variantes « Collier en pierre fine (ambre / apatite / péridot) » sont désormais présentes dans les deux sexes, avec leurs propres CDN (`collierPierreFineAmbre`, `...Apatite`, `...Peridot`, 2 sprites chacune).
+- L'id 1902 (« Colliers en pierre fine », cornaline) pointait à tort sur les sprites ambre ; son CDN est corrigé en `collierPierreFineCornaline`.
+- `wiki-audit` reconnaît maintenant les URL CDN de tous les hôtes du wiki (`www.renaissancekingdoms.com`, `beta.lesroyaumes.com`, CDN oxv) et les doubles slashs : les assets ne sont plus considérés comme absents, ce qui réduit les fiches à compléter de 152 à 144.
+
 ## 2026-11-18 — Catalogue : panoplies genrées, nettoyage wiki et affichage
 
 ### Corrigé

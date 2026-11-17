@@ -1,104 +1,25 @@
 {
-  "generatedAt": "2026-11-17T22:54:28.131Z",
+  "generatedAt": "2026-11-17T23:29:57.605Z",
   "source": "https://wiki.renaissancekingdoms.com/fr/V%C3%AAtement",
   "catalog": {
     "generatedAt": "2026-10-05T14:07:27.714Z",
-    "refreshedAt": "2026-11-17T22:54:28.124Z"
+    "refreshedAt": "2026-11-17T22:54:28.189Z"
   },
   "counts": {
     "wikiItems": 1002,
     "tables": 16,
     "itemSexPairs": 1938,
-    "resolvedByAsset": 1035,
-    "resolvedByName": 893,
+    "resolvedByAsset": 1239,
+    "resolvedByName": 697,
     "crossSex": 0,
     "gaps": 0,
-    "probable": 2,
-    "namedOnly": 8
+    "probable": 0,
+    "namedOnly": 2
   },
   "gaps": [],
   "crossSex": [],
-  "probable": [
-    {
-      "title": "Collier en pierre fine (cornaline)",
-      "name": "Le collier en pierre fine (cornaline)",
-      "section": "V. BIJOUX",
-      "sex": "M",
-      "id": "1902",
-      "nom": "collierPierreFineCornaline",
-      "nameFr": "Colliers en pierre fine"
-    },
-    {
-      "title": "Collier en pierre fine (cornaline)",
-      "name": "Le collier en pierre fine (cornaline)",
-      "section": "V. BIJOUX",
-      "sex": "F",
-      "id": "1902",
-      "nom": "collierPierreFineCornaline",
-      "nameFr": "Colliers en pierre fine"
-    }
-  ],
+  "probable": [],
   "namedOnly": [
-    {
-      "title": "Rituel - 3",
-      "name": "L'accessoire de Rituel, appelé aussi Rituel - 3 ou Coiffe (femme) ou Étole (homme),",
-      "nameEn": "M: ritual stole; F: ritual wimple",
-      "section": "I.a CHAPEAUX",
-      "sex": "F",
-      "genre": null,
-      "emplacement": "",
-      "missingPage": false
-    },
-    {
-      "title": "Rituel - 3",
-      "name": "L'accessoire de Rituel, appelé aussi Rituel - 3 ou Coiffe (femme) ou Étole (homme),",
-      "nameEn": "M: ritual stole; F: ritual wimple",
-      "section": "I.a CHAPEAUX",
-      "sex": "M",
-      "genre": null,
-      "emplacement": "",
-      "missingPage": false
-    },
-    {
-      "title": "Collier en pierre fine (ambre)",
-      "name": "Le collier en pierre fine (ambre)",
-      "nameEn": "Gemstone necklace (amber)",
-      "section": "V. BIJOUX",
-      "sex": "M",
-      "genre": "mixte",
-      "emplacement": "V. : Bijoux",
-      "missingPage": false
-    },
-    {
-      "title": "Collier en pierre fine (apatite)",
-      "name": "Le collier en pierre fine (apatite)",
-      "nameEn": "Gemstone necklace (apatite)",
-      "section": "V. BIJOUX",
-      "sex": "F",
-      "genre": "mixte",
-      "emplacement": "V. : Bijoux",
-      "missingPage": false
-    },
-    {
-      "title": "Collier en pierre fine (péridot)",
-      "name": "Le collier en pierre fine (péridot)",
-      "nameEn": "Gemstone necklace (peridot)",
-      "section": "V. BIJOUX",
-      "sex": "M",
-      "genre": "mixte",
-      "emplacement": "V. : Bijoux",
-      "missingPage": false
-    },
-    {
-      "title": "Collier en pierre fine (péridot)",
-      "name": "Le collier en pierre fine (péridot)",
-      "nameEn": "Gemstone necklace (peridot)",
-      "section": "V. BIJOUX",
-      "sex": "F",
-      "genre": "mixte",
-      "emplacement": "V. : Bijoux",
-      "missingPage": false
-    },
     {
       "title": "Chemise de l'Abeilleur",
       "name": "La Chemise de l'Abeilleur",
