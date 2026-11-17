@@ -173,7 +173,7 @@ export function payloadFromItem(item: CatalogItem, sexes: Sex[]): SubmissionPayl
     nom: item.nom,
     nameFr: item.nameFr,
     nameEn: item.nameEn,
-    slot: item.slot,
+    slot: item.slot || item.slotGardeRobe || '',
     zIndex: [...item.zIndex],
     declinaisons: [...item.declinaisons],
     slotsMasques: [...item.slotsMasques],

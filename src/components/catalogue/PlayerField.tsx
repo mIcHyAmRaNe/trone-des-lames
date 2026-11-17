@@ -98,7 +98,7 @@ export default function PlayerField({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={lang === 'fr' ? 'ex. Morggane' : 'ex. Morggane'}
+        placeholder={lang === 'fr' ? 'ex. Harvey_V' : 'ex. Harvey_V'}
         autoComplete="username"
         required
         aria-invalid={error ? true : undefined}
