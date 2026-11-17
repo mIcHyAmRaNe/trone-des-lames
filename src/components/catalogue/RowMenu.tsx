@@ -119,6 +119,26 @@ export default function RowMenu({
             style={{ top: pos.top, left: pos.left, width: MENU_WIDTH }}
             className="fixed z-50 border border-gold/25 bg-ink-2 py-1 shadow-deep"
           >
+            {assetName && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  navigator.clipboard.writeText(assetName);
+                  // Feedback visuel temporaire
+                  const btn = document.activeElement as HTMLButtonElement;
+                  if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = STR[lang].copied;
+                    setTimeout(() => { btn.textContent = originalText; }, 1500);
+                  }
+                }}
+                className={item}
+              >
+                {STR[lang].copyAsset}
+              </button>
+            )}
             <button
               type="button"
               role="menuitem"
@@ -143,26 +163,6 @@ export default function RowMenu({
             >
               Signaler
             </button>
-            {assetName && (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  navigator.clipboard.writeText(assetName);
-                  // Feedback visuel temporaire
-                  const btn = document.activeElement as HTMLButtonElement;
-                  if (btn) {
-                    const originalText = btn.textContent;
-                    btn.textContent = STR[lang].copied;
-                    setTimeout(() => { btn.textContent = originalText; }, 1500);
-                  }
-                }}
-                className={item}
-              >
-                {STR[lang].copyAsset}
-              </button>
-            )}
           </div>,
           document.body,
         )}
