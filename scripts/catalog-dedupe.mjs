@@ -39,12 +39,17 @@ for (const sex of ['M', 'F']) {
       const norm = normalizeName(key);
       if (norm) complete.set(norm, it);
     }
+    // Also index by nom for wiki:* duplicate detection
+    if (it.nom) complete.set(normalizeName(it.nom), it);
   }
 
   const removed = [];
   catalog.sexes[sex] = list.filter((it) => {
     if (isComplete(it)) return true;
-    const twin = complete.get(normalizeName(it.nameFr)) ?? complete.get(normalizeName(it.nameEn));
+    // Try matching by nameFr, nameEn, then nom (asset name)
+    const twin = complete.get(normalizeName(it.nameFr))
+      ?? complete.get(normalizeName(it.nameEn))
+      ?? (it.nom ? complete.get(normalizeName(it.nom)) : undefined);
     if (!twin) return true;
     twin.nameFr ||= it.nameFr;
     twin.nameEn ||= it.nameEn;

@@ -67,6 +67,13 @@ const BLACKLIST = new Set([
   'Cats', 'Chick', 'Clam',                      // EN category pages
   'Chats', 'Poussin', 'Palourde',               // FR category pages (si existants)
   'Pets', 'Familiers',                          // catégories génériques
+  // Pages de catégorie EN qui ne sont pas des items (listent les vrais items)
+  'Duck', 'Jousting horses', 'Jousting horse',  // EN category pages (pas d'assets directs)
+  'Doodled background', 'Doodled',              // EN category pages
+  // Pages EN qui sont des catégories de groupe
+  'Common duck', 'Rare duck', 'Epic duck', 'Duck family',  // listées dans Category:Pet
+  'Jousting horse', 'Jousting horse (bay)', 'Jousting horse (white)', 
+  'Jousting horse (isabelline)', 'Jousting horse (jet black)',  // variantes listées
 ]);
 
 const CDN_RE = /https?:\/\/[^\s"'<>)\]]*personnages_midas\/[^\s"'<>)\]]+\.(?:png|webp|gif|jpg)/gi;
