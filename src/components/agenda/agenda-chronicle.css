@@ -317,48 +317,6 @@
     display: inline-flex;
     align-items: center;
   }
-  [data-agenda] .period-select {
-    appearance: none;
-    height: 1.875rem;
-    max-width: 12rem;
-    padding: 0 1.7rem 0 0.6rem;
-    border: 1px solid color-mix(in oklab, var(--color-gold) 40%, transparent);
-    background: linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--color-ink-3) 92%, transparent),
-      color-mix(in oklab, var(--color-ink) 92%, transparent)
-    );
-    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-gold-light) 12%, transparent);
-    color: var(--color-gold-light);
-    font-family: var(--font-display);
-    font-size: 0.6875rem;
-    letter-spacing: 0.1em;
-    text-overflow: ellipsis;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
-  }
-  [data-agenda] .period-select:hover {
-    border-color: var(--color-gold);
-  }
-  [data-agenda] .period-select option {
-    background: var(--color-ink-2);
-    color: var(--color-parchment);
-    font-family: var(--font-body);
-    letter-spacing: normal;
-  }
-  [data-agenda] .period-select-sm {
-    height: 1.75rem;
-    max-width: 10.5rem;
-    font-size: 0.625rem;
-  }
-  [data-agenda] .period-chevron {
-    position: absolute;
-    right: 0.45rem;
-    width: 0.75rem;
-    height: 0.75rem;
-    color: var(--color-gold);
-    pointer-events: none;
-  }
   [data-agenda] .period-today {
     padding: 0 0.6rem;
   }
@@ -495,8 +453,7 @@
     [data-agenda] .scroll-fade,
     [data-agenda] .scroll-btn,
     [data-agenda] .filter-btn,
-    [data-agenda] .list-item,
-    [data-agenda] .period-select {
+    [data-agenda] .list-item {
       transition: none;
     }
     [data-agenda] .chronicle-scroll {

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { REPORT_REASONS, type ReportReason } from '../../lib/catalog-submit';
+import SelectField from '../ui/Select';
 import { FIELD_INPUT } from './fields';
 
 const FOCUSABLE =
@@ -132,20 +133,15 @@ export default function ReportDialog({
           <label htmlFor={`${uid}-reason`} className="label-caps">
             Motif
           </label>
-          <select
-            id={`${uid}-reason`}
+          <SelectField
+            inputId={`${uid}-reason`}
+            ariaLabel="Motif"
             value={reason}
-            onChange={(e) => setReason(e.target.value as ReportReason)}
-            required
-            className={`${FIELD_INPUT} mt-1.5 [&>option]:bg-ink-2 [&>option]:text-parchment`}
-          >
-            <option value="">Choisir…</option>
-            {REPORT_REASONS.map(([value, text]) => (
-              <option key={value} value={value}>
-                {text}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setReason(v as ReportReason)}
+            placeholder="Choisir…"
+            options={REPORT_REASONS.map(([value, text]) => ({ value, label: text }))}
+            className="mt-1.5"
+          />
 
           <label htmlFor={`${uid}-message`} className="label-caps mt-4 block">
             Détail (optionnel)

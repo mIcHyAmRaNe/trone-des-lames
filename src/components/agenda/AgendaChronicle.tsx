@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, ChangeEvent, MouseEvent as ReactMouseEvent } from 'react';
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
+import type { StylesConfig } from 'react-select';
 import type { AgendaEvent } from '../../lib/events';
 import type { Lang } from '../../i18n';
 import {
@@ -11,6 +12,7 @@ import {
   monthLabel,
   monthShortLabel,
 } from './dates';
+import SelectField, { type Option } from '../ui/Select';
 import './agenda-chronicle.css';
 
 type FilterKey = 'upcoming' | 'past' | 'all';
@@ -47,7 +49,6 @@ type Placed = {
 
 const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const MIN_SPAN = 12; // percent of the graph, keeps the minimum ribbon width from colliding
-const NOSCRIPT_SUBMIT = '<button type="submit" class="scroll-btn">Show</button>';
 
 const STR = {
   fr: {
@@ -371,6 +372,79 @@ function computeView(domain: Domain, period: string | null, today: string, lang:
   };
 }
 
+// Reproduit l'aspect des anciens `.period-select` (police display, teinte or).
+const periodSelectStyles = (small: boolean): Partial<StylesConfig<Option, false>> => {
+  const height = small ? '1.75rem' : '1.875rem';
+  const fontSize = small ? '0.625rem' : '0.6875rem';
+  return {
+    control: (base, state) => ({
+      ...base,
+      minHeight: height,
+      height,
+      borderColor: state.isFocused
+        ? 'var(--color-gold)'
+        : 'color-mix(in oklab, var(--color-gold) 40%, transparent)',
+      borderRadius: 0,
+      background:
+        'linear-gradient(180deg, color-mix(in oklab, var(--color-ink-3) 92%, transparent), color-mix(in oklab, var(--color-ink) 92%, transparent))',
+      boxShadow: 'inset 0 1px 0 color-mix(in oklab, var(--color-gold-light) 12%, transparent)',
+      color: 'var(--color-gold-light)',
+      fontFamily: 'var(--font-display)',
+      fontSize,
+      letterSpacing: '0.1em',
+      cursor: 'pointer',
+      transition: 'border-color 0.15s ease, background 0.15s ease',
+      ':hover': { borderColor: 'var(--color-gold)' },
+    }),
+    valueContainer: (base) => ({ ...base, padding: '0 0.4rem 0 0.6rem' }),
+    singleValue: (base) => ({
+      ...base,
+      color: 'var(--color-gold-light)',
+      fontFamily: 'var(--font-display)',
+      fontSize,
+      letterSpacing: '0.1em',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: 'var(--color-gold-light)',
+      fontFamily: 'var(--font-display)',
+      fontSize,
+      letterSpacing: '0.1em',
+    }),
+    input: (base) => ({
+      ...base,
+      color: 'var(--color-gold-light)',
+      fontFamily: 'var(--font-display)',
+      fontSize,
+      letterSpacing: '0.1em',
+      margin: 0,
+      padding: 0,
+    }),
+    menu: (base) => ({
+      ...base,
+      background: 'var(--color-ink-2)',
+      border: '1px solid color-mix(in oklab, var(--color-gold) 40%, transparent)',
+      borderRadius: 0,
+    }),
+    option: (base, state) => ({
+      ...base,
+      background: state.isFocused ? 'var(--color-ink-3)' : 'var(--color-ink-2)',
+      color: state.isSelected ? 'var(--color-gold-light)' : 'var(--color-parchment)',
+      fontFamily: 'var(--font-body)',
+      fontSize: '0.6875rem',
+      letterSpacing: 'normal',
+      cursor: 'pointer',
+      ':active': { background: 'var(--color-ink-3)' },
+    }),
+    dropdownIndicator: (base) => ({
+      ...base,
+      color: 'var(--color-gold)',
+      padding: 2,
+      ':hover': { color: 'var(--color-gold-light)' },
+    }),
+  };
+};
+
 export default function AgendaChronicle({ events, initialPeriod: periodProp, today, lang = 'fr' }: Props) {
   const s = STR[lang];
   const domain = useMemo(() => buildDomain(events, today), [events, today]);
@@ -503,9 +577,14 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
     { key: 'all', label: s.filters.all, count: current.viewEvents.length },
   ];
 
-  const handlePeriodSelect = (event: ChangeEvent<HTMLSelectElement>) => {
-    changePeriod(event.target.value || null);
+  const handlePeriodChange = (value: string) => {
+    changePeriod(value || null);
   };
+
+  const periodOptions: Option[] = [
+    { value: '', label: s.fullChronicle },
+    ...current.months.map((m) => ({ value: m.key, label: monthLabel(m.key, lang) })),
+  ];
 
   return (
     <section
@@ -897,36 +976,18 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                     onSubmit={(event) => event.preventDefault()}
                   >
                     <div className="period-field">
-                      <select
-                        id="agenda-month"
-                        name="periode"
-                        data-period-select=""
-                        className="period-select"
+                      <SelectField
+                        inputId="agenda-month"
+                        options={periodOptions}
                         value={period ?? ''}
-                        onChange={handlePeriodSelect}
-                      >
-                        <option value="">{s.fullChronicle}</option>
-                        {current.months.map((m) => (
-                          <option key={m.key} value={m.key}>
-                            {monthLabel(m.key, lang)}
-                          </option>
-                        ))}
-                      </select>
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="period-chevron"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        aria-hidden="true"
-                      >
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
+                        onChange={handlePeriodChange}
+                        ariaLabel={s.periodLabelAria}
+                        size="sm"
+                        className="w-[12rem]"
+                        styles={periodSelectStyles(false)}
+                        lang={lang}
+                      />
                     </div>
-                    <noscript
-                      suppressHydrationWarning
-                      dangerouslySetInnerHTML={{ __html: NOSCRIPT_SUBMIT }}
-                    />
                   </form>
 
                   {current.nextMonth ? (
@@ -1004,36 +1065,18 @@ export default function AgendaChronicle({ events, initialPeriod: periodProp, tod
                   {s.periodLabelMobile}
                 </label>
                 <div className="period-field">
-                  <select
-                    id="agenda-month-mobile"
-                    name="periode"
-                    data-period-select=""
-                    className="period-select period-select-sm"
+                  <SelectField
+                    inputId="agenda-month-mobile"
+                    options={periodOptions}
                     value={period ?? ''}
-                    onChange={handlePeriodSelect}
-                  >
-                    <option value="">{s.fullChronicle}</option>
-                    {current.months.map((m) => (
-                      <option key={m.key} value={m.key}>
-                        {monthLabel(m.key, lang)}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="period-chevron"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    aria-hidden="true"
-                  >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                    onChange={handlePeriodChange}
+                    ariaLabel={s.periodLabelMobile}
+                    size="sm"
+                    className="w-[10.5rem]"
+                    styles={periodSelectStyles(true)}
+                    lang={lang}
+                  />
                 </div>
-                <noscript
-                  suppressHydrationWarning
-                  dangerouslySetInnerHTML={{ __html: NOSCRIPT_SUBMIT }}
-                />
               </form>
             </div>
 

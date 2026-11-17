@@ -18,6 +18,7 @@ import type { PendingList, Sex } from '../../lib/catalog-submit';
 import CatalogEditDialog from './CatalogEditDialog';
 import ReportDialog from './ReportDialog';
 import RowMenu from './RowMenu';
+import SelectField from '../ui/Select';
 import { slotOptions } from './fields';
 
 const PER_PAGE = 80;
@@ -345,63 +346,53 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
             <label htmlFor="catalogue-category" className="label-caps">
               {lang === 'en' ? 'Category' : 'Catégorie'}
             </label>
-            <div className="relative mt-1.5">
-              <select
-                id="catalogue-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full appearance-none border border-gold/25 bg-ink/60 py-2.5 pl-3 pr-9 text-sm text-parchment focus:border-gold/60 focus:outline-none [&>option]:bg-ink-2 [&>option]:text-parchment"
-              >
-                <option value="">{lang === 'en' ? 'All' : 'Toutes'}</option>
-                {categories.map((key) => (
-                  <option key={key} value={key}>
-                    {categoryLabel(key, lang)}
-                  </option>
-                ))}
-              </select>
-              <Chevron className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gold/60" />
-            </div>
+            <SelectField
+              inputId="catalogue-category"
+              ariaLabel={lang === 'en' ? 'Category' : 'Catégorie'}
+              value={category}
+              onChange={setCategory}
+              options={[
+                { value: '', label: lang === 'en' ? 'All' : 'Toutes' },
+                ...categories.map((key) => ({ value: key, label: categoryLabel(key, lang) })),
+              ]}
+              lang={lang}
+              className="mt-1.5"
+            />
           </div>
 
           <div className="sm:w-40">
             <label htmlFor="catalogue-sexe" className="label-caps">
               {lang === 'en' ? 'Sex' : 'Sexe'}
             </label>
-            <div className="relative mt-1.5">
-              <select
-                id="catalogue-sexe"
-                value={sexe}
-                onChange={(e) => setSexe(e.target.value as SexeFilter)}
-                className="w-full appearance-none border border-gold/25 bg-ink/60 py-2.5 pl-3 pr-9 text-sm text-parchment focus:border-gold/60 focus:outline-none [&>option]:bg-ink-2 [&>option]:text-parchment"
-              >
-                <option value="">{lang === 'en' ? 'All' : 'Tous'}</option>
-                <option value="Mixte">{mixte}</option>
-                <option value="M">{sexeLabel('M', lang)}</option>
-                <option value="F">{sexeLabel('F', lang)}</option>
-              </select>
-              <Chevron className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gold/60" />
-            </div>
+            <SelectField
+              inputId="catalogue-sexe"
+              ariaLabel={lang === 'en' ? 'Sex' : 'Sexe'}
+              value={sexe}
+              onChange={(v) => setSexe(v as SexeFilter)}
+              options={[
+                { value: '', label: lang === 'en' ? 'All' : 'Tous' },
+                { value: 'Mixte', label: mixte },
+                { value: 'M', label: sexeLabel('M', lang) },
+                { value: 'F', label: sexeLabel('F', lang) },
+              ]}
+              lang={lang}
+              className="mt-1.5"
+            />
           </div>
 
           <div className="sm:w-44">
             <label htmlFor="catalogue-donnees" className="label-caps">
               {lang === 'en' ? 'Data' : 'Données'}
             </label>
-            <div className="relative mt-1.5">
-              <select
-                id="catalogue-donnees"
-                value={data}
-                onChange={(e) => setData(e.target.value as DataFilter)}
-                className="w-full appearance-none border border-gold/25 bg-ink/60 py-2.5 pl-3 pr-9 text-sm text-parchment focus:border-gold/60 focus:outline-none [&>option]:bg-ink-2 [&>option]:text-parchment"
-              >
-                {DATA_OPTIONS[lang].map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <Chevron className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gold/60" />
-            </div>
+            <SelectField
+              inputId="catalogue-donnees"
+              ariaLabel={lang === 'en' ? 'Data' : 'Données'}
+              value={data}
+              onChange={(v) => setData(v as DataFilter)}
+              options={DATA_OPTIONS[lang]}
+              lang={lang}
+              className="mt-1.5"
+            />
           </div>
 
           <button
@@ -600,7 +591,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
                             setNotice(null);
                             setReporting(r);
                           }}
-                          assetName={r.items.M?.nom ?? r.items.F?.nom}
+                          assetName={r.items.M?.nom ?? r.items.F?.nom ?? undefined}
                         />
                       </td>
                     </tr>
@@ -664,7 +655,6 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
         <ReportDialog
           itemId={reporting.id}
           itemLabel={reporting.name}
-          lang={lang}
           onClose={() => setReporting(null)}
           onSubmitted={(message) => {
             setNotice(message);

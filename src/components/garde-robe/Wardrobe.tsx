@@ -11,6 +11,7 @@ import {
 import Select, { components } from "react-select";
 import type { Lang } from "../../i18n";
 import { dotStyles, menuPortalStyle, selectClassNames } from "./selectTheme";
+import SelectField from "../ui/Select";
 import {
   type Avatar,
   type Catalog,
@@ -182,11 +183,6 @@ function NumberSelect({
 
 const fieldCls =
   "w-full border border-gold/20 bg-ink/60 px-3 py-2 text-sm text-parchment transition-colors placeholder:text-parchment-dim/50 hover:border-gold/40 focus:border-gold";
-
-// Les <option> natifs ignorent la palette du site : sans ces variantes, le
-// menu s'ouvre en blanc sur blanc sur certains systèmes.
-const selectCls =
-  fieldCls + " cursor-pointer [&>option]:bg-ink-2 [&>option]:text-parchment";
 
 const ghostSm =
   "inline-flex cursor-pointer items-center justify-center gap-1.5 border border-gold/45 px-2.5 py-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-gold-light transition-colors hover:border-gold hover:bg-gold/10";
@@ -1044,11 +1040,15 @@ export default function Wardrobe({ lang = "fr" }: { lang?: Lang }) {
           <label htmlFor="corps-sexe" className={labelCls}>
             {s.sex}
           </label>
-          <select
-            id="corps-sexe"
+          <SelectField
+            inputId="corps-sexe"
+            options={(["M", "F"] as Sexe[]).map((value) => ({
+              value,
+              label: sexeLabel(value, lang),
+            }))}
             value={sexe}
-            onChange={(e) => {
-              const next: Sexe = e.target.value === "F" ? "F" : "M";
+            onChange={(value) => {
+              const next: Sexe = value === "F" ? "F" : "M";
               setAvatar((a) => ({
                 ...a,
                 sexe: next,
@@ -1058,14 +1058,12 @@ export default function Wardrobe({ lang = "fr" }: { lang?: Lang }) {
               setLoadout({});
               setHover(null);
             }}
-            className={selectCls + " mt-1"}
-          >
-            {(["M", "F"] as Sexe[]).map((value) => (
-              <option key={value} value={value}>
-                {sexeLabel(value, lang)}
-              </option>
-            ))}
-          </select>
+            ariaLabel={s.sex}
+            size="sm"
+            className="mt-1"
+            styles={{ control: (base) => ({ ...base, cursor: "pointer" }) }}
+            lang={lang}
+          />
         </div>
 
         {/* Une seule grille : cheveux et barbe occupent une cellule comme les

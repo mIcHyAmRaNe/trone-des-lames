@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
 import CreatableSelect from 'react-select/creatable';
 import Select from 'react-select';
 import type { StylesConfig } from 'react-select';
 import { parsePoints } from '../../lib/format';
 import type { Lang } from '../../i18n';
+import { alpha, makeTheme, usePalette, type Palette } from '../ui/Select';
 
 type Option = { value: string; label: string };
 type FighterOption = { value: string; label: string };
@@ -13,69 +13,6 @@ const OPTIONS: Option[] = Array.from({ length: 8 }, (_, i) => {
   const v = String(18 + i);
   return { value: v, label: v };
 });
-
-type Palette = {
-  gold: string;
-  goldLight: string;
-  parchment: string;
-  dim: string;
-  ink: string;
-  ink2: string;
-  ink3: string;
-  blood: string;
-  bloodLight: string;
-};
-
-// Dark values mirror the tokens: react-select needs real colours at runtime,
-// so the first paint stays on-brand until the CSS variables are read.
-const FALLBACK: Palette = {
-  gold: '#c9a227',
-  goldLight: '#e8c96a',
-  parchment: '#e8ddc7',
-  dim: '#a89d88',
-  ink: '#0d0b0a',
-  ink2: '#16120f',
-  ink3: '#1f1915',
-  blood: '#8b1e1e',
-  bloodLight: '#d0877e',
-};
-
-function readPalette(): Palette {
-  if (typeof document === 'undefined') return FALLBACK;
-  const cs = getComputedStyle(document.documentElement);
-  const read = (token: string, fallback: string) =>
-    cs.getPropertyValue(`--color-${token}`).trim() || fallback;
-  return {
-    gold: read('gold', FALLBACK.gold),
-    goldLight: read('gold-light', FALLBACK.goldLight),
-    parchment: read('parchment', FALLBACK.parchment),
-    dim: read('parchment-dim', FALLBACK.dim),
-    ink: read('ink', FALLBACK.ink),
-    ink2: read('ink-2', FALLBACK.ink2),
-    ink3: read('ink-3', FALLBACK.ink3),
-    blood: read('blood', FALLBACK.blood),
-    bloodLight: read('blood-light', FALLBACK.bloodLight),
-  };
-}
-
-/** Palette follows the `data-theme` attribute so the menus match the page. */
-function usePalette(): Palette {
-  const [palette, setPalette] = useState<Palette>(FALLBACK);
-  useEffect(() => {
-    const sync = () => setPalette(readPalette());
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-    return () => observer.disconnect();
-  }, []);
-  return palette;
-}
-
-const alpha = (color: string, percent: number) =>
-  `color-mix(in oklab, ${color} ${percent}%, transparent)`;
 
 const makeBaseStyles = (p: Palette): StylesConfig<Option, false> => ({
   control: (base, state) => ({
@@ -130,30 +67,6 @@ const makeBaseStyles = (p: Palette): StylesConfig<Option, false> => ({
     ':hover': { color: p.parchment },
   }),
   menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-});
-
-const makeTheme = (p: Palette) => (t: any) => ({
-  ...t,
-  colors: {
-    ...t.colors,
-    primary: p.gold,
-    primary75: alpha(p.gold, 75),
-    primary50: alpha(p.gold, 50),
-    primary25: alpha(p.gold, 15),
-    neutral0: p.ink,
-    neutral5: p.ink2,
-    neutral10: p.ink3,
-    neutral20: alpha(p.gold, 22),
-    neutral30: alpha(p.gold, 40),
-    neutral40: p.dim,
-    neutral50: p.dim,
-    neutral60: p.parchment,
-    neutral70: p.parchment,
-    neutral80: p.parchment,
-    neutral90: p.parchment,
-    danger: p.blood,
-    dangerLight: alpha(p.blood, 30),
-  },
 });
 
 const STR = {

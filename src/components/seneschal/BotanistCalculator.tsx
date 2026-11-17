@@ -12,6 +12,7 @@ import {
 } from "../../lib/seneschal";
 import { formatPoints } from "../../lib/format";
 import { FieldSelect, MoneyField, Toggle, Line, Total } from "./controls";
+import SelectField from "../ui/Select";
 
 const money = (raw: string): number => {
   const n = Number(String(raw).replace(",", "."));
@@ -215,14 +216,21 @@ export default function BotanistCalculator() {
                 <label htmlFor="skill" className="block text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-parchment-dim">
                   Jardinier
                 </label>
-                <select id="skill" value={skill} onChange={(e) => setSkill(Number(e.target.value))}
-                  className="mt-1.5 w-full border border-gold/20 bg-ink/60 px-2.5 py-1.5 text-sm text-parchment transition-colors hover:border-gold/40 focus:border-gold focus:outline-none"
-                >
-                  <option value={0}>Aucune</option>
-                  <option value={10}>−10 %</option>
-                  <option value={20}>−20 %</option>
-                  <option value={30}>−30 %</option>
-                </select>
+                <SelectField
+                  inputId="skill"
+                  options={[
+                    { value: "0", label: "Aucune" },
+                    { value: "10", label: "−10 %" },
+                    { value: "20", label: "−20 %" },
+                    { value: "30", label: "−30 %" },
+                  ]}
+                  value={String(skill)}
+                  onChange={(value) => setSkill(Number(value))}
+                  ariaLabel="Jardinier"
+                  placeholder="Aucune"
+                  size="sm"
+                  className="mt-1.5 w-full"
+                />
                 <p className="mt-1 text-[0.625rem] text-parchment-dim/60">La taille des arbres et buissons bénéficie de la réduction.</p>
               </div>
             ) : (

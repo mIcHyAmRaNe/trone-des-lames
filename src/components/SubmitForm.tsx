@@ -4,7 +4,14 @@ import { loadCatalog, type Catalog, type CatalogItem } from '../lib/wardrobe';
 import type { Sex, SubmissionError } from '../lib/catalog-submit';
 import CatalogEditDialog, { SEXE_CHOICES, sexeChoiceLabel } from './catalogue/CatalogEditDialog';
 import PlayerField from './catalogue/PlayerField';
-import { FIELD_HELP, FIELD_INPUT, parseNumberList, slotOptions } from './catalogue/fields';
+import SelectField from './ui/Select';
+import {
+  FIELD_HELP,
+  FIELD_INPUT,
+  parseNumberList,
+  parseTextList,
+  slotOptions,
+} from './catalogue/fields';
 
 /** Nom comparable : sans accents, article initial, ni ponctuation. */
 function normalizeName(value: string): string {
@@ -18,7 +25,6 @@ function normalizeName(value: string): string {
 
 const HELP = 'mt-1 block text-[0.6875rem] leading-snug text-parchment-dim/60';
 const LABEL = 'mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-parchment-dim/60';
-const SELECT = `${FIELD_INPUT} mt-1.5 [&>option]:bg-ink-2 [&>option]:text-parchment`;
 
 const STR = {
   fr: {
@@ -27,6 +33,7 @@ const STR = {
     sending: 'Envoi en cours…',
     zIndexError: 'zIndex : entrez des nombres séparés par des virgules ou des espaces.',
     declinaisonsError: 'Déclinaisons : entrez des nombres séparés par des virgules ou des espaces.',
+    slotRequired: 'Choisissez un emplacement.',
     nameRequired: 'Renseignez au moins le nom d\'asset ou le nom affiché.',
     alreadyExists: (label: string) => `Déjà au catalogue (${label})  -  utilisez « Proposer une modification » ci-dessus.`,
     duplicatePending: (by: string) => `Déjà proposé par ${by}, en attente de validation.`,
@@ -39,7 +46,6 @@ const STR = {
     success: 'Objet soumis ! Un administrateur va l\'examiner.',
     networkError: 'Serveur injoignable. Vérifiez votre connexion et réessayez.',
     // Form
-    loginNote: 'Aucun mot de passe n\'est demandé : seule l\'existence du personnage est vérifiée.',
     duplicateFound: 'Cet objet est déjà au catalogue : ',
     proposeEdit: 'Proposer une modification',
     assetName: 'Nom d\'asset CDN',
@@ -53,14 +59,24 @@ const STR = {
     slot: 'Emplacement (requis)',
     slotChoose: 'Choisir…',
     sexes: 'Sexes (requis)',
-    zIndex: 'zIndex (optionnel*)',
+    zIndex: 'zIndex (optionnel)',
     zIndexPlaceholder: 'ex. 42 ou 40, 41',
-    declinaisons: 'Déclinaisons (optionnel)',
+    note: 'Note pour l\'admin (optionnel)',
+    notePlaceholder: 'Précisions pour la validation…',
+    advancedTitle: 'Options techniques',
+    advancedSub: 'Déclinaisons, slots masqués, calques, lien source',
+    advancedHint:
+      'Rempli automatiquement par nos scripts depuis le wiki quand c\'est possible. Ne complétez que si vous connaissez la valeur.',
+    declinaisons: 'Déclinaisons',
     declinaisonsPlaceholder: 'ex. 0 1 2',
-    sourceUrl: 'URL CDN (optionnel)',
-    sourceUrlPlaceholder: 'https://…',
-    note: 'Note (optionnel)',
-    notePlaceholder: 'Infos pour l\'admin (ex. source wiki)…',
+    slotsMasques: 'Slots masqués',
+    slotsMasquesPlaceholder: 'ex. Chemise, Cape',
+    depends: 'Calques dépendants',
+    dependSkin: 'Dépend de la couleur de peau',
+    dependLeft: 'Découpé selon la main gauche',
+    dependRight: 'Découpé selon la main droite',
+    sourceLink: 'Lien source',
+    sourceLinkPlaceholder: 'https://…',
     submit: 'Envoyer la proposition',
     // Error messages from server
     fieldError: {
@@ -83,6 +99,7 @@ const STR = {
     sending: 'Sending…',
     zIndexError: 'zIndex: enter numbers separated by commas or spaces.',
     declinaisonsError: 'Declinaisons: enter numbers separated by commas or spaces.',
+    slotRequired: 'Choose a slot.',
     nameRequired: 'Provide at least the asset name or displayed name.',
     alreadyExists: (label: string) => `Already in catalogue (${label})  -  use "Propose edit" above.`,
     duplicatePending: (by: string) => `Already proposed by ${by}, pending review.`,
@@ -95,7 +112,6 @@ const STR = {
     success: 'Item submitted! An admin will review it.',
     networkError: 'Server unreachable. Check your connection and try again.',
     // Form
-    loginNote: 'No password is asked for: only the character\'s existence is verified.',
     duplicateFound: 'This item is already in the catalogue: ',
     proposeEdit: 'Propose edit',
     assetName: 'CDN asset name',
@@ -109,14 +125,24 @@ const STR = {
     slot: 'Slot (required)',
     slotChoose: 'Choose…',
     sexes: 'Sexes (required)',
-    zIndex: 'zIndex (optional*)',
+    zIndex: 'zIndex (optional)',
     zIndexPlaceholder: 'ex. 42 or 40, 41',
-    declinaisons: 'Colour variants (optional)',
+    note: 'Note for the admin (optional)',
+    notePlaceholder: 'Anything useful for review…',
+    advancedTitle: 'Technical options',
+    advancedSub: 'Colour variants, masked slots, layers, source link',
+    advancedHint:
+      'Filled automatically by our scripts from the wiki when possible. Only fill this in if you know the value.',
+    declinaisons: 'Colour variants',
     declinaisonsPlaceholder: 'ex. 0 1 2',
-    sourceUrl: 'CDN URL (optional)',
-    sourceUrlPlaceholder: 'https://…',
-    note: 'Note (optional)',
-    notePlaceholder: 'Info for admin (e.g. wiki source)…',
+    slotsMasques: 'Masked slots',
+    slotsMasquesPlaceholder: 'ex. Shirt, Cape',
+    depends: 'Dependent layers',
+    dependSkin: 'Depends on skin colour',
+    dependLeft: 'Cut according to the left hand',
+    dependRight: 'Cut according to the right hand',
+    sourceLink: 'Source link',
+    sourceLinkPlaceholder: 'https://…',
     submit: 'Submit proposal',
     // Error messages from server
     fieldError: {
@@ -146,9 +172,13 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
   const [slot, setSlot] = useState('');
   const [sexe, setSexe] = useState<'Mixte' | Sex>('Mixte');
   const [zIndex, setZIndex] = useState('');
-  const [declinaisons, setDeclinaisons] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
   const [note, setNote] = useState('');
+  const [declinaisons, setDeclinaisons] = useState('');
+  const [slotsMasques, setSlotsMasques] = useState('');
+  const [dependCouleurPeau, setDependCouleurPeau] = useState(false);
+  const [dependPostureMainG, setDependPostureMainG] = useState(false);
+  const [dependPostureMainD, setDependPostureMainD] = useState(false);
+  const [sourceUrl, setSourceUrl] = useState('');
   const [trap, setTrap] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -205,6 +235,7 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
     if (z === null) return setMessage(s.zIndexError);
     const d = parseNumberList(declinaisons);
     if (d === null) return setMessage(s.declinaisonsError);
+    if (!slot.trim()) return setMessage(s.slotRequired);
     if (!nom.trim() && !nameFr.trim()) {
       return setMessage(s.nameRequired);
     }
@@ -225,10 +256,10 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
             slot: slot.trim(),
             zIndex: z,
             declinaisons: d,
-            slotsMasques: [],
-            dependCouleurPeau: false,
-            dependPostureMainG: false,
-            dependPostureMainD: false,
+            slotsMasques: parseTextList(slotsMasques),
+            dependCouleurPeau,
+            dependPostureMainG,
+            dependPostureMainD,
             sourceUrl: sourceUrl.trim() || null,
             note: note.trim() || null,
           },
@@ -267,6 +298,10 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
       setSlot('');
       setZIndex('');
       setDeclinaisons('');
+      setSlotsMasques('');
+      setDependCouleurPeau(false);
+      setDependPostureMainG(false);
+      setDependPostureMainD(false);
       setSourceUrl('');
       setNote('');
     } catch {
@@ -286,9 +321,6 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
           error={undefined}
           lang={lang}
         />
-        <p className="mt-1 text-[0.6875rem] leading-snug text-parchment-dim/60">
-          {s.loginNote}
-        </p>
 
         {duplicate && (
           <div className="mt-4 border border-gold/40 bg-gold/[0.08] px-4 py-3">
@@ -340,23 +372,24 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
             />
             <span className={HELP}>{s.nameEnHelp}</span>
           </label>
-          <label className="block text-sm text-parchment-dim">
-            <span className={LABEL}>{s.slot}</span>
-            <select
+          <div className="text-sm text-parchment-dim">
+            <label htmlFor="submit-slot" className={LABEL}>
+              {s.slot}
+            </label>
+            <SelectField
+              inputId="submit-slot"
+              ariaLabel={s.slot}
               value={slot}
-              required
-              onChange={(e) => setSlot(e.target.value)}
-              className={SELECT}
-            >
-              <option value="">{s.slotChoose}</option>
-              {slots.map((sl) => (
-                <option key={sl} value={sl}>
-                  {sl}
-                </option>
-              ))}
-            </select>
-            <span className={HELP}>{help.slot}</span>
-          </label>
+              onChange={setSlot}
+              placeholder={s.slotChoose}
+              options={[
+                { value: '', label: s.slotChoose },
+                ...slots.map((sl) => ({ value: sl, label: sl })),
+              ]}
+              lang={lang}
+              className="mt-1.5"
+            />
+          </div>
           <fieldset className="sm:col-span-2 text-sm text-parchment-dim">
             <legend className={LABEL}>{s.sexes}</legend>
             <div className="inline-flex gap-px border border-gold/25 bg-gold/25">
@@ -393,30 +426,7 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
             />
             <span className={HELP}>{help.zIndex}</span>
           </label>
-          <label className="block text-sm text-parchment-dim">
-            <span className={LABEL}>{s.declinaisons}</span>
-            <input
-              value={declinaisons}
-              onChange={(e) => setDeclinaisons(e.target.value)}
-              placeholder={s.declinaisonsPlaceholder}
-              inputMode="numeric"
-              className={`${FIELD_INPUT} mt-1.5`}
-            />
-            <span className={HELP}>{help.declinaisons}</span>
-          </label>
-          <label className="block text-sm text-parchment-dim">
-            <span className={LABEL}>{s.sourceUrl}</span>
-            <input
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              type="url"
-              placeholder={s.sourceUrlPlaceholder}
-              inputMode="url"
-              autocomplete="url"
-              className={`${FIELD_INPUT} mt-1.5`}
-            />
-          </label>
-          <label className="block text-sm text-parchment-dim">
+          <label className="block text-sm text-parchment-dim sm:col-span-2">
             <span className={LABEL}>{s.note}</span>
             <textarea
               value={note}
@@ -428,13 +438,102 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
           </label>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-4">
+        <details className="group mt-5 border border-gold/20 bg-ink/30">
+          <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-gold/[0.04] [&::-webkit-details-marker]:hidden">
+            <span className="label-caps flex-none">{s.advancedTitle}</span>
+            <span className="min-w-0 flex-1 truncate text-[0.6875rem] leading-snug text-parchment-dim/60">
+              {s.advancedSub}
+            </span>
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4 flex-none text-gold transition-transform duration-200 group-open:rotate-180"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </summary>
+
+          <div className="border-t border-gold/15 px-4 py-4">
+            <p className="text-[0.6875rem] leading-snug text-parchment-dim/70">{s.advancedHint}</p>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm text-parchment-dim">
+                <span className={LABEL}>{s.declinaisons}</span>
+                <input
+                  value={declinaisons}
+                  onChange={(e) => setDeclinaisons(e.target.value)}
+                  placeholder={s.declinaisonsPlaceholder}
+                  inputMode="numeric"
+                  className={`${FIELD_INPUT} mt-1.5`}
+                />
+                <span className={HELP}>{help.declinaisons}</span>
+              </label>
+              <label className="block text-sm text-parchment-dim">
+                <span className={LABEL}>{s.slotsMasques}</span>
+                <input
+                  value={slotsMasques}
+                  onChange={(e) => setSlotsMasques(e.target.value)}
+                  placeholder={s.slotsMasquesPlaceholder}
+                  className={`${FIELD_INPUT} mt-1.5`}
+                />
+                <span className={HELP}>{help.slotsMasques}</span>
+              </label>
+              <fieldset className="text-sm text-parchment-dim sm:col-span-2">
+                <legend className={LABEL}>{s.depends}</legend>
+                <div className="mt-2 space-y-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
+                    <input
+                      type="checkbox"
+                      checked={dependCouleurPeau}
+                      onChange={(e) => setDependCouleurPeau(e.target.checked)}
+                      className="h-4 w-4 accent-gold"
+                    />
+                    {s.dependSkin}
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
+                    <input
+                      type="checkbox"
+                      checked={dependPostureMainG}
+                      onChange={(e) => setDependPostureMainG(e.target.checked)}
+                      className="h-4 w-4 accent-gold"
+                    />
+                    {s.dependLeft}
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
+                    <input
+                      type="checkbox"
+                      checked={dependPostureMainD}
+                      onChange={(e) => setDependPostureMainD(e.target.checked)}
+                      className="h-4 w-4 accent-gold"
+                    />
+                    {s.dependRight}
+                  </label>
+                </div>
+                <span className={HELP}>{help.depends}</span>
+              </fieldset>
+              <label className="block text-sm text-parchment-dim sm:col-span-2">
+                <span className={LABEL}>{s.sourceLink}</span>
+                <input
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  placeholder={s.sourceLinkPlaceholder}
+                  inputMode="url"
+                  autoComplete="url"
+                  className={`${FIELD_INPUT} mt-1.5`}
+                />
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <div className="mt-5">
           <button type="submit" disabled={busy} className="btn-gold flex-none disabled:opacity-50">
             {busy ? s.sending : s.submit}
           </button>
-          <p className="text-[0.625rem] uppercase tracking-[0.14em] text-parchment-dim/60">
-            <span className="text-gold" aria-hidden="true">*</span> Champs obligatoires
-          </p>
         </div>
 
         {message && (

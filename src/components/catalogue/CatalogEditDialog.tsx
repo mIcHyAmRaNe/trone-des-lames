@@ -8,8 +8,9 @@ import {
   type SubmissionError,
   type SubmissionPayload,
 } from '../../lib/catalog-submit';
-import { FIELD_HELP, FIELD_INPUT, parseNumberList, slotOptions } from './fields';
+import { FIELD_HELP, FIELD_INPUT, parseNumberList, parseTextList, slotOptions } from './fields';
 import PlayerField from './PlayerField';
+import SelectField from '../ui/Select';
 
 const HELP = 'mt-1 block text-[0.6875rem] leading-snug text-parchment-dim/60';
 
@@ -40,7 +41,7 @@ export interface CatalogEditDialogProps {
 }
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'summary, a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function CatalogEditDialog({
   item,
@@ -129,6 +130,12 @@ export default function CatalogEditDialog({
       setFormError(lang === 'en' ? 'Choose at least one sex.' : 'Indiquez au moins un sexe.');
       return;
     }
+    if (!slot.trim()) {
+      setFieldErrors({
+        slot: lang === 'en' ? 'Choose a slot.' : 'Choisissez un emplacement.',
+      });
+      return;
+    }
     const z = parseNumberList(zIndex);
     if (z === null) {
       setFieldErrors({
@@ -158,7 +165,7 @@ export default function CatalogEditDialog({
       slot: slot.trim(),
       zIndex: z,
       declinaisons: d,
-      slotsMasques: slotsMasques.split(',').map((s) => s.trim()).filter(Boolean),
+      slotsMasques: parseTextList(slotsMasques),
       dependCouleurPeau,
       dependPostureMainG,
       dependPostureMainD,
@@ -407,25 +414,22 @@ export default function CatalogEditDialog({
                   <label htmlFor={`${uid}-slot`} className="label-caps">
                     {lang === 'en' ? 'Slot' : 'Emplacement'}
                   </label>
-                  <select
-                    id={`${uid}-slot`}
+                  <SelectField
+                    inputId={`${uid}-slot`}
+                    ariaLabel={lang === 'en' ? 'Slot' : 'Emplacement'}
                     value={slot}
-                    onChange={(e) => setSlot(e.target.value)}
-                    required
-                    aria-invalid={invalid('slot')}
-                    aria-describedby={describedBy('slot', `${uid}-slot-help`)}
-                    className={`${FIELD_INPUT} mt-1.5 [&>option]:bg-ink-2 [&>option]:text-parchment`}
-                  >
-                    <option value="">{lang === 'en' ? 'Choose…' : 'Choisir…'}</option>
-                    {slotOptions(slots, slot).map((value) => (
-                      <option key={value} value={value}>
-                        {slotLabel(value, lang)}
-                      </option>
-                    ))}
-                  </select>
-                  <span id={`${uid}-slot-help`} className={HELP}>
-                    {help.slot}
-                  </span>
+                    onChange={setSlot}
+                    placeholder={lang === 'en' ? 'Choose…' : 'Choisir…'}
+                    options={[
+                      { value: '', label: lang === 'en' ? 'Choose…' : 'Choisir…' },
+                      ...slotOptions(slots, slot).map((value) => ({
+                        value,
+                        label: slotLabel(value, lang),
+                      })),
+                    ]}
+                    lang={lang}
+                    className="mt-1.5"
+                  />
                   {errorFor('slot')}
                 </div>
 
@@ -480,109 +484,6 @@ export default function CatalogEditDialog({
                   {errorFor('zIndex')}
                 </div>
 
-                <div>
-                  <label htmlFor={`${uid}-declinaisons`} className="label-caps">
-                    {lang === 'en' ? 'Colour variants' : 'Déclinaisons'}
-                  </label>
-                  <input
-                    id={`${uid}-declinaisons`}
-                    value={declinaisons}
-                    onChange={(e) => setDeclinaisons(e.target.value)}
-                    placeholder={lang === 'en' ? 'e.g. 0 1 2' : 'ex. 0 1 2'}
-                    inputMode="numeric"
-                    aria-invalid={invalid('declinaisons')}
-                    aria-describedby={describedBy('declinaisons', `${uid}-declinaisons-help`)}
-                    className={`${FIELD_INPUT} mt-1.5`}
-                  />
-                  <span id={`${uid}-declinaisons-help`} className={HELP}>
-                    {help.declinaisons}
-                  </span>
-                  {errorFor('declinaisons')}
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label htmlFor={`${uid}-slotsMasques`} className="label-caps">
-                    {lang === 'en' ? 'Masked slots' : 'Slots masqués'}
-                  </label>
-                  <input
-                    id={`${uid}-slotsMasques`}
-                    value={slotsMasques}
-                    onChange={(e) => setSlotsMasques(e.target.value)}
-                    placeholder={lang === 'en' ? 'e.g. Chemise, Cape' : 'ex. Chemise, Cape'}
-                    aria-invalid={invalid('slotsMasques')}
-                    aria-describedby={describedBy('slotsMasques', `${uid}-slotsMasques-help`)}
-                    className={`${FIELD_INPUT} mt-1.5`}
-                  />
-                  <span id={`${uid}-slotsMasques-help`} className={HELP}>
-                    {help.slotsMasques}
-                  </span>
-                  {errorFor('slotsMasques')}
-                </div>
-
-                <fieldset className="sm:col-span-2">
-                  <legend className="label-caps">
-                    {lang === 'en' ? 'Dependent layers' : 'Calques dépendants'}
-                  </legend>
-                  <div className="mt-2 space-y-2">
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
-                      <input
-                        type="checkbox"
-                        checked={dependCouleurPeau}
-                        onChange={(e) => setDependCouleurPeau(e.target.checked)}
-                        className="h-4 w-4 accent-gold"
-                      />
-                      {lang === 'en' ? 'Depends on skin colour' : 'Dépend de la couleur de peau'}
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
-                      <input
-                        type="checkbox"
-                        checked={dependPostureMainG}
-                        onChange={(e) => setDependPostureMainG(e.target.checked)}
-                        className="h-4 w-4 accent-gold"
-                      />
-                      {lang === 'en'
-                        ? 'Cut according to the left hand'
-                        : 'Découpé selon la main gauche'}
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
-                      <input
-                        type="checkbox"
-                        checked={dependPostureMainD}
-                        onChange={(e) => setDependPostureMainD(e.target.checked)}
-                        className="h-4 w-4 accent-gold"
-                      />
-                      {lang === 'en'
-                        ? 'Cut according to the right hand'
-                        : 'Découpé selon la main droite'}
-                    </label>
-                  </div>
-                  <span className={HELP}>{help.depends}</span>
-                </fieldset>
-
-                <div className="sm:col-span-2">
-                  <PlayerField
-                    id={`${uid}-login`}
-                    value={login}
-                    onChange={setLogin}
-                    error={fieldErrors.login}
-                    lang={lang}
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label htmlFor={`${uid}-sourceUrl`} className="label-caps">
-                    {lang === 'en' ? 'Source URL' : 'URL source'}
-                  </label>
-                  <input
-                    id={`${uid}-sourceUrl`}
-                    value={sourceUrl}
-                    onChange={(e) => setSourceUrl(e.target.value)}
-                    inputMode="url"
-                    placeholder="https://…"
-                    className={`${FIELD_INPUT} mt-1.5`}
-                  />
-                </div>
-
                 <div className="sm:col-span-2">
                   <label htmlFor={`${uid}-note`} className="label-caps">
                     {lang === 'en' ? 'Note for the admin' : 'Note pour l’admin'}
@@ -601,6 +502,16 @@ export default function CatalogEditDialog({
                   />
                 </div>
 
+                <div className="sm:col-span-2">
+                  <PlayerField
+                    id={`${uid}-login`}
+                    value={login}
+                    onChange={setLogin}
+                    error={fieldErrors.login}
+                    lang={lang}
+                  />
+                </div>
+
                 {/* Champ piège : hors écran, jamais atteint au clavier. */}
                 <div className="absolute -left-[9999px] top-auto" aria-hidden="true">
                   <label htmlFor={`${uid}-website`}>{lang === 'en' ? 'Website' : 'Site web'}</label>
@@ -614,6 +525,133 @@ export default function CatalogEditDialog({
                   />
                 </div>
               </div>
+
+              <details className="group mt-4 border border-gold/20 bg-ink/30">
+                <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-gold/[0.04] [&::-webkit-details-marker]:hidden">
+                  <span className="label-caps flex-none">
+                    {lang === 'en' ? 'Technical options' : 'Options techniques'}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[0.6875rem] leading-snug text-parchment-dim/60">
+                    {lang === 'en'
+                      ? 'Colour variants, masked slots, layers, source link'
+                      : 'Déclinaisons, slots masqués, calques, lien source'}
+                  </span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4 flex-none text-gold transition-transform duration-200 group-open:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </summary>
+
+                <div className="border-t border-gold/15 px-4 py-4">
+                  <p className="text-[0.6875rem] leading-snug text-parchment-dim/70">
+                    {lang === 'en'
+                      ? 'Filled automatically by our scripts from the wiki when possible. Only fill this in if you know the value.'
+                      : 'Rempli automatiquement par nos scripts depuis le wiki quand c’est possible. Ne complétez que si vous connaissez la valeur.'}
+                  </p>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor={`${uid}-declinaisons`} className="label-caps">
+                        {lang === 'en' ? 'Colour variants' : 'Déclinaisons'}
+                      </label>
+                      <input
+                        id={`${uid}-declinaisons`}
+                        value={declinaisons}
+                        onChange={(e) => setDeclinaisons(e.target.value)}
+                        placeholder={lang === 'en' ? 'e.g. 0 1 2' : 'ex. 0 1 2'}
+                        inputMode="numeric"
+                        aria-invalid={invalid('declinaisons')}
+                        aria-describedby={describedBy('declinaisons', `${uid}-declinaisons-help`)}
+                        className={`${FIELD_INPUT} mt-1.5`}
+                      />
+                      <span id={`${uid}-declinaisons-help`} className={HELP}>
+                        {help.declinaisons}
+                      </span>
+                      {errorFor('declinaisons')}
+                    </div>
+
+                    <div>
+                      <label htmlFor={`${uid}-slotsMasques`} className="label-caps">
+                        {lang === 'en' ? 'Masked slots' : 'Slots masqués'}
+                      </label>
+                      <input
+                        id={`${uid}-slotsMasques`}
+                        value={slotsMasques}
+                        onChange={(e) => setSlotsMasques(e.target.value)}
+                        placeholder={lang === 'en' ? 'e.g. Shirt, Cape' : 'ex. Chemise, Cape'}
+                        aria-invalid={invalid('slotsMasques')}
+                        aria-describedby={describedBy('slotsMasques', `${uid}-slotsMasques-help`)}
+                        className={`${FIELD_INPUT} mt-1.5`}
+                      />
+                      <span id={`${uid}-slotsMasques-help`} className={HELP}>
+                        {help.slotsMasques}
+                      </span>
+                      {errorFor('slotsMasques')}
+                    </div>
+
+                    <fieldset className="sm:col-span-2">
+                      <legend className="label-caps">
+                        {lang === 'en' ? 'Dependent layers' : 'Calques dépendants'}
+                      </legend>
+                      <div className="mt-2 space-y-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
+                          <input
+                            type="checkbox"
+                            checked={dependCouleurPeau}
+                            onChange={(e) => setDependCouleurPeau(e.target.checked)}
+                            className="h-4 w-4 accent-gold"
+                          />
+                          {lang === 'en' ? 'Depends on skin colour' : 'Dépend de la couleur de peau'}
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
+                          <input
+                            type="checkbox"
+                            checked={dependPostureMainG}
+                            onChange={(e) => setDependPostureMainG(e.target.checked)}
+                            className="h-4 w-4 accent-gold"
+                          />
+                          {lang === 'en'
+                            ? 'Cut according to the left hand'
+                            : 'Découpé selon la main gauche'}
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-2 text-sm text-parchment-dim">
+                          <input
+                            type="checkbox"
+                            checked={dependPostureMainD}
+                            onChange={(e) => setDependPostureMainD(e.target.checked)}
+                            className="h-4 w-4 accent-gold"
+                          />
+                          {lang === 'en'
+                            ? 'Cut according to the right hand'
+                            : 'Découpé selon la main droite'}
+                        </label>
+                      </div>
+                      <span className={HELP}>{help.depends}</span>
+                    </fieldset>
+
+                    <div className="sm:col-span-2">
+                      <label htmlFor={`${uid}-sourceUrl`} className="label-caps">
+                        {lang === 'en' ? 'Source link' : 'Lien source'}
+                      </label>
+                      <input
+                        id={`${uid}-sourceUrl`}
+                        value={sourceUrl}
+                        onChange={(e) => setSourceUrl(e.target.value)}
+                        inputMode="url"
+                        placeholder="https://…"
+                        className={`${FIELD_INPUT} mt-1.5`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </details>
 
               {formError && (
                 <p

@@ -5,18 +5,16 @@ import type { Lang } from '../../i18n';
 /** Textes d'aide affichés sous les champs, par langue. */
 export const FIELD_HELP = {
   fr: {
-    nom: 'Nom du fichier image côté CDN. Laisser vide si inconnu.',
-    slot: 'Slot technique Midas : Chemise, Collier, Cape…',
-    zIndex: 'Ordre de superposition des calques, un nombre par calque. Laisser vide si inconnu.',
-    declinaisons: 'Variantes de couleur : 0 1 2. Laisser vide si l’objet n’en a pas.',
-    slotsMasques: 'Slots recouverts par cet objet.',
+    nom: 'Identifiant du fichier image sur le CDN. Laisser vide si inconnu.',
+    zIndex: 'Ordre de superposition des calques. Rempli automatiquement quand il est connu.',
+    declinaisons: 'Une valeur par variante de couleur.',
+    slotsMasques: 'Emplacements recouverts par cet objet.',
     depends: 'À cocher si le calque change selon la peau ou la posture des mains.',
   },
   en: {
-    nom: 'Name of the image file on the CDN. Leave blank if unknown.',
-    slot: 'Technical Midas slot: Shirt, Necklace, Cape…',
-    zIndex: 'Layer stacking order, one number per layer. Leave blank if unknown.',
-    declinaisons: 'Colour variants: 0 1 2. Leave blank if the item has none.',
+    nom: 'Image file identifier on the CDN. Leave blank if unknown.',
+    zIndex: 'Layer stacking order. Filled automatically when known.',
+    declinaisons: 'One value per colour variant.',
     slotsMasques: 'Slots covered by this item.',
     depends: 'Tick if the layer changes with skin colour or hand posture.',
   },
@@ -31,6 +29,11 @@ export function parseNumberList(raw: string): number[] | null {
   const parts = raw.split(/[\s,]+/).filter(Boolean);
   const nums = parts.map(Number);
   return nums.every((n) => Number.isFinite(n)) ? nums : null;
+}
+
+/** « Chemise, Cape » -> ['Chemise', 'Cape']. */
+export function parseTextList(raw: string): string[] {
+  return raw.split(',').map((value) => value.trim()).filter(Boolean);
 }
 
 /** Emplacements connus du catalogue, triés, pour les listes déroulantes. */

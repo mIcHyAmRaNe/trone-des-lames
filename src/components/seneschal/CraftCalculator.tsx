@@ -9,6 +9,7 @@ import {
 } from "../../lib/seneschal";
 import { formatPoints } from "../../lib/format";
 import { MoneyField, Line, Total } from "./controls";
+import SelectField from "../ui/Select";
 
 const money = (raw: string): number => {
   const n = Number(String(raw).replace(",", "."));
@@ -229,18 +230,22 @@ export default function CraftCalculator({ craft }: { craft: CraftShop }) {
               >
                 Compétence d’atelier
               </label>
-              <select
-                id="skill"
-                value={skill}
-                onChange={(event) => setSkill(Number(event.target.value))}
-                className="mt-1.5 w-full border border-gold/20 bg-ink/60 px-2.5 py-1.5 text-sm text-parchment transition-colors hover:border-gold/40 focus:border-gold focus:outline-none"
-              >
-                <option value={0}>Aucune</option>
-                <option value={10}>−10 %</option>
-                <option value={20}>−20 %</option>
-                <option value={25}>−25 %</option>
-                <option value={50}>−50 %</option>
-              </select>
+              <SelectField
+                inputId="skill"
+                options={[
+                  { value: "0", label: "Aucune" },
+                  { value: "10", label: "−10 %" },
+                  { value: "20", label: "−20 %" },
+                  { value: "25", label: "−25 %" },
+                  { value: "50", label: "−50 %" },
+                ]}
+                value={String(skill)}
+                onChange={(value) => setSkill(Number(value))}
+                ariaLabel="Compétence d’atelier"
+                placeholder="Aucune"
+                size="sm"
+                className="mt-1.5 w-full"
+              />
             </div>
             <p className="text-[0.625rem] leading-snug text-parchment-dim/60">
               Intelligence et vertu réduisent la durée de 0 à 20 % et de 0 à 9,5 %. La compétence
