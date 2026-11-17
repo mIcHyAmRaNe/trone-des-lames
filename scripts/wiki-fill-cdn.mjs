@@ -661,6 +661,21 @@ for (const sex of ['M', 'F']) {
       }
       if (valid.length) it.declinaisons = valid;
     }
+
+    // Mettre à jour les noms FR/EN depuis le wiki si disponibles
+    const wikiItem = hit.item;
+    if (wikiItem) {
+      const wikiNameFr = templateField(wikiItem.text ?? '', 'nom');
+      const wikiNameEn = templateField(wikiItem.textEn ?? '', 'nom') || templateField(wikiItem.textEn ?? '', 'anNom');
+      if (wikiNameFr && wikiNameFr !== it.nameFr) {
+        it.nameFr = wikiNameFr;
+        corrected.push(`${sex} ${it.nameFr} : nom FR mis à jour depuis le wiki`);
+      }
+      if (wikiNameEn && wikiNameEn !== it.nameEn) {
+        it.nameEn = wikiNameEn;
+        corrected.push(`${sex} ${it.nameFr} : nom EN mis à jour depuis le wiki`);
+      }
+    }
   }
 }
 
@@ -754,8 +769,14 @@ for (const item of wikiItemsByName.values()) {
   if (BLACKLIST.has(item.title)) continue;
   const infos = assetsByItem.get(item.title) ?? [];
   if (!infos.length) continue;
-  const name = templateField(item.text ?? '', 'nom') || item.title;
-  const nameEn = templateField(item.text ?? '', 'anNom') || null;
+  
+  // nameFr: depuis le template FR (nom), fallback titre
+  // nameEn: depuis le template EN (nom ou anNom), fallback nameFr
+  const nameFr = templateField(item.text ?? '', 'nom') || item.title;
+  const nameEn = templateField(item.textEn ?? '', 'nom') || templateField(item.textEn ?? '', 'anNom') || null;
+  
+  // Nom d'affichage principal (FR prioritaire)
+  const name = nameFr;
   
   // Déterminer le sexe depuis le template FR (vetementGenre) en priorité,
   // sinon depuis les assets, sinon défaut MF.
@@ -827,7 +848,7 @@ for (const item of wikiItemsByName.values()) {
       dependPostureMainD: !!asset.flags.mainD,
       slotsMasques: [],
       nameEn,
-      nameFr: name,
+      nameFr,
     };
     catalog.sexes[sex].push(entry);
     known.add(`${asset.nom.toLowerCase()}|${sex}`);
