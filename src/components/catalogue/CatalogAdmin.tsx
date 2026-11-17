@@ -112,7 +112,10 @@ const STR: Record<Lang, StrMap> = {
   },
 };
 
-export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
+export default function CatalogAdmin({
+  lang = 'fr',
+  onPendingChange,
+}: { lang?: Lang; onPendingChange?: () => void }) {
   const s = STR[lang];
   const [allRows, setAllRows] = useState<Submission[]>([]);
   const [message, setMessage] = useState(s.loading);
@@ -151,6 +154,7 @@ export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
       const sub = allRows.find((r) => r.id === id);
       setMessage(label(sub?.payload.nameFr ?? sub?.payload.nom ?? id));
       refresh();
+      onPendingChange?.();
     } finally {
       setBusy(null);
     }
@@ -198,7 +202,7 @@ export default function CatalogAdmin({ lang = 'fr' }: { lang?: Lang }) {
       <div className="card-dark texture-noise flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold/15 px-4 py-2.5">
         <div className="flex items-center gap-4 flex-wrap">
           <p className="text-sm text-parchment-dim" role="status">
-            {message || <>{(s.pendingCount as (n: number) => string)(counts.pending)}</>}
+            {message || (counts.pending > 0 ? <>{(s.pendingCount as (n: number) => string)(counts.pending)}</> : <>{s.allClear}</>)}
           </p>
           <nav aria-label={lang === 'fr' ? 'Filtres de statut' : 'Status filters'} className="flex gap-1">
             {STATUS_TABS.map((tab) => {

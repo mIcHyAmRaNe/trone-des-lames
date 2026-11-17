@@ -476,7 +476,7 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
       </nav>
 
       {view === 'catalog' ? (
-        <CatalogAdmin lang={lang} />
+        <CatalogAdmin lang={lang} onPendingChange={fetchPendingCounts} />
       ) : isTournoi ? (
         <>
           {state && <Fighters state={state} run={run} lang={lang} />}
