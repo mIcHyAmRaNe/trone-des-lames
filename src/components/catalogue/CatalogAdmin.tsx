@@ -198,42 +198,35 @@ export default function CatalogAdmin({
 
   return (
     <div>
-      {/* Header with counts */}
-      <div className="card-dark texture-noise flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold/15 px-4 py-2.5">
-        <div className="flex items-center gap-4 flex-wrap">
-          <p className="text-sm text-parchment-dim" role="status">
-            {message || (counts.pending > 0 ? <>{(s.pendingCount as (n: number) => string)(counts.pending)}</> : <>{s.allClear}</>)}
-          </p>
-          <nav aria-label={lang === 'fr' ? 'Filtres de statut' : 'Status filters'} className="flex gap-1">
-            {STATUS_TABS.map((tab) => {
-              const count = counts[tab.value];
-              return (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => { setActiveTab(tab.value); setSearch(''); }}
-                  className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.625rem] font-bold uppercase tracking-[0.12em] transition-colors ${
-                    activeTab === tab.value
-                      ? 'bg-gold/[0.08] text-gold'
-                      : 'text-parchment-dim hover:bg-gold/[0.03] hover:text-parchment'
-                  }`}
-                >
-                  {(s as unknown as Record<string, string>)[tab.labelKey]}
-                  {count > 0 && (
-                    <span className={`h-4 min-w-4 flex items-center justify-center rounded-full px-1.5 text-[0.5rem] font-bold ${
-                      activeTab === tab.value
-                        ? 'bg-gold text-ink'
-                        : 'bg-gold/15 text-gold'
-                    }`}>
-                    {count}
-                  </span>
-                )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
+      {/* Status filter tabs (local to catalogue admin) */}
+      <nav aria-label={lang === 'fr' ? 'Filtres de statut' : 'Status filters'} className="flex gap-1">
+        {STATUS_TABS.map((tab) => {
+          const count = counts[tab.value];
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => { setActiveTab(tab.value); setSearch(''); }}
+              className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.625rem] font-bold uppercase tracking-[0.12em] transition-colors ${
+                activeTab === tab.value
+                  ? 'bg-gold/[0.08] text-gold'
+                  : 'text-parchment-dim hover:bg-gold/[0.03] hover:text-parchment'
+              }`}
+            >
+              {(s as unknown as Record<string, string>)[tab.labelKey]}
+              {count > 0 && (
+                <span className={`h-4 min-w-4 flex items-center justify-center rounded-full px-1.5 text-[0.5rem] font-bold ${
+                  activeTab === tab.value
+                    ? 'bg-gold text-ink'
+                    : 'bg-gold/15 text-gold'
+                }`}>
+                {count}
+              </span>
+            )}
+            </button>
+          );
+        })}
+      </nav>
 
       {/* Search */}
       <div className="mt-3">
@@ -261,23 +254,33 @@ export default function CatalogAdmin({
         </div>
       ) : (
         <ul className="mt-3 space-y-3" role="list" aria-label={s[activeTab === 'pending' ? 'tabPending' : activeTab === 'approved' ? 'tabApproved' : 'tabRejected'] as keyof typeof s}>
-          {filteredRows.map((sub) => (
-            <li key={sub.id} className="card-dark texture-noise rounded-lg border border-gold/10 p-4 text-sm">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-display text-base font-semibold text-parchment">
-                  {sub.kind === 'create' ? s.kindCreate : s.kindEdit}  -  {sub.payload.nameFr ?? sub.payload.nom ?? sub.targetKey}
-                </span>
-                <div className="flex items-center gap-3 text-[0.6875rem] text-parchment-dim">
-                  <span>
-                    {s.submittedBy} {sub.submittedBy} · {s.submittedAt} {new Date(sub.submittedAt).toLocaleString(dateLocale)}
-                  </span>
-                  {sub.status !== 'pending' && sub.decidedBy && (
-                    <span className="text-gold-light/80">
-                      {s.decidedBy} {sub.decidedBy} · {s.decidedAt} {new Date(sub.decidedAt!).toLocaleString(dateLocale)}
+          {filteredRows.map((sub) => {
+            const statusBadge = sub.status === 'approved'
+              ? <span className="h-5 px-2 flex items-center justify-center rounded-full text-[0.5rem] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">{lang === 'fr' ? 'Approuvé' : 'Approved'}</span>
+              : sub.status === 'rejected'
+              ? <span className="h-5 px-2 flex items-center justify-center rounded-full text-[0.5rem] font-bold bg-blood/20 text-blood-light border border-blood/30">{lang === 'fr' ? 'Rejeté' : 'Rejected'}</span>
+              : <span className="h-5 px-2 flex items-center justify-center rounded-full text-[0.5rem] font-bold bg-gold/20 text-gold border border-gold/30">{lang === 'fr' ? 'En attente' : 'Pending'}</span>;
+
+            return (
+              <li key={sub.id} className="card-dark texture-noise rounded-lg border border-gold/10 p-4 text-sm">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {statusBadge}
+                    <span className="font-display text-base font-semibold text-parchment">
+                      {sub.kind === 'create' ? s.kindCreate : s.kindEdit}  -  {sub.payload.nameFr ?? sub.payload.nom ?? sub.targetKey}
                     </span>
-                  )}
+                  </div>
+                  <div className="flex items-center gap-3 text-[0.6875rem] text-parchment-dim">
+                    <span>
+                      {s.submittedBy} {sub.submittedBy} · {s.submittedAt} {new Date(sub.submittedAt).toLocaleString(dateLocale)}
+                    </span>
+                    {sub.status !== 'pending' && sub.decidedBy && (
+                      <span className="text-gold-light/80">
+                        {s.decidedBy} {sub.decidedBy} · {s.decidedAt} {new Date(sub.decidedAt!).toLocaleString(dateLocale)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
 
               {sub.kind === 'edit' && sub.before && (
                 <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs text-parchment-dim sm:grid-cols-[auto_1fr_auto_1fr]">
@@ -328,8 +331,7 @@ export default function CatalogAdmin({
 
               {sub.adminNote && (
                 <p className="mt-2 text-[0.6875rem] text-parchment-dim/70">
-                  <span className="font-semibold text-gold-light">{s.adminNoteLabel}</span>{' '}
-                  {sub.adminNote}
+                  <span className="font-semibold text-gold-light">{s.adminNoteLabel}</span> {sub.adminNote}
                 </p>
               )}
 
@@ -359,7 +361,8 @@ export default function CatalogAdmin({
                 </div>
               )}
             </li>
-          ))}
+          );
+        })}
         </ul>
       )}
 
