@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-18 — CDN : frames manquantes et emplacements genrés
+
+### Corrigé
+
+- L'`Accessoire de Rituel (Divin)` affiche désormais ses deux sprites par sexe (`etole_d2_0_@1X` et `etole_d2_1_@1X`), relevés sur les pages `Fichier:` anglaises. 17 autres fiches importées du wiki récupèrent de même leurs frames manquantes.
+- `wiki-fill-cdn` ne prend plus le numéro de frame d'une URL `_dN_F` pour une déclinaison : les frames d'un même objet partagent un nom d'asset et toutes leurs URL sont conservées dans `cdn`.
+- Catégories corrigées d'après l'emplacement du wiki : Bure de Rituel (Divin) → Mantels (M/F), Bas du clair de lune → Braies (M) / Jupes (F), Accessoire de Rituel (Divin) → Cou (M) / Chapeaux (F), Bas des dunes → Jupes (F).
+- `wiki-fill-cdn` lit l'emplacement sur plusieurs lignes et distingue `(homme)` / `(femme)` au lieu de ne garder que la dernière ligne du champ.
+
+### Ajouté
+
+- Scripts relancés en écriture (`wiki-fill-cdn`, `catalog-dedupe`, `wiki-audit --import --merge-sexes`) : `Chemises` (M/F), `Chemise de l'Abeilleur` (M) et `Léine celtique` (M) complétées ; Cervelière du Pillard (F) remplacée par la fiche complète ; `data/wiki-gaps.json` actualisé. Catalogue à 2044 fiches.
+
 ## 2026-11-18 — Catégories : emplacements wiki et filtre « Autres »
 
 ### Corrigé

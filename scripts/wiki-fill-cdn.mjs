@@ -163,6 +163,21 @@ const templateField = (text, field) => {
   return m ? clean(m[1]) : '';
 };
 
+/** Champ de template pouvant tenir sur plusieurs lignes (les emplacements
+ *  listent souvent un sexe par ligne). */
+const templateFieldRaw = (text, field) => {
+  const lines = `${text ?? ''}`.split('\n');
+  const re = new RegExp(`^\\s*\\|?\\s*${field}\\s*=(.*)$`, 'i');
+  const i = lines.findIndex((l) => re.test(l));
+  if (i < 0) return '';
+  const out = [lines[i].replace(re, '$1')];
+  for (let j = i + 1; j < lines.length; j++) {
+    if (/^\s*(?:\||\}\})/.test(lines[j]) || /^\s*[a-z][\w ]*\s*=/i.test(lines[j])) break;
+    out.push(lines[j]);
+  }
+  return out.join('\n');
+};
+
 /** Extrait le sexe depuis le champ vetementGenre du template FR.
  *  Retourne 'M', 'F', 'MF' (les deux), ou null si non trouvé. */
 function extractSexFromTemplate(text) {
@@ -226,7 +241,9 @@ function assetInfo(url) {
   let withoutDecl = bare;
   let decl = null;
   if (declStandard) {
-    withoutDecl = bare.replace(/_d\d+(?:_|$)/i, '');
+    // `_dN_F` : F est le numéro d'image (frame), pas une déclinaison. Le figer
+    // à 0 garde un seul nom d'asset pour toutes les URL du même objet.
+    withoutDecl = bare.replace(/_d\d+_\d+$/i, '0').replace(/_d\d+(?:_|$)/i, '');
     decl = Number(declStandard[1]);
   } else if (declWiki) {
     const n = Number(declWiki[1]);
@@ -291,18 +308,29 @@ const EMPLACEMENT_CATEGORY = {
   'filet de peche': 'Outils_filet', echelle: 'Outils_echelle',
   armes: 'Armes', boucliers: 'Boucliers',
 };
-function categoryFromEmplacement(text) {
-  const label = `${text ?? ''}`
-    .replace(/<br\s*\/?>/gi, ' ')
-    .split(':')
-    .pop()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z ]+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return EMPLACEMENT_CATEGORY[label] ?? null;
+/** Catégories déduites de l'emplacement wiki, par sexe quand il est précisé
+ *  (`(homme) : III.a : Braies` / `(femme) : III.b Jupes`). */
+function categoriesFromEmplacement(text) {
+  const out = { M: null, F: null, any: null };
+  for (const line of `${text ?? ''}`.replace(/<br\s*\/?>/gi, '\n').split('\n')) {
+    if (!line.trim()) continue;
+    const hasM = /\bhommes?\b/i.test(line);
+    const hasF = /\bfemmes?\b/i.test(line);
+    const sex = hasM === hasF ? null : hasM ? 'M' : 'F';
+    const label = (line.split(':').pop() ?? '')
+      .replace(/\([^)]*\)/g, ' ')
+      .trim()
+      .replace(/^[ivx]+\.?\s*[a-z]?\.?(?=\s|$)\s*/i, '') // numéro de section (III.b, X.b…)
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .replace(/[^a-z ]+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const category = EMPLACEMENT_CATEGORY[label] ?? null;
+    if (category) out[sex ?? 'any'] = category;
+  }
+  return out;
 }
 
 // --- 1. crawl des catégories (FR + EN) ---------------------------------------
@@ -739,6 +767,8 @@ for (const sex of ['M', 'F']) {
     // car decl 0 n'est pas capturé par assetInfo pour les URLs wiki _0_@1X.png)
     const usableDecls = [];
     for (const p of usable) {
+      // `_dN_F` : le chiffre final est une frame, pas une teinte.
+      if (/_d\d+/i.test(p)) continue;
       const m = p.match(/_(\d+)_@1X\.png$/);
       if (m) usableDecls.push(Number(m[1]));
     }
@@ -780,6 +810,17 @@ for (const sex of ['M', 'F']) {
       if (wikiNameEn && wikiNameEn !== it.nameEn) {
         it.nameEn = wikiNameEn;
         corrected.push(`${sex} ${it.nameFr} : nom EN mis à jour depuis le wiki`);
+      }
+      // L'emplacement wiki est plus précis que la catégorie « Accessoire » /
+      // « Événementiel » utilisée à l'import (ex. Chapeaux/Cou selon le sexe).
+      const emplacement =
+        templateFieldRaw(wikiItem.text ?? '', 'emplacement') ||
+        templateFieldRaw(wikiItem.textEn ?? '', 'emplacement');
+      const cats = categoriesFromEmplacement(emplacement);
+      const category = cats[sex] ?? cats.any;
+      if (category && !it.slot && it.slotGardeRobe !== category) {
+        it.slotGardeRobe = category;
+        corrected.push(`${sex} ${it.nameFr} : catégorie -> ${category}`);
       }
     }
   }
@@ -910,14 +951,14 @@ for (const item of wikiItemsByName.values()) {
   // Seules les catégories d'objets explicites créent des fiches : les
   // catégories parentes ne servent qu'à retrouver des fichiers.
   const emplacement =
-    templateField(item.text ?? '', 'emplacement') || templateField(item.textEn ?? '', 'emplacement');
-  const category =
-    categoryFromEmplacement(emplacement) ??
-    item.categories.find((c) => c.category)?.category ??
-    categoryOfAsset(infos[0]);
-  if (!category) continue;
+    templateFieldRaw(item.text ?? '', 'emplacement') || templateFieldRaw(item.textEn ?? '', 'emplacement');
+  const categories = categoriesFromEmplacement(emplacement);
+  const fallbackCategory =
+    item.categories.find((c) => c.category)?.category ?? categoryOfAsset(infos[0]);
   const slug = normalizeName(item.title).replace(/[^a-z0-9]+/g, '-') || 'objet';
   for (const sex of sexes) {
+    const category = categories[sex] ?? categories.any ?? fallbackCategory;
+    if (!category) continue;
     const asset = infos.find((i) => i.sex === sex) ?? infos[0];
     if (!asset) continue;
 
