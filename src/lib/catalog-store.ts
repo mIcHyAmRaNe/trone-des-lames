@@ -45,6 +45,12 @@ let baseCatalog: Catalog | null = null;
 let basePromise: Promise<Catalog> | null = null;
 
 async function importBaseCatalog(): Promise<Catalog> {
+  // En dev, le catalogue est réécrit par les scripts : le garder en mémoire
+  // ferait servir un snapshot périmé à /api/catalog jusqu'au redémarrage.
+  if (process.env.NODE_ENV !== 'production') {
+    const txt = await readFile(BASE_CATALOG_PATH, 'utf8');
+    return JSON.parse(txt) as Catalog;
+  }
   if (baseCatalog) return baseCatalog;
   if (basePromise) return basePromise;
   basePromise = (async () => {

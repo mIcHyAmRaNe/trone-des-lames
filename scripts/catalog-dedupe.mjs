@@ -78,7 +78,15 @@ for (const sex of ['M', 'F']) {
     const en = [normalizeName(a.nameEn), normalizeName(b.nameEn)];
     const match = (pair) => pair[0] && pair[1] && pair[0] === pair[1];
     const conflict = (pair) => pair[0] && pair[1] && pair[0] !== pair[1];
-    return (match(fr) || match(en)) && !conflict(fr) && !conflict(en);
+    if (match(fr) || match(en)) return !conflict(fr) && !conflict(en);
+    // Les pages FR et EN d'un même objet peuvent avoir des libellés divergents
+    // (la page EN fournissant un nom anglais). Même asset + mêmes CDN = même objet.
+    if (!a.id.startsWith('wiki:') || !b.id.startsWith('wiki:')) return false;
+    const sameCdn =
+      a.cdn?.length &&
+      b.cdn?.length &&
+      JSON.stringify([...a.cdn].sort()) === JSON.stringify([...b.cdn].sort());
+    return !!sameCdn;
   };
   for (const it of catalog.sexes[sex]) {
     const twin = kept.find((o) => o.id === it.id || sameObject(o, it));

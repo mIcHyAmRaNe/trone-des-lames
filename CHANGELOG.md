@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-18 — Catalogue : plus de snapshot périmé ni de doublon récurrent
+
+### Corrigé
+
+- `/api/catalog` servait un catalogue figé au premier appel depuis le démarrage du serveur (`catalog-store.ts`). En développement, le fichier est maintenant relu à chaque requête : plus besoin de redémarrer le serveur après une relance des scripts.
+- « Masse épineuse », « Trompette du champion 1472 » et « Cape du pillard » n'apparaissent plus qu'une fois dans `/catalogue` (ligne « Mixte », catégorie unique) : les anciennes lignes venaient du snapshot périmé de l'API.
+- `wiki:pillagerscervelliere` (page wiki EN) réapparaissait avec un libellé anglais et échappait à la dédup : fusion avec la fiche FR `wiki:cerveliere-du-pillard`.
+- `wiki-fill-cdn` ne donne plus le titre anglais d'une page EN comme `nameFr` lors d'une création.
+- `catalog-dedupe` rapproche aussi deux fiches `wiki:*` de même asset et de mêmes CDN, même si leurs libellés divergent.
+
 ## 2026-11-18 — Doublons : fiches FR/EN fusionnées et ids dupliqués
 
 ### Corrigé

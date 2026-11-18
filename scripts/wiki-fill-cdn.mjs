@@ -851,8 +851,13 @@ for (const item of wikiItemsByName.values()) {
   // nameFr: depuis le template FR (nom), fallback titre
   // nameEn: depuis le template EN (nom ou anNom), fallback nameFr
   const frNom = item.lang === 'fr' ? templateField(item.text ?? '', 'nom') : '';
-  const nameFr = wikiDisplayName(frNom || (item.lang === 'fr' ? item.title : '')) || item.title;
-  const nameEn = templateField(item.textEn ?? '', 'nom') || templateField(item.textEn ?? '', 'anNom') || null;
+  // Une page EN ne fournit pas de libellé FR : lui donner son titre anglais
+  // créerait une fiche concurrente de la page FR du même objet.
+  const nameFr = item.lang === 'fr' ? wikiDisplayName(frNom || item.title) : null;
+  const nameEn =
+    templateField(item.textEn ?? '', 'nom') ||
+    templateField(item.textEn ?? '', 'anNom') ||
+    (item.lang === 'en' ? item.title : null);
   
   // Nom d'affichage principal (FR prioritaire)
   const name = nameFr;
