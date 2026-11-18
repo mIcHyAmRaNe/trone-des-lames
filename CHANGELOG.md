@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-11-18 — Catalogue : régénération depuis le wiki
+
+### Corrigé
+
+- Le catalogue n'est plus issu des métadonnées ryence.de : `scripts/catalog-from-wiki.mjs` reconstruit les objets à partir des 16 tableaux de la page wiki « Vêtement » et des 92 pages de `Catégorie:Panoplie`. Les panoplies sont classées dans `Panoplies` d'après `vetementType=Panoplie`, et non plus rangées comme des colliers ou des casques.
+- La catégorie vient en priorité de l'emplacement de la page objet (avec les variantes `(homme)` / `(femme)`), puis de la section du tableau ; `cheveux` et `barbe` au singulier sont désormais reconnus. 24 fiches changent ainsi de catégorie, dont `panoplie Procession d'Aristote`, `miroir à main` et plusieurs panoplies de concours.
+- Les noms, libellés FR/EN, sexes, CDN, déclinaisons et dépendances (peau/postures) sont relevés sur les pages wiki et les pages `Fichier:` (3622 pages en cache, aucun re-téléchargement).
+
+### Ajouté
+
+- `scripts/catalog-wiki-join.mjs` : jointure déterministe des champs absents du wiki (`id`, `zIndex`, `slotsMasques`, `slot` technique) depuis l'ancien catalogue, par nom d'asset puis libellé, avec priorité aux fiches de jeu canoniques. Écrit `data/catalog-wiki-staged.json` et un rapport de diff avant tout remplacement.
+- Rapport de régénération : 1914 fiches jointes, 105 objets nouveaux (id `wiki:*`), 131 fiches ryence abandonnées, 0 collision d'id, 0 zIndex perdu, 0 catégorie orpheline. Catalogue à 2019 fiches (1019 M / 1000 F), 1850 avec zIndex. Tests `wardrobe` et `astro build` verts.
+- Les données intermédiaires (`data/wiki-catalog-raw.json`, `data/catalog-wiki-staged.json`, `data/catalog-wiki-report.json`) sont générées et ignorées par git.
+
 ## 2026-11-18 — Catalogue : calques, postures et objets mixtes
 
 ### Corrigé

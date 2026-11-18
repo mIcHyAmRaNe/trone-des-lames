@@ -32,3 +32,9 @@ local.db-journal
 
 # wiki audit cache
 .cache/
+
+.slim/deepwork/
+
+data/wiki-catalog-raw.json
+data/catalog-wiki-staged.json
+data/catalog-wiki-report.json
