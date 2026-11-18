@@ -27,8 +27,74 @@ function normalizeName(value) {
 }
 
 const isComplete = (it) => !!it.nom && it.zIndex.length > 0;
+const isWiki = (it) => String(it.id ?? '').startsWith('wiki:');
+const hasRealZ = (it) => (it.zIndex ?? []).some((z) => Number(z) !== 0);
+const isCanonical = (it) => !isWiki(it) && !!it.nom && hasRealZ(it);
+const isPlaceholder = (it) => isWiki(it) && (!it.cdn?.length || !hasRealZ(it) || !it.slot);
+const keysOf = (it) => [...new Set([it.nameFr, it.nameEn, it.nom].map(normalizeName).filter(Boolean))];
 
 const catalog = JSON.parse(await readFile(CATALOG, 'utf8'));
+
+// --- 1re passe : fiches `wiki:*` incomplètes en plus d'une fiche complète -----
+// Les imports wiki créent souvent la même fiche deux fois : une fiche du jeu
+// (id numérique, asset + z-index) et une fiche `wiki:` sans slot ni CDN. Quand
+// l'asset est mixte (cadres, fonds), la fiche complète n'existe parfois que pour
+// l'autre sexe : on la recopie pour que /catalogue affiche une ligne « Mixte ».
+const canonical = new Map();
+for (const sex of ['M', 'F']) {
+  for (const it of catalog.sexes[sex]) {
+    if (!isCanonical(it)) continue;
+    for (const key of keysOf(it)) {
+      const bySex = canonical.get(key) ?? { M: [], F: [] };
+      bySex[sex].push(it);
+      canonical.set(key, bySex);
+    }
+  }
+}
+
+for (const sex of ['M', 'F']) {
+  const other = sex === 'M' ? 'F' : 'M';
+  const kept = [];
+  const removed = [];
+  for (const it of catalog.sexes[sex]) {
+    if (!isPlaceholder(it)) {
+      kept.push(it);
+      continue;
+    }
+    let twin = null;
+    let sameSex = false;
+    for (const key of keysOf(it)) {
+      const group = canonical.get(key);
+      if (!group) continue;
+      if (group[sex].length) {
+        twin = group[sex][0];
+        sameSex = true;
+        break;
+      }
+      if (group[other].length) twin ??= group[other][0];
+    }
+    if (!twin) {
+      kept.push(it);
+      continue;
+    }
+    // Une fiche complète chez l'autre sexe ne prouve pas que l'objet est
+    // mixte (renard polaire, boucliers…). Seuls les cadres et fonds le sont.
+    if (!sameSex) {
+      const mixte = ['Cadres', 'Fonds'].includes(twin.slotGardeRobe) ||
+        (twin.cdn?.length > 0 && twin.cdn.every((p) => /^(cadres|fonds)\//.test(p)));
+      kept.push(mixte ? { ...twin } : it);
+      if (mixte) removed.push(`${sex} ${it.id} -> copie de ${twin.id} (mixte)`);
+      continue;
+    }
+    twin.nameFr ||= it.nameFr;
+    twin.nameEn ||= it.nameEn;
+    if (!twin.cdn?.length && it.cdn?.length) twin.cdn = it.cdn;
+    removed.push(`${sex} ${it.id} (${it.nameFr ?? it.nameEn ?? '?'}) -> ${twin.id}`);
+  }
+  catalog.sexes[sex] = kept;
+  console.log(`${sex}: ${removed.length} fiche(s) wiki redondante(s) supprimée(s)`);
+  for (const r of removed) console.log(`  ${r}`);
+}
 
 for (const sex of ['M', 'F']) {
   const list = catalog.sexes[sex];

@@ -801,6 +801,8 @@ for (const sex of ['M', 'F']) {
       const variant = `${wikiItem.title ?? ''}`.match(/\([^)]+\)/)?.[0];
       const sameVariant = variant && `${it.nameFr ?? ''}`.includes(variant);
       if (sameVariant && frNom && !frNom.includes(variant)) frNom = wikiItem.title;
+      const forced = NAME_OVERRIDES.get(normalizeName(wikiItem.title));
+      if (forced) frNom = forced;
       const wikiNameFr = frNom ? wikiDisplayName(frNom) : '';
       const wikiNameEn = templateField(wikiItem.textEn ?? '', 'nom') || templateField(wikiItem.textEn ?? '', 'anNom');
       if (wikiNameFr && wikiNameFr !== it.nameFr) {
@@ -829,7 +831,9 @@ for (const sex of ['M', 'F']) {
 // --- 3.5. correction du sexe des fiches existantes selon le wiki ------------
 // Le wiki étiquette parfois le sprite du bon sexe avec le mauvais dossier CDN
 // (`Item819f.png` -> `hommes/...`) : on garde ces cas explicites.
-const SEX_OVERRIDES = new Map([['renardpolaire', ['F']]]);
+const SEX_OVERRIDES = new Map([['renardpolaire', ['M', 'F']]]);
+// Certaines pages ont un champ `nom` erroné : le titre de la page fait foi.
+const NAME_OVERRIDES = new Map([['coiffuredanslevent', 'Coiffure dans le vent']]);
 // Construit une map nom -> sexes corrects depuis les données wiki
 const correctSexes = new Map();
 for (const item of wikiItemsByName.values()) {
@@ -898,6 +902,9 @@ for (const sex of ['M', 'F']) {
       known.add(`${it.nom.toLowerCase()}|${sex}`);
       // `concours16_m0` (wiki) et `concours16` (catalogue) sont le même asset.
       known.add(`${it.nom.toLowerCase().replace(/_[mn]\d+$/, '')}|${sex}`);
+      // Deux objets peuvent partager le même nom d'asset avec des teintes
+      // différentes (etole_d2 = Divin, etole_d3 = Écarlate).
+      for (const d of it.declinaisons ?? []) known.add(`${it.nom.toLowerCase()}_d${d}|${sex}`);
     }
     known.add(`${normalizeName(it.nameFr)}|${sex}`);
     known.add(`${normalizeName(it.nameEn)}|${sex}`);
@@ -908,6 +915,7 @@ for (const sex of ['M', 'F']) {
 function twinOf(sex, name) {
   const other = sex === 'M' ? 'F' : 'M';
   const key = normalizeName(name);
+  if (!key) return null;
   return (
     catalog.sexes[other].find((it) => it.nom && it.zIndex.length && normalizeName(it.nameFr) === key) ??
     catalog.sexes[other].find((it) => it.nom && it.zIndex.length && normalizeName(it.nameEn) === key)
@@ -964,7 +972,22 @@ for (const item of wikiItemsByName.values()) {
 
     // Fiche déjà présente pour ce sexe : si elle est incomplète et qu'un
     // jumeau complet existe pour l'autre sexe, on la remplace par sa copie.
-    const existingIdx = catalog.sexes[sex].findIndex((it) => normalizeName(it.nameFr) === normalizeName(name));
+    // Même objet sous un autre id (fiche du jeu ou page wiki FR/EN) : ne pas
+    // créer un doublon. Deux objets peuvent partager le même asset avec des
+    // teintes différentes (etole_d2 Divin / etole_d3 Écarlate) : la clé d'asset
+    // doit donc inclure la déclinaison quand elle est connue.
+    const incoming = [name, nameEn].map(normalizeName).filter(Boolean);
+    if (asset?.nom) {
+      const assetNorm = normalizeName(asset.nom);
+      incoming.push(asset.decl != null ? `${assetNorm}_d${asset.decl}` : assetNorm);
+    }
+    const existingIdx = incoming.length
+      ? catalog.sexes[sex].findIndex((it) => {
+          const keys = [it.nameFr, it.nameEn, it.nom].map(normalizeName).filter(Boolean);
+          if (it.nom) for (const d of it.declinaisons ?? []) keys.push(`${normalizeName(it.nom)}_d${d}`);
+          return keys.some((key) => incoming.includes(key));
+        })
+      : -1;
     const twin = twinOf(sex, name);
     if (existingIdx >= 0) {
       const existing = catalog.sexes[sex][existingIdx];
@@ -975,7 +998,10 @@ for (const item of wikiItemsByName.values()) {
       continue;
     }
 
-    if (known.has(`${asset.nom.toLowerCase().replace(/_[mn]\d+$/, '')}|${sex}`)) continue;
+    const assetKey = asset.decl != null
+      ? `${asset.nom.toLowerCase()}_d${asset.decl}`
+      : asset.nom.toLowerCase().replace(/_[mn]\d+$/, '');
+    if (known.has(`${assetKey}|${sex}`)) continue;
     if (known.has(`${normalizeName(name)}|${sex}`)) continue;
     const paths = pathsFor(infos, sex);
     const usable = [];

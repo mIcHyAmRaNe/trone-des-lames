@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-18 — Catalogue : calques, postures et objets mixtes
+
+### Corrigé
+
+- 28 objets par sexe (56 fiches) récupèrent leur `zIndex` depuis le `zIndexCalques` de la fiche du personnage fournie : `grevesPillard` → 2200, `capePillard` → 800/2201/6000, `ganteletsPillard` → 2350/17500/14500, familiers, ceintures des dunes… Seules les fiches au calque vide sont touchées ; `slotsMasques` et `declinaisons` restent inchangés.
+- `ganteletsPillard` (M et F) dépend désormais des deux mains : `dependPostureMainG` et `dependPostureMainD` passent à `true`, comme sur la fiche. Les sprites `_m0_n0` répondent 200 sur le CDN pour les deux sexes.
+- « Foulard du teinturier (Corail) » est référencé comme mixte : la fiche absente de M y est copiée avec les CDN `hommes/vetements/foulardTeinturier_d1_0` et `_d1_1`.
+- « Médaille d'Aristote cardinalice » est référencée comme mixte : l'item de jeu `300` (complet) est ajouté en F et la fiche wiki fantôme `wiki:medaille-d-aristote-cardinalice` (sans nom, calque ni CDN) est supprimée. Une seule ligne « Mixte » reste dans `/catalogue`.
+
+### Ajouté
+
+- `catalog-dedupe` : détection des fiches `wiki:*` incomplètes qui doublonnent une fiche complète, copie des objets mixtes (cadres/fonds) vers le sexe manquant et report des traductions ou CDN manquants avant suppression.
+- `wiki-audit --import` : n'importe plus de doublon quand une fiche du même objet existe déjà sous un autre id (fiche du jeu ou page wiki FR/EN).
+- `wiki-fill-cdn` : correction du nom « Coiffure dans le vent », renard polaire marqué mixte, et distinction des teintes d'un même asset par déclinaison (`etole_d2` Divin / `etole_d3` Écarlate). Les trois scripts restent stables en dry-run. Catalogue à 2045 fiches (1030 M / 1015 F).
+
 ## 2026-11-18 — CDN : frames manquantes et emplacements genrés
 
 ### Corrigé

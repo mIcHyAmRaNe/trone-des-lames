@@ -407,6 +407,17 @@ function importWikiItems(catalog, gaps, namedOnly) {
     for (const sex of sexes) {
       if (catalog.sexes[sex].some((it) => it.id === id)) continue;
       const asset = entry.assets[sex];
+      // Une fiche du même objet peut déjà exister sous un autre id (fiche du
+      // jeu, page wiki FR/EN importée plus tôt) : ne pas la dupliquer.
+      const incoming = [entry.name, entry.nameEn, asset?.nom].map(normalizeName).filter(Boolean);
+      const existing = catalog.sexes[sex].find((it) =>
+        [it.nameFr, it.nameEn, it.nom].map(normalizeName).filter(Boolean)
+          .some((key) => incoming.includes(key)));
+      if (existing) {
+        existing.nameFr ||= displayName(entry.name);
+        existing.nameEn ||= entry.nameEn;
+        continue;
+      }
       catalog.sexes[sex].push({
         id,
         nom: asset?.nom ?? null,
