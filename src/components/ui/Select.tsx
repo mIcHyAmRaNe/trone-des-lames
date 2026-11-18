@@ -12,7 +12,7 @@ import type { Lang } from '../../i18n';
  * `size="sm"` celui des petits contrôles (calculateurs).
  */
 
-export type Option = { value: string; label: string };
+export type Option = { value: string; label: string; /** Nombre affiché en badge à droite du libellé. */ count?: number };
 export type SelectSize = 'field' | 'sm';
 
 export type Palette = {
@@ -193,6 +193,28 @@ export default function SelectField({
   lang?: Lang;
 }) {
   const p = usePalette();
+  // Badge de comptage : uniquement quand l'appelant fournit `count` sur l'option,
+  // donc les autres sélecteurs de l'app restent inchangés.
+  const formatOptionLabel = (option: Option) =>
+    option.count === undefined ? (
+      option.label
+    ) : (
+      <span className="flex items-baseline justify-between gap-3">
+        <span className="truncate">{option.label}</span>
+        <span
+          aria-hidden="true"
+          className="shrink-0"
+          style={{
+            color: alpha(p.dim, 80),
+            fontSize: 11,
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {option.count.toLocaleString(lang === 'en' ? 'en' : 'fr')}
+        </span>
+      </span>
+    );
   return (
     <div className={className}>
       <Select
@@ -209,6 +231,7 @@ export default function SelectField({
         styles={{ ...selectStyles(p, size), ...styles }}
         placeholder={placeholder}
         options={options}
+        formatOptionLabel={formatOptionLabel}
         value={options.find((o) => o.value === value) ?? null}
         onChange={(opt) => onChange(opt?.value ?? '')}
         noOptionsMessage={() =>

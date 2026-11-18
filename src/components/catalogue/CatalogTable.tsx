@@ -221,6 +221,42 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
     return CATEGORIES.map((c) => c.key).filter((key) => present.has(key));
   }, [rows]);
 
+  // Libellés + nombre d'objets, pour les badges du sélecteur de catégorie.
+  const categoryOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of rows) counts.set(r.category, (counts.get(r.category) ?? 0) + 1);
+    return [
+      { value: '', label: lang === 'en' ? 'All' : 'Toutes', count: rows.length },
+      ...categories.map((key) => ({
+        value: key,
+        label: categoryLabel(key, lang),
+        count: counts.get(key) ?? 0,
+      })),
+    ];
+  }, [rows, categories, lang]);
+
+  // Compteurs alignés sur le filtre : chaque chiffre = lignes réellement gardées.
+  const sexeOptions = useMemo(() => {
+    const counts: Record<SexeValue, number> = { Mixte: 0, M: 0, F: 0 };
+    for (const r of rows) counts[r.sexe] += 1;
+    return [
+      { value: '', label: lang === 'en' ? 'All' : 'Tous', count: rows.length },
+      { value: 'Mixte', label: lang === 'en' ? 'Both' : 'Mixte', count: counts.Mixte },
+      { value: 'M', label: sexeLabel('M', lang), count: counts.M },
+      { value: 'F', label: sexeLabel('F', lang), count: counts.F },
+    ];
+  }, [rows, lang]);
+
+  const dataOptions = useMemo(() => {
+    const counts: Record<string, number> = {
+      '': rows.length,
+      incomplete: rows.filter(isIncompleteRow).length,
+      noCdn: rows.filter((r) => !r.hasCdn).length,
+      noZIndex: rows.filter((r) => !r.hasZIndex).length,
+    };
+    return DATA_OPTIONS[lang].map((o) => ({ ...o, count: counts[o.value] ?? 0 }));
+  }, [rows, lang]);
+
   const needle = query.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -326,7 +362,8 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
         ))}
       </div>
       <p className="mb-6 text-right text-[0.625rem] uppercase tracking-[0.16em] text-parchment-dim/60">
-        {lang === 'en' ? 'Captured on' : 'Relevé du'} {dateFormat.format(new Date(catalog.generatedAt))}
+        {lang === 'en' ? 'Last updated on' : 'Dernière mise à jour le'}{' '}
+        {dateFormat.format(new Date(catalog.refreshedAt ?? catalog.generatedAt))}
       </p>
 
       {/* Filtres */}
@@ -362,10 +399,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
               ariaLabel={lang === 'en' ? 'Category' : 'Catégorie'}
               value={category}
               onChange={setCategory}
-              options={[
-                { value: '', label: lang === 'en' ? 'All' : 'Toutes' },
-                ...categories.map((key) => ({ value: key, label: categoryLabel(key, lang) })),
-              ]}
+              options={categoryOptions}
               lang={lang}
               className="mt-1.5"
             />
@@ -380,12 +414,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
               ariaLabel={lang === 'en' ? 'Sex' : 'Sexe'}
               value={sexe}
               onChange={(v) => setSexe(v as SexeFilter)}
-              options={[
-                { value: '', label: lang === 'en' ? 'All' : 'Tous' },
-                { value: 'Mixte', label: mixte },
-                { value: 'M', label: sexeLabel('M', lang) },
-                { value: 'F', label: sexeLabel('F', lang) },
-              ]}
+              options={sexeOptions}
               lang={lang}
               className="mt-1.5"
             />
@@ -400,7 +429,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
               ariaLabel={lang === 'en' ? 'Data' : 'Données'}
               value={data}
               onChange={(v) => setData(v as DataFilter)}
-              options={DATA_OPTIONS[lang]}
+              options={dataOptions}
               lang={lang}
               className="mt-1.5"
             />

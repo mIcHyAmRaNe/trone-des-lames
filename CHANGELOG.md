@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-18 — Catalogue : compteurs dans les filtres et date de mise à jour
+
+### Ajouté
+
+- Badge de nombre d'objets dans les trois filtres react-select de `/catalogue` : Catégorie, Sexe, Données. Chaque chiffre correspond exactement au résultat retourné par le filtre (ex. « M » ne compte pas les objets mixtes).
+- `Select.tsx` : champ `count` optionnel sur `Option`, rendu via `formatOptionLabel` uniquement quand il est fourni — aucun autre sélecteur de l'application n'est modifié.
+
+### Corrigé
+
+- La ligne « Relevé du 5 octobre 2026 » affichait `generatedAt` (date du bootstrap ryence.de). Elle affiche désormais `refreshedAt` avec « Dernière mise à jour le » / « Last updated on ».
+
 ## 2026-11-18 — Catalogue : plus de snapshot périmé ni de doublon récurrent
 
 ### Corrigé
