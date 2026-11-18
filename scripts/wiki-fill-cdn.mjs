@@ -534,7 +534,11 @@ for (const item of wikiItems.values()) {
   // ainsi rapprochées de l'objet wiki malgré tout.
   for (const info of infos) {
     const key = info.nom.toLowerCase();
-    if (!byAsset.has(key)) byAsset.set(key, { item, infos });
+    // Une page générique (« Colliers en pierre fine ») porte les sprites de
+    // toutes ses variantes : ne garder que l'asset de la clé pour éviter de
+    // recopier les CDN d'une couleur dans une autre.
+    if (!byAsset.has(key))
+      byAsset.set(key, { item, infos: infos.filter((i) => i.nom.toLowerCase() === key) });
   }
 }
 
@@ -645,11 +649,16 @@ for (const sex of ['M', 'F']) {
     const named = byName.get(key);
     // Une page d'objet sans image (les fichiers vivent sur la page de la
     // panoplie) ne doit pas bloquer le repli par nom d'asset.
-    const hit = named?.infos.length
-      ? named
-      : ((it.nom ? byAsset.get(it.nom.toLowerCase()) : undefined) ?? named);
+    const assetHit = it.nom ? byAsset.get(it.nom.toLowerCase()) : undefined;
+    const hit = named?.infos.length ? named : (assetHit ?? named);
+    // Un rapprochement par asset ne prouve pas que la page wiki est celle de
+    // l'objet : elle peut lister plusieurs variantes. Dans ce cas on ne touche
+    // pas au libellé, sinon « Collier (ambre) » redevient « Colliers en pierre fine ».
+    const nameHit = named?.infos.length ? named : null;
     if (!hit) continue;
-    const infos = hit.infos;
+    // Pour les sprites, l'appariement par nom d'asset est plus sûr que la page
+    // trouvée par libellé : une page générique liste toutes les variantes.
+    const infos = assetHit?.infos.length ? assetHit.infos : hit.infos;
     if (!infos.length) {
       if (!it.nom) unresolved.push(`${sex} ${it.nameFr ?? it.id} (${it.id})`);
       continue;
@@ -722,11 +731,16 @@ for (const sex of ['M', 'F']) {
     }
 
     // Mettre à jour les noms FR/EN depuis le wiki si disponibles
-    const wikiItem = hit.item;
+    const wikiItem = nameHit?.item;
     if (wikiItem) {
-      // Un item peut être rapproché de sa page EN : son `nom` est alors anglais.
-      // Ne jamais écraser un libellé FR avec un titre EN.
-      const frNom = wikiItem.lang === 'fr' ? templateField(wikiItem.text ?? '', 'nom') : '';
+      // Le `text` d'une page de variante peut avoir été remplacé par celui de
+      // la page générique lors de la fusion FR/EN : le nom du template perd
+      // alors son qualificatif (« (ambre) »). Le titre le garde. Ne jamais
+      // prendre un titre EN pour un libellé FR.
+      let frNom = wikiItem.lang === 'fr' ? templateField(wikiItem.text ?? '', 'nom') : '';
+      const variant = `${wikiItem.title ?? ''}`.match(/\([^)]+\)/)?.[0];
+      const sameVariant = variant && `${it.nameFr ?? ''}`.includes(variant);
+      if (sameVariant && frNom && !frNom.includes(variant)) frNom = wikiItem.title;
       const wikiNameFr = frNom ? wikiDisplayName(frNom) : '';
       const wikiNameEn = templateField(wikiItem.textEn ?? '', 'nom') || templateField(wikiItem.textEn ?? '', 'anNom');
       if (wikiNameFr && wikiNameFr !== it.nameFr) {

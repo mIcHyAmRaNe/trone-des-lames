@@ -61,6 +61,52 @@ for (const sex of ['M', 'F']) {
   for (const r of removed) console.log(`  ${r}`);
 }
 
+// --- 2e passe : vrais doublons (même libellé et même asset), souvent une page
+// wiki FR et sa page EN importées sous deux ids (`wiki:masse-epineuse` /
+// `wiki:thornymace`). On garde la fiche la plus ancienne du catalogue.
+for (const sex of ['M', 'F']) {
+  const kept = [];
+  const removed = [];
+  // Deux fiches sont le même objet si elles partagent le même asset et qu'au
+  // moins un libellé coïncide, sans qu'aucun libellé présent ne contredise
+  // l'autre. Ainsi « Cadre Atout majeur I » et « II » (même nom FR, numéros
+  // différents dans nameEn) restent deux objets distincts.
+  const sameObject = (a, b) => {
+    const asset = normalizeName(a.nom);
+    if (!asset || asset !== normalizeName(b.nom)) return false;
+    const fr = [normalizeName(a.nameFr), normalizeName(b.nameFr)];
+    const en = [normalizeName(a.nameEn), normalizeName(b.nameEn)];
+    const match = (pair) => pair[0] && pair[1] && pair[0] === pair[1];
+    const conflict = (pair) => pair[0] && pair[1] && pair[0] !== pair[1];
+    return (match(fr) || match(en)) && !conflict(fr) && !conflict(en);
+  };
+  for (const it of catalog.sexes[sex]) {
+    const twin = kept.find((o) => o.id === it.id || sameObject(o, it));
+    if (twin) {
+      if (twin.id === it.id && (it.cdn?.length ?? 0) > (twin.cdn?.length ?? 0)) {
+        // Deux fiches portent le même id : garder celle qui a le CDN, pas la
+        // première venue (le renard polaire F est dans ce cas).
+        kept[kept.indexOf(twin)] = {
+          ...it,
+          nameFr: twin.nameFr || it.nameFr,
+          nameEn: twin.nameEn || it.nameEn,
+        };
+        removed.push(`${it.id} : version sans CDN remplacée par la version avec CDN`);
+      } else {
+        twin.nameFr ||= it.nameFr;
+        twin.nameEn ||= it.nameEn;
+        if (!twin.cdn?.length && it.cdn?.length) twin.cdn = it.cdn;
+        removed.push(`${it.id} (${it.nameFr ?? it.nameEn ?? '?'}) -> ${twin.id}`);
+      }
+      continue;
+    }
+    kept.push(it);
+  }
+  catalog.sexes[sex] = kept;
+  console.log(`${sex}: ${removed.length} doublon(s) strict(s) supprimé(s)`);
+  for (const r of removed) console.log(`  ${r}`);
+}
+
 if (WRITE) {
   const now = new Date().toISOString();
   catalog.refreshedAt = now;

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-18 — Doublons : fiches FR/EN fusionnées et ids dupliqués
+
+### Corrigé
+
+- Les paires « page wiki FR + page wiki EN » importées sous deux ids sont fusionnées : `Masse épineuse`, `Trompette du champion 1472`, `Cape du pillard`, `Cervelets/Grèves/Gantelets du Pillard`, `Cygneau de l'orage`, `Fourchette en fer`, `Coiffure désordonnée/lâche/radieuse`.
+- 8 fiches portant le même id que leur voisine (819, 1402, 1860, 1863, 1864, 1870, 1871) sont supprimées ; pour l'id 819 c'est la version **avec** CDN qui est conservée.
+- 25 fiches supprimées au total (16 M / 9 F), catalogue à 2041 fiches.
+- `catalog-dedupe.mjs` détecte aussi les doublons stricts (même asset et libellés non contradictoires). Les variantes numérotées (« Cadre Atout majeur I », « II »…) restent distinctes : leur numéro est dans `nameEn`.
+- Les trois scripts sont stables en dry-run : 0 ajout, 0 correction, 0 suppression.
+
 ## 2026-11-18 — Colliers en pierre fine : variantes mixtes et CDN
 
 ### Corrigé
