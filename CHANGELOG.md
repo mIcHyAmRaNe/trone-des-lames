@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-18 — Catalogue : extraction wiki propre, sans ryence
+
+### Corrigé
+
+- Le catalogue ne dépend plus du tout de ryence ni de l'ancien catalogue : `catalog-from-wiki.mjs` génère des fiches neuves (ids `wiki:*`, aucun `zIndex` inventé) à partir des pages wiki et de leurs pages `Fichier:`. `catalog-wiki-join.mjs` est supprimé.
+- Les objets sont regroupés par **nom canonique** du template `nom`, plus par titre de page : les pages FR, EN et variantes qui portent le même nom ne créent plus plusieurs fiches (`panoplie 'Fête'`, `panoplie 'Garde'`…). 0 nom dupliqué.
+- Les panoplies composées sont décomposées correctement : `Panoplie Fête` donne une fiche `Panoplies` pour l'ensemble et une fiche par élément avec son propre emplacement — `Veste d'Harlequin` (Bustiers F / Chemises M), `Collants` (Braies), `Masque` (Yeux). 87 panoplies composées traitées de la même façon.
+- La catégorie vient de l'emplacement de la page objet, puis du type wiki (`Panoplie`, `Familier`, `Arme`, `Cadre`, `Decor`…), puis de la section du tableau. Les objets sans catégorie exploitable (43) sont écartés et listés dans le rapport au lieu d'être classés n'importe comment.
+
+### Ajouté
+
+- `scripts/catalog-enrich.mjs` : passe séparée qui remplit `zIndex`, `slotsMasques` et les dépendances peau/postures depuis la fiche de personnage (`blabla.txt`), sans toucher aux noms ni aux ids. 1074 fiches enrichies sur 2311.
+- Catalogue à 2311 fiches (1163 M / 1148 F), 1521 avec CDN, 0 doublon de nom, 0 catégorie orpheline. Tests `wardrobe` et `astro build` verts.
+- Les intermédiaires `data/catalog-wiki-clean*.json` et `data/catalog-enrich-report.json` sont ignorés par git.
+
 ## 2026-11-18 — Catalogue : régénération depuis le wiki
 
 ### Corrigé

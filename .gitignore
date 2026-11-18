@@ -38,3 +38,6 @@ local.db-journal
 data/wiki-catalog-raw.json
 data/catalog-wiki-staged.json
 data/catalog-wiki-report.json
+data/catalog-wiki-clean.json
+data/catalog-wiki-clean-report.json
+data/catalog-enrich-report.json
