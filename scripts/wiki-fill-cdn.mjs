@@ -275,6 +275,36 @@ function categoryOfAsset(info) {
   return null;
 }
 
+// L'emplacement du template wiki (« III.a : Braies », « XII. : Outfits ») est
+// la source de vérité pour la catégorie de garde-robe. Les catégories wiki
+// (« Accessoire », « Vêtement événementiel ») sont trop larges et produisent
+// des fiches « Autres ».
+const EMPLACEMENT_CATEGORY = {
+  chapeaux: 'Chapeaux', casques: 'Casques', coiffures: 'Coiffures', barbes: 'Barbes',
+  tabliers: 'Tabliers', gilets: 'Gilets', mantels: 'Mantels', capes: 'Capes',
+  braies: 'Braies', jupes: 'Jupes', chemises: 'Chemises', bustiers: 'Bustiers',
+  chaussures: 'Chaussures', 'bas et dessous': 'BasDessous', basdessous: 'BasDessous',
+  panoplies: 'Panoplies', outfits: 'Panoplies', bijoux: 'Bijoux', cou: 'Cou',
+  ceintures: 'Ceintures', yeux: 'Yeux', gants: 'Gants', gloves: 'Gants',
+  'main gauche': 'MainGauche', 'main droite': 'MainDroite', fonds: 'Fonds',
+  cadres: 'Cadres', familiers: 'Familiers', barque: 'Outils_barque',
+  'filet de peche': 'Outils_filet', echelle: 'Outils_echelle',
+  armes: 'Armes', boucliers: 'Boucliers',
+};
+function categoryFromEmplacement(text) {
+  const label = `${text ?? ''}`
+    .replace(/<br\s*\/?>/gi, ' ')
+    .split(':')
+    .pop()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z ]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return EMPLACEMENT_CATEGORY[label] ?? null;
+}
+
 // --- 1. crawl des catégories (FR + EN) ---------------------------------------
 const wikiItems = new Map();
 
@@ -879,7 +909,12 @@ for (const item of wikiItemsByName.values()) {
   if (Number(templateField(item.text ?? '', 'elementPano')) > 1) continue;
   // Seules les catégories d'objets explicites créent des fiches : les
   // catégories parentes ne servent qu'à retrouver des fichiers.
-  const category = item.categories.find((c) => c.category)?.category ?? categoryOfAsset(infos[0]);
+  const emplacement =
+    templateField(item.text ?? '', 'emplacement') || templateField(item.textEn ?? '', 'emplacement');
+  const category =
+    categoryFromEmplacement(emplacement) ??
+    item.categories.find((c) => c.category)?.category ??
+    categoryOfAsset(infos[0]);
   if (!category) continue;
   const slug = normalizeName(item.title).replace(/[^a-z0-9]+/g, '-') || 'objet';
   for (const sex of sexes) {

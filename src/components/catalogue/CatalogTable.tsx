@@ -216,9 +216,11 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
   );
 
   // Catégories du jeu présentes dans le catalogue, dans leur ordre d'armoire.
+  // « Autres » n'est pas dans CATEGORIES : il regroupe les emplacements non reconnus.
   const categories = useMemo(() => {
     const present = new Set(rows.map((r) => r.category));
-    return CATEGORIES.map((c) => c.key).filter((key) => present.has(key));
+    const keys = CATEGORIES.map((c) => c.key).filter((key) => present.has(key));
+    return present.has('Autres') ? [...keys, 'Autres'] : keys;
   }, [rows]);
 
   // Libellés + nombre d'objets, pour les badges du sélecteur de catégorie.
@@ -229,7 +231,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
       { value: '', label: lang === 'en' ? 'All' : 'Toutes', count: rows.length },
       ...categories.map((key) => ({
         value: key,
-        label: categoryLabel(key, lang),
+        label: key === 'Autres' ? (lang === 'en' ? 'Other' : 'Autres') : categoryLabel(key, lang),
         count: counts.get(key) ?? 0,
       })),
     ];

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-18 — Catégories : emplacements wiki et filtre « Autres »
+
+### Corrigé
+
+- 28 fiches wiki (14 par sexe) classées « Autres » parce que leur `slotGardeRobe` valait `Accessoires` ou `Evenementiels` sont désormais dans la bonne catégorie de garde-robe, d'après l'emplacement documenté sur le wiki : Braies, Ceintures, Chaussures, Gants, Panoplies, Capes, Chapeaux, Cou, Yeux, Tabliers, Main droite, Bustiers.
+- `wiki-fill-cdn` dérive désormais la catégorie du champ `emplacement` du template wiki (« III.a : Braies », « XII. : Outfits ») avant de retomber sur la catégorie wiki générique. Les futures fiches importées ne devraient plus arriver en « Autres ».
+- 3 fiches par sexe restent en « Autres » : leurs pages wiki n'ont pas d'emplacement renseigné.
+
+### Ajouté
+
+- Le filtre « Catégorie » de `/catalogue` propose « Autres » (badge avec le compteur) uniquement si des objets y sont classés — permet de repérer les fiches à corriger.
+
 ## 2026-11-18 — Catalogue : compteurs dans les filtres et date de mise à jour
 
 ### Ajouté
