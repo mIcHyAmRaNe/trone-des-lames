@@ -70,8 +70,28 @@ async function get(url) {
     }
   });
 }
-async function api(params) {
+async function api(params, refresh = false) {
   const body = new URLSearchParams({ format: 'json', formatversion: '2', ...params });
+  if (refresh) {
+    // Contourne le cache pour un title précis : une page Fichier: peut avoir
+    // été mise en cache vide avant que le wiki n'y publie ses URL CDN.
+    for (let a = 0; ; a++) {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'user-agent': UA, 'content-type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+      if (res.ok) {
+        const text = await res.text();
+        const file = join(CACHE, createHash('sha1').update(`POST ${API}?${body}`).digest('hex'));
+        await mkdir(CACHE, { recursive: true });
+        await writeFile(file, text);
+        return JSON.parse(text);
+      }
+      if (a >= 3) throw new Error(`API ${res.status}`);
+      await sleep(1000 * (a + 1));
+    }
+  }
   return JSON.parse(await cached(`POST ${API}?${body}`, async () => {
     for (let a = 0; ; a++) {
       const r = await fetch(API, {
@@ -85,10 +105,10 @@ async function api(params) {
     }
   }));
 }
-async function inBatches(titles, params, pick) {
+async function inBatches(titles, params, pick, refresh = false) {
   const out = [];
   for (let i = 0; i < titles.length; i += 50) {
-    const res = await api({ ...params, titles: titles.slice(i, i + 50).join('|') });
+    const res = await api({ ...params, titles: titles.slice(i, i + 50).join('|') }, refresh);
     out.push(...(res.query?.pages ?? []).map(pick));
     if (i % 500 === 0) process.stderr.write(`\r  ${i}/${titles.length}`);
   }
@@ -347,8 +367,35 @@ async function fetchPages(entries) {
   const byLower = new Map(pages.map((p) => [p.title.toLowerCase(), p]));
   const resolve = (t) => { let c = t; for (let k = 0; k < 5 && alias.has(c); k++) c = alias.get(c); return c; };
   const unique = [...new Set(pages.flatMap((p) => p.files))].filter((t) => /\.(png|gif|jpe?g|webp)$/i.test(t));
-  const contents = await inBatches(unique, { action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main' },
-    (p) => ({ title: p.title, urls: [...`${p.revisions?.[0]?.slots?.main?.content ?? ''}`.matchAll(CDN_RE)].map((m) => m[0]) }));
+  const readContent = (p) => {
+    const text = `${p.revisions?.[0]?.slots?.main?.content ?? ''}`;
+    return { title: p.title, urls: [...text.matchAll(CDN_RE)].map((m) => m[0]), empty: !text.trim() };
+  };
+  const contents = await inBatches(
+    unique,
+    { action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main' },
+    readContent,
+  );
+  // Certaines pages Fichier: ont été mises en cache vides avant que le wiki
+  // n'y publie leurs URL. On les relit une fois en force (sprite uniquement).
+  const emptySprites = contents
+    .filter((c) => c.empty && /^(?:Fichier:|Image:)?(?:Item\d+|barbe|cheveux|fond|cadre)/i.test(c.title))
+    .map((c) => c.title);
+  if (emptySprites.length) {
+    console.log(`relecture de ${emptySprites.length} pages Fichier: vides`);
+    const retried = await inBatches(
+      emptySprites,
+      { action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main' },
+      readContent,
+      true,
+    );
+    for (const c of retried) {
+      if (!c.urls.length) continue;
+      const existing = contents.find((x) => x.title === c.title);
+      if (existing) existing.urls = c.urls;
+      else contents.push(c);
+    }
+  }
   return { pages, byItem, byLower, resolve, urlsByFile: new Map(contents.map((c) => [c.title, c.urls])) };
 }
 

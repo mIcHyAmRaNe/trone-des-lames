@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-20 — Catalogue : relecture des pages `Fichier:` vides
+
+### Corrigé
+
+- Certaines pages `Fichier:` restaient enregistrées vides dans le cache HTTP alors que le wiki publie désormais leurs URL CDN — par exemple `Item1776h.gif` de « Barbe fleurie » et ses 8 calques `barbe_13_c0…c7`.
+- Le scan relit maintenant en force les pages de sprites revenues vides (435 pages), sans invalider le reste du cache. Correction applicable à chaque passage, pas seulement via `WIKI_REFRESH=1`.
+- « Barbe fleurie » récupère le nom d'asset `barbe13` et ses 8 CDN. Catalogue à 1545 fiches avec CDN (451 sans), 0 doublon, tests et build verts.
+
 ## 2026-11-19 — Catalogue : champs complets de la fiche de jeu
 
 ### Ajouté
