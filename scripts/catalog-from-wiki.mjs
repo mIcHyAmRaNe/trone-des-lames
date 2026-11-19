@@ -262,6 +262,20 @@ function parseElements(wikitext) {
   return elements;
 }
 
+/** Les fiches `{{PackEnsemble}}` listent leurs éléments avec `ElementsListe`. */
+function parsePackElements(wikitext) {
+  if (!/\{\{\s*PackEnsemble/i.test(wikitext)) return [];
+  const raw = fieldRaw(wikitext, 'ElementsListe');
+  return [...raw.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)]
+    .map((m) => cleanName(m[1]))
+    .filter(Boolean)
+    .map((label) => ({ ref: '', label, categories: {} }));
+}
+function isCompositePage(page) {
+  const text = page?.text ?? '';
+  return /\{\{\s*PackEnsemble/i.test(text) ||
+    (/vetementType\s*=\s*Panoplie/i.test(text) && Number(field(text, 'elementPano') || 0) > 0);
+}
 function parseImageRows(wikitext) {
   const rows = [];
   for (const chunk of `${wikitext ?? ''}`.split(/\n\|-|\|-/)) {
@@ -364,11 +378,26 @@ for (const cat of CATEGORY_PAGES) {
 }
 let data = await fetchPages(entries);
 
+// Les noms de fichiers dans le wikitexte n'ont pas le préfixe "Fichier:",
+// contrairement aux clés renvoyées par prop=images.
+const urlsForFile = (file) =>
+  data.urlsByFile.get(file) ??
+  data.urlsByFile.get(`Fichier:${file}`) ??
+  data.urlsByFile.get(`Image:${file}`) ??
+  [];
+const assetsForFiles = (files) => [...new Set(files.flatMap(urlsForFile))].map(assetInfo);
+const filesForSex = (files, sex) =>
+  (files ?? []).filter((f) => {
+    const match = f.match(/([fh])?\.(?:png|gif|jpe?g|webp)$/i);
+    if (!match || !match[1]) return true; // vignette sans suffixe : conservée
+    return sex === 'F' ? /f\./i.test(f) : /h\./i.test(f);
+  });
+
 // Deuxième passe : les éléments de panoplie sont aussi des pages à part.
 const extraTitles = new Set();
 for (const p of data.pages) {
-  if (!/vetementType\s*=\s*Panoplie/i.test(p.text)) continue;
-  for (const el of parseElements(p.text)) {
+  if (!isCompositePage(p)) continue;
+  for (const el of [...parseElements(p.text), ...parsePackElements(p.text)]) {
     const n = normalize(el.label);
     if (n && !known.has(n)) { extraTitles.add(el.label); known.add(n); }
   }
@@ -426,7 +455,7 @@ const items = [];
 const decomposed = [];
 for (const obj of objects.values()) {
   const sexList = obj.sexes.size ? [...obj.sexes] : ['M', 'F'];
-  const isComposite = obj.pages.some((p) => /vetementType\s*=\s*Panoplie/i.test(p.text) && Number(field(p.text, 'elementPano') || 0) > 0);
+  const isComposite = obj.pages.some(isCompositePage);
   if (!isComposite) {
     for (const sex of sexList) {
       const assets = obj.assets[sex].length ? obj.assets[sex] : obj.assets.ANY;
@@ -434,26 +463,35 @@ for (const obj of objects.values()) {
     }
     continue;
   }
-  const panoPage = obj.pages.find((p) => /vetementType\s*=\s*Panoplie/i.test(p.text));
+  const panoPage = obj.pages.find(isCompositePage);
   const rows = parseImageRows(panoPage.text);
-  const elements = parseElements(panoPage.text);
+  const elements = [...parseElements(panoPage.text), ...parsePackElements(panoPage.text)];
   decomposed.push({ name: obj.nameFr, elements: elements.map((e) => e.label) });
+  const findRow = (label) => rows.find((r) => normalize(r.label) === normalize(label));
+  const wholeRow = rows.find((r) => /entier/i.test(r.label));
   for (const sex of sexList) {
-    const wholeFiles = rows.find((r) => /entier/i.test(r.label))?.files ?? [];
-    const whole = wholeFiles.flatMap((f) => data.urlsByFile.get(f) ?? []).map(assetInfo);
+    const whole = assetsForFiles(filesForSex(wholeRow?.files, sex));
     items.push(makeItem(obj.nameFr, obj.nameEn, sex, whole, { [sex]: 'Panoplies' }, '', 'panoplie'));
   }
   for (const el of elements) {
     const elKey = normalize(el.label);
     const elObj = objects.get(elKey);
     const label = elObj?.nameFr ?? displayName(el.label);
-    const elSexes = elObj && elObj.sexes.size ? [...elObj.sexes] : sexList;
-    for (const sex of elSexes) {
-      let assets = elObj ? (elObj.assets[sex].length ? elObj.assets[sex] : elObj.assets.ANY) : [];
-      if (!assets.length) {
-        const row = rows.find((r) => normalize(r.label) === elKey);
-        assets = (row?.files ?? []).flatMap((f) => data.urlsByFile.get(f) ?? []).map(assetInfo);
-      }
+    const row = findRow(el.label);
+    const fromRow = { M: assetsForFiles(filesForSex(row?.files, 'M')), F: assetsForFiles(filesForSex(row?.files, 'F')) };
+    // La présence des deux pages Fichier:*f.png et *h.png suffit à dire « mixte ».
+    const sexes = fromRow.M.length && fromRow.F.length ? ['M', 'F']
+      : fromRow.F.length ? ['F']
+        : fromRow.M.length ? ['M']
+          : elObj && elObj.sexes.size ? [...elObj.sexes] : sexList;
+    for (const sex of sexes) {
+      const inherited = elObj ? (elObj.assets[sex].length ? elObj.assets[sex] : elObj.assets.ANY) : [];
+      const seenPaths = new Set();
+      const assets = [...fromRow[sex], ...inherited].filter((a) => {
+        if (seenPaths.has(a.path)) return false;
+        seenPaths.add(a.path);
+        return true;
+      });
       items.push(makeItem(label, elObj?.nameEn ?? null, sex, assets,
         { ...elObj?.categories, ...el.categories }, elObj?.section ?? '', 'element'));
     }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-19 — Catalogue : panoplies `PackEnsemble` et CDN des éléments
+
+### Corrigé
+
+- L'extracteur reconnaît aussi les fiches `{{PackEnsemble}}`. « Panoplie à la Mandragore » est décomposée en ses 4 éléments (`bas du clair de lune` en Braies/Jupes, `ceinture à la mandragore`, `châle en laine bouillie`, `talisman en tissu`), chacun avec ses CDN femme et homme relevés sur les pages `Fichier:` correspondantes.
+- Les URL CDN des tableaux sont retrouvées malgré l'absence du préfixe `Fichier:` dans le wikitexte : la recherche essaie maintenant les deux formes.
+- La présence simultanée des fichiers `*f.png` et `*h.png` suffit à considérer un élément comme mixte, même sans mention `vetementGenre`.
+- 203 panoplies composées sont décomposées (87 avant). Catalogue à 2345 fiches (1180 M / 1165 F), 1462 avec CDN, 1025 enrichies en zIndex. 0 doublon de nom, tests et build verts.
+
 ## 2026-11-19 — Catalogue : export Excel des résultats filtrés
 
 ### Ajouté
