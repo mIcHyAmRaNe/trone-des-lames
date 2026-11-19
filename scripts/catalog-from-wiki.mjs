@@ -253,7 +253,7 @@ function cleanElementLabel(value) {
 }
 function parseElements(wikitext) {
   const detail = fieldRaw(wikitext, 'elementPanoDetail')
-    .split('\n').map((l) => l.trim().replace(/^\*+\s*/, '')).filter(Boolean);
+    .split('\n').map((l) => l.trim().replace(/^\*+\s*/, '').replace(/\|+\s*$/, '')).filter(Boolean);
   const special = fieldRaw(wikitext, 'emplacementSpecial')
     .split('\n').map((l) => l.trim().replace(/^\*+\s*/, '')).filter(Boolean);
   const elements = [];
@@ -287,7 +287,10 @@ function parseImageRows(wikitext) {
   for (const chunk of `${wikitext ?? ''}`.split(/\n\|-|\|-/)) {
     const files = [...chunk.matchAll(/\[\[(?:Image|Fichier|File):([^\]|]+)(?:\|[^\]]*)?\]\]/gi)].map((m) => m[1].trim());
     if (!files.length) continue;
-    const label = cleanName(chunk.replace(/\[\[(?:Image|Fichier|File):[^\]]*\]\]/gi, ''));
+    // La cellule libellé est la première ligne ; le reste contient les
+    // cellules d'images avec leurs attributs align="center" etc.
+    const firstLine = chunk.trim().split('\n')[0].replace(/\[\[(?:Image|Fichier|File):[^\]]*\]\]/gi, '');
+    const label = cleanName(firstLine.replace(/^\s*\|/, '').replace(/\|.*$/, ''));
     rows.push({ label, files });
   }
   return rows;

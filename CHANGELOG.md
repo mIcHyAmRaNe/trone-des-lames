@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-19 — Catalogue : libellés des tableaux de panoplies
+
+### Corrigé
+
+- `parseImageRows` lisait le libellé de la cellule après avoir conservé les cellules d'images : le libellé était vide ou pollué par `align="center"`, donc les éléments n'étaient jamais reliés à leurs pages `Fichier:`. Le libellé est maintenant lu sur la première ligne, images retirées avant de couper au séparateur `|`.
+- Les trois éléments de « Panoplie 'Garde' » récupèrent leurs CDN : `Cotte de maille` (`maille_0`), `Gantelets` (`gantMetal_m0/m1/m2`) et `Cuissards` (`cuissardeMetal_0`), en homme et femme. Le tag d'article parent est conservé.
+- 1528 fiches avec CDN (avant : 1498), 677 éléments tagués sur 79 articles, 0 doublon CDN. Tests et build verts.
+
 ## 2026-11-19 — Catalogue : rescan wiki rafraîchi
 
 ### Corrigé
