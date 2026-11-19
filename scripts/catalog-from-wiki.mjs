@@ -480,7 +480,10 @@ for (const entry of entries) {
   const page = data.byItem.get(data.resolve(entry.title)) ?? data.byItem.get(entry.title) ?? data.byLower.get(String(entry.title).toLowerCase());
   const text = page?.text ?? '';
   if (/^\s*#REDIRECTION/i.test(text) || !/\bnom\s*=|\{\{\s*Vetement/i.test(text)) { skipped++; continue; }
-  const nameFr = displayName(field(text, 'nom') || entry.title);
+  // Le titre de la page wiki fait foi pour le libellé : le champ `nom` du
+  // modèle peut être une formulation différente (« Le décor jour de marché »
+  // sur la page « Fond Jour de marché »).
+  const nameFr = displayName(page?.title || entry.title) || displayName(field(text, 'nom'));
   const key = normalize(nameFr);
   if (!key) { skipped++; continue; }
   const obj = objects.get(key) ?? {

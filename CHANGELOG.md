@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-20 — Catalogue : libellés issus des titres wiki
+
+### Corrigé
+
+- Le libellé français d'une fiche est désormais le **titre de la page wiki**, pas le champ `nom` du modèle. Exemple : « Fond Jour de marché » (titre de la page) remplace « décor jour de marché » (champ `nom=Le décor jour de marché`). 1715 libellés alignés sur le wiki.
+- Le CDN du fond est retrouvé via `Fichier:Item1584grand.png` (`fonds/fondJourMarche_0_@1X.png`) et l'objet reste classé `Fonds`.
+- Catalogue à 2114 fiches (1649 avec CDN), 943 éléments tagués sur 104 articles, 0 doublon de nom ni de CDN. Tests et build verts.
+
 ## 2026-11-20 — Catalogue : décors exclus des éléments de panoplie
 
 ### Corrigé
