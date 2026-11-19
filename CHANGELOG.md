@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-19 — Catalogue : champs complets de la fiche de jeu
+
+### Ajouté
+
+- `catalog-enrich.mjs` recopie désormais les 15 clés de `blabla.txt` sur chaque fiche appariée : `idItem`, `declinaison`, `parametre`, `nom`, `slot`, `slotGardeRobe`, `miniature`, `declinaisons`, `slotsMasques`, `dependCouleurPeau`, `dependPostureMainG`, `dependPostureMainD`, `postureMainG`, `postureMainD`, `zIndexCalques`. Le champ `zIndex` reste synchronisé pour la cabine d'essayage.
+- Les champs déjà fournis par le wiki (`nom`, `slot`, `slotGardeRobe`, `miniature`, `declinaisons`) ne sont comblés que s'ils sont vides : la fiche est féminine, ses emplacements ne valent pas pour les fiches masculines. Les slots inconnus de l'application (ex. « Bracelet ») sont ignorés.
+- 1082 fiches sur 1996 portent désormais les 15 clés, avec un zIndex renseigné. `CatalogItem` declare les nouveaux champs optionnels. Tests et build verts.
+
 ## 2026-11-19 — Catalogue : libellés des tableaux de panoplies
 
 ### Corrigé

@@ -36,6 +36,13 @@ export interface CatalogItem {
    * sans garder une fiche parent sans zIndex dans le catalogue.
    */
   group?: string;
+  /** Champs relevés sur la fiche de personnage (source de jeu, pas du wiki). */
+  idItem?: string;
+  declinaison?: string;
+  parametre?: string;
+  postureMainG?: string | null;
+  postureMainD?: string | null;
+  zIndexCalques?: number[];
 }
 
 export interface Catalog {

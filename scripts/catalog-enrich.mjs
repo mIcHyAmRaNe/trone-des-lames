@@ -1,11 +1,11 @@
-// Enrichit le catalogue Propre (wiki) avec les données de jeu des fiches de
-// personnage : zIndex, slotsMasques, dépendances peau/postures.
+// Complète le catalogue propre (wiki) avec les champs de jeu relevés dans la
+// fiche de personnage : zIndex, idItem, déclinaisons, paramètres, postures…
 //
 //   node scripts/catalog-enrich.mjs
 //
-// Entrée : data/catalog-wiki-clean.json (ou public/rk/catalog.json avec BASE_PATH)
+// Entrée : data/catalog-wiki-clean.json (ou BASE_PATH)
 // Sortie : public/rk/catalog.json + data/catalog-enrich-report.json
-// Aucune donnée ryence, aucun id ou nom hérité de l'ancien catalogue.
+// Aucune donnée ryence, aucun id hérité de l'ancien catalogue.
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -41,17 +41,28 @@ while (true) {
   let blob;
   try { blob = JSON.parse(html.slice(s, end + 1)); } catch { i = end + 1; continue; }
   for (const it of blob.equipement ?? []) {
-    if (!byNom.has(it.nom)) byNom.set(it.nom, it);
+    const list = byNom.get(it.nom) ?? [];
+    if (!list.some((x) => x.declinaison === it.declinaison && x.parametre === it.parametre)) list.push(it);
+    byNom.set(it.nom, list);
   }
   i = end + 1;
 }
 console.log(`fiche : ${byNom.size} noms d'assets uniques`);
 
+// Une fiche catalogue correspond à un objet : on prend la déclinaison 0 quand
+// elle existe, sinon la première entrée relevée.
+const pick = (entries) => entries.find((e) => e.declinaison === '0') ?? entries[0];
+
 const catalog = JSON.parse(await readFile(BASE, 'utf8'));
+// Ne pas introduire de slot inconnu de l'application (ex. « Bracelet ») :
+// seuls les slots déjà présents dans le catalogue wiki sont acceptés.
+const knownSlots = new Set(
+  [...catalog.sexes.M, ...catalog.sexes.F].map((it) => it.slot).filter(Boolean),
+);
 const report = {
   generatedAt: new Date().toISOString(),
   source: 'character sheet (blabla.txt)',
-  counts: { items: 0, enriched: 0, alreadyHadZIndex: 0 },
+  counts: { items: 0, enriched: 0, withoutZIndex: 0 },
   enrichedIds: [],
 };
 
@@ -59,24 +70,43 @@ for (const sex of ['M', 'F']) {
   for (const it of catalog.sexes[sex]) {
     report.counts.items++;
     const candidates = [it.nom, `${it.nom ?? ''}`.replace(/\d+$/, '')].filter(Boolean);
-    const src = candidates.map((n) => byNom.get(n)).find(Boolean);
+    const src = candidates.map((n) => byNom.get(n)).find(Boolean) ??
+      // Les noms d'assets du wiki peuvent porter un suffixe _m0/_n0 absent de
+      // la fiche ; on essaie aussi la forme épurée.
+      candidates.map((n) => byNom.get(n.replace(/_(?:m\d+|n\d+|p\d+)+$/i, ''))).find(Boolean);
     if (!src) continue;
-    if (src.zIndexCalques?.length) {
-      it.zIndex = src.zIndexCalques.map(Number);
-      report.counts.enriched++;
-      report.enrichedIds.push(`${sex}:${it.id}`);
-    } else if (it.zIndex?.length) {
-      report.counts.alreadyHadZIndex++;
-      continue;
-    } else continue;
-    it.slotsMasques = src.slotsMasques ?? [];
-    it.dependCouleurPeau = !!src.dependCouleurPeau;
-    it.dependPostureMainG = !!src.dependPostureMainG;
-    it.dependPostureMainD = !!src.dependPostureMainD;
+    const record = pick(src);
+
+    // Les champs que le wiki sait déjà remplir ne sont pas écrasés : la fiche
+    // est celle d'un personnage féminin, ses emplacements ne valent pas pour
+    // les fiches masculines. On ne comble que les vides.
+    if (!it.nom) it.nom = record.nom;
+    if (!it.slot && knownSlots.has(record.slot)) it.slot = record.slot;
+    if (!it.slotGardeRobe) it.slotGardeRobe = record.slotGardeRobe ?? null;
+    if (!it.miniature) it.miniature = record.miniature ?? 'o';
+    if (!it.declinaisons?.length) it.declinaisons = (record.declinaisons ?? []).map(Number);
+
+    // Champs absents du wiki, repris tels quels de la fiche de jeu.
+    it.idItem = record.idItem;
+    it.declinaison = record.declinaison;
+    it.parametre = record.parametre;
+    it.slotsMasques = record.slotsMasques ?? [];
+    it.dependCouleurPeau = !!record.dependCouleurPeau;
+    it.dependPostureMainG = !!record.dependPostureMainG;
+    it.dependPostureMainD = !!record.dependPostureMainD;
+    it.postureMainG = record.postureMainG ?? null;
+    it.postureMainD = record.postureMainD ?? null;
+    it.zIndexCalques = (record.zIndexCalques ?? []).map(Number);
+    // Le champ historique reste synchronisé pour la cabine d'essayage.
+    it.zIndex = [...it.zIndexCalques];
+
+    report.counts.enriched++;
+    report.enrichedIds.push(`${sex}:${it.id}`);
+    if (!it.zIndexCalques.length) report.counts.withoutZIndex++;
   }
 }
 
 await writeFile(OUT, JSON.stringify(catalog));
 await writeFile(REPORT, JSON.stringify(report, null, 2));
-console.log(`${report.counts.enriched}/${report.counts.items} fiches enrichies en zIndex`);
+console.log(`${report.counts.enriched}/${report.counts.items} fiches enrichies (${report.counts.withoutZIndex} sans zIndex)`);
 console.log(`-> ${OUT}\n-> ${REPORT}`);
