@@ -55,6 +55,7 @@ interface Row {
   sexes: Sex[];
   /** URL CDN complète du calque, une par sexe qui a un nom d'asset. */
   previews: string[];
+  group?: string;
   hasCdn: boolean;
   hasZIndex: boolean;
   zIndex: string;
@@ -97,6 +98,7 @@ function buildRows(catalog: Catalog, lang: Lang): Row[] {
       items: { M: pair.m, F: pair.f },
       sexes: [pair.m ? 'M' : null, pair.f ? 'F' : null].filter(Boolean) as Sex[],
       previews,
+      group: item.group,
       hasCdn: hasCdn(item),
       hasZIndex: hasZIndex(item),
       zIndex: item.zIndex.join(', '),
@@ -628,6 +630,14 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
                     >
                       <td className="px-4 py-2.5 font-medium text-parchment">
                         {r.name}
+                        {r.group && (
+                          <span
+                            title={`${lang === 'en' ? 'Part of' : 'Élément de'} ${r.group}`}
+                            className="ml-2 inline-block whitespace-nowrap border border-gold/20 px-1.5 py-px align-[0.15em] text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-gold/70"
+                          >
+                            {r.group}
+                          </span>
+                        )}
                         {pending && (
                           <span
                             title={

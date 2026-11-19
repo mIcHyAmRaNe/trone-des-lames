@@ -388,10 +388,6 @@ const urlsForFile = (file) =>
   [];
 const assetsForFiles = (files) => [...new Set(files.flatMap(urlsForFile))].map(assetInfo);
 const dedupeAssets = (assets) => [...new Map(assets.filter((a) => a.path).map((a) => [a.path, a])).values()];
-const assetNameFromFiles = (files) => {
-  const file = files?.find((f) => /[fh]\.(?:png|gif|jpe?g|webp)$/i.test(f)) ?? files?.[0];
-  return file ? file.replace(/[fh]?\.(?:png|gif|jpe?g|webp)$/i, '') : null;
-};
 const filesForSex = (files, sex) =>
   (files ?? []).filter((f) => {
     const match = f.match(/([fh])?\.(?:png|gif|jpe?g|webp)$/i);
@@ -475,7 +471,6 @@ for (const obj of objects.values()) {
   decomposed.push({ name: obj.nameFr, elements: elements.map((e) => e.label) });
   const findRow = (label) => rows.find((r) => normalize(r.label) === normalize(label));
   const wholeRow = rows.find((r) => /entier/i.test(r.label));
-  const allElements = { M: [], F: [] };
   for (const el of elements) {
     const elKey = normalize(el.label);
     const elObj = objects.get(elKey);
@@ -490,20 +485,13 @@ for (const obj of objects.values()) {
     for (const sex of sexes) {
       const inherited = elObj ? (elObj.assets[sex].length ? elObj.assets[sex] : elObj.assets.ANY) : [];
       const assets = dedupeAssets([...fromRow[sex], ...inherited]);
-      allElements[sex].push(...assets);
-      items.push(makeItem(label, elObj?.nameEn ?? null, sex, assets,
-        { ...elObj?.categories, ...el.categories }, elObj?.section ?? '', 'element'));
+      const element = makeItem(label, elObj?.nameEn ?? null, sex, assets,
+        { ...elObj?.categories, ...el.categories }, elObj?.section ?? '', 'element');
+      // Pas de fiche pour l'article parent : on n'a pas son zIndex. On tague
+      // ses éléments pour retrouver l'ensemble en une seule recherche.
+      element.group = obj.nameFr;
+      items.push(element);
     }
-  }
-  // L'article parent porte tous les calques de ses éléments : choisir la
-  // panoplie dans la cabine d'essayage habille la poupée en une seule fois.
-  const wholeName = assetNameFromFiles(wholeRow?.files);
-  for (const sex of sexList) {
-    const whole = assetsForFiles(filesForSex(wholeRow?.files, sex));
-    const parentAssets = dedupeAssets([...whole, ...allElements[sex]]);
-    const parent = makeItem(obj.nameFr, obj.nameEn, sex, parentAssets, { [sex]: 'Panoplies' }, '', 'panoplie');
-    if (wholeName) parent.nom = wholeName;
-    items.push(parent);
   }
 }
 
@@ -515,7 +503,9 @@ const collisions = [];
 // objet (panoplie complète + élément de panoplie, par exemple harpe).
 const seenNames = new Set();
 const reportUnclassified = [];
-const ordered = [...items].sort((a, b) => (b.cdn?.length ?? 0) - (a.cdn?.length ?? 0));
+const ordered = [...items].sort(
+  (a, b) => (b.cdn?.length ?? 0) - (a.cdn?.length ?? 0) || (b.group ? 1 : 0) - (a.group ? 1 : 0),
+);
 for (const it of ordered) {
   const sex = it._sex;
   delete it._sex;

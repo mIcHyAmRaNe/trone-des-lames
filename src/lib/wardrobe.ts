@@ -30,6 +30,12 @@ export interface CatalogItem {
    * objets dont l'URL ne se déduit pas du nom d'asset (variantes, extension).
    */
   cdn?: string[];
+  /**
+   * Article parent auquel appartient cet objet (panoplie, ensemble de chats,
+   * lot d'éléments…). Permet de retrouver tous les éléments d'un même article
+   * sans garder une fiche parent sans zIndex dans le catalogue.
+   */
+  group?: string;
 }
 
 export interface Catalog {
@@ -569,7 +575,7 @@ export function midasAssetUrls(item: CatalogItem, sexe: Sexe): string[] {
 
 /** Texte comparable pour la recherche : libellé, nom CDN, slot, deux langues. */
 export function itemHaystack(item: CatalogItem): string {
-  return [itemLabel(item), item.nom, item.nameFr, item.nameEn, item.slot, slotLabel(item.slot)]
+  return [itemLabel(item), item.nom, item.nameFr, item.nameEn, item.group, item.slot, slotLabel(item.slot)]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();

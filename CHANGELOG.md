@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-19 — Catalogue : tag d'article parent au lieu de la fiche panoplie
+
+### Corrigé
+
+- Les articles composés (panoplies, ensembles) ne sont plus insérés comme fiches dans le catalogue : leur `zIndex` est inconnu, donc ils ne peuvent pas être portés correctement dans la cabine d'essayage.
+- Leurs éléments portent désormais un champ `group` avec le nom de l'article parent. Les 4 éléments de la « Panoplie à la Mandragore » sont ainsi tagués `panoplie à la Mandragore` tout en restant sélectionnables individuellement avec leur propre zIndex.
+- Le tag est indexé dans la recherche (chercher « Mandragore » retrouve les 4 éléments) et affiché sous forme de badge dans `/catalogue`. Mécanisme générique : 674 éléments tagués sur 76 articles.
+- Catalogue à 1988 fiches (1002 M / 986 F), 1462 avec CDN, 0 doublon CDN. Tests et build verts.
+
 ## 2026-11-19 — Catalogue : CDN dédupliqués et panoplies complètes
 
 ### Corrigé
