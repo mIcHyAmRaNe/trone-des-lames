@@ -493,18 +493,18 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
             {lang === 'en' ? 'CDN URLs' : 'URLs CDN'}
           </button>
 
+          {hasFilter && (
+            <button type="button" onClick={reset} className="btn-ghost mt-2 sm:mb-0.5 sm:mt-0">
+              {lang === 'en' ? 'Reset' : 'Réinitialiser'}
+            </button>
+          )}
+
           <ExportMenu
             onExport={exportXlsx}
             count={filtered.length}
             disabled={!filtered.length}
             lang={lang}
           />
-
-          {hasFilter && (
-            <button type="button" onClick={reset} className="btn-ghost mt-2 sm:mb-0.5 sm:mt-0">
-              {lang === 'en' ? 'Reset' : 'Réinitialiser'}
-            </button>
-          )}
         </div>
       </div>
       {/* Annonce du nombre de résultats */}

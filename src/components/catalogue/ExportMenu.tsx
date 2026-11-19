@@ -74,7 +74,7 @@ export default function ExportMenu({
         aria-expanded={open}
         aria-label={label}
         title={label}
-        className={`inline-flex h-8 w-8 items-center justify-center border border-gold/25 bg-ink/60 text-parchment-dim transition-colors hover:border-gold/60 hover:text-parchment sm:mb-0.5 ${
+        className={`inline-flex h-10 w-10 shrink-0 items-center justify-center border border-gold/25 bg-ink/60 text-parchment-dim transition-colors hover:border-gold/60 hover:text-parchment ml-auto sm:mb-0.5 ${
           open ? 'border-gold bg-gold text-on-gold' : ''
         }`}
       >
