@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-19 — Catalogue : export Excel des résultats filtrés
+
+### Ajouté
+
+- Bouton « Export Excel » dans la barre de filtres de `/catalogue` : il exporte **exactement les lignes affichées** (recherche, catégorie, sexe, données). Le filtre « Sans CDN » produit `catalogue-sans-cdn.xlsx`, etc.
+- Le classeur reprend le modèle de `ItemRK.xlsx` : une colonne par catégorie de garde-robe, objets triés alphabétiquement, suffixe `(M)` / `(F)` pour les objets non mixtes. Vérifié sur les 790 objets sans CDN : 29 colonnes, 307 lignes.
+- `src/lib/xlsx.ts` écrit le `.xlsx` sans nouvelle dépendance (ZIP non compressé + cellules en chaînes inline), compatible Excel / LibreOffice / Google Sheets.
+
 ## 2026-11-18 — Catalogue : extraction wiki propre, sans ryence
 
 ### Corrigé
