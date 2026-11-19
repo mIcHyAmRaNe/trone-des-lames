@@ -407,7 +407,7 @@ function makeItem(nameFr, nameEn, sex, rawAssets, categories, section, kind) {
   const decls = [...new Set(assets.map((a) => a.decl).filter((d) => d !== null && Number.isFinite(d)))].sort((a, b) => a - b);
   const category = categories?.[sex] ?? categories?.any ?? categoryForSection(section)
     ?? (assets.find((a) => a.kind === 'corps') ? (assets[0].nom.startsWith('barbe') ? 'Barbes' : 'Coiffures')
-      : assets.find((a) => a.kind === 'decor') ? (assets[0].path.includes('/fonds/') ? 'Fonds' : 'Cadres') : '');
+      : assets.find((a) => a.kind === 'decor') ? (/(?:^|\/)fonds\//.test(assets[0].path) ? 'Fonds' : 'Cadres') : '');
   const out = {
     id: `wiki:${normalize(nameFr)}`,
     nom, slot: '', slotGardeRobe: category, miniature: 'o',
@@ -504,7 +504,16 @@ for (const entry of entries) {
     for (const s of sexList) obj.categories[s] ??= 'Panoplies';
   }
   const urls = [...new Set((page.files ?? []).flatMap((f) => data.urlsByFile.get(f) ?? []))];
-  for (const a of urls.map(assetInfo)) obj.assets[a.sex ?? 'ANY'].push(a);
+  const assets = urls.map(assetInfo);
+  // Un sprite fonds/ ou cadres/ est un décor, jamais un élément de panoplie.
+  const decor = assets.find((a) => a.kind === 'decor');
+  if (decor) {
+    const category = /(?:^|\/)fonds\//.test(decor.path) ? 'Fonds' : 'Cadres';
+    for (const s of sexList) {
+      if (!obj.categories[s] || obj.categories[s] === 'Panoplies') obj.categories[s] = category;
+    }
+  }
+  for (const a of assets) obj.assets[a.sex ?? 'ANY'].push(a);
   objects.set(key, obj);
 }
 console.log(`${objects.size} objets canoniques (${skipped} pages ignorées)`);
@@ -531,6 +540,10 @@ for (const obj of objects.values()) {
     const elKey = normalize(el.label);
     const elObj = objects.get(elKey);
     const label = elObj?.nameFr ?? displayName(el.label);
+    // Un décor / fond n'est pas un élément portable d'une panoplie : ce n'est
+    // ni un vêtement, ni une arme. Il reste un objet Fonds/Cadres autonome.
+    const elCategory = elObj?.categories?.M ?? elObj?.categories?.F ?? elObj?.categories?.any;
+    if (['Fonds', 'Cadres'].includes(elCategory) || /^(?:d[ée]cor|fond)\b/i.test(label)) continue;
     const row = findRow(el.label);
     const fromRow = { M: assetsForFiles(filesForSex(row?.files, 'M')), F: assetsForFiles(filesForSex(row?.files, 'F')) };
     // La présence des deux pages Fichier:*f.png et *h.png suffit à dire « mixte ».

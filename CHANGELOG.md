@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-20 — Catalogue : décors exclus des éléments de panoplie
+
+### Corrigé
+
+- Les décors et fonds listés dans les panoplies ou packs (ex. « fond Jour de marché » du pack du marchand avisé, « décors à travers la roseraie ») ne sont plus traités comme des éléments : ni tag d'article parent, ni fiche d'élément. Ce ne sont ni des vêtements, ni des armes.
+- Ils restent présents dans le catalogue comme objets autonomes et sont classés `Fonds` ou `Cadres` d'après leur dossier CDN (`fonds/` ou `cadres/`), au lieu d'hériter de `Panoplies`.
+- 659 éléments tagués sur 79 articles, 0 décor tagué. Tests et build verts.
+
 ## 2026-11-20 — Catalogue : export Excel en menu « ⋮ »
 
 ### Corrigé
