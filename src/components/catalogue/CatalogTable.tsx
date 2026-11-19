@@ -85,12 +85,18 @@ function buildRows(catalog: Catalog, lang: Lang): Row[] {
   for (const pair of byLabel.values()) {
     const item = pair.m ?? pair.f!;
     const id = item.id;
-    const previews = ([
-      ['M', pair.m],
-      ['F', pair.f],
-    ] as const)
-      .filter(([, it]) => it?.nom)
-      .flatMap(([sexe, it]) => midasAssetUrls(it!, sexe));
+    // Un objet mixte porte les mêmes CDN pour M et F : on n'affiche qu'une
+    // fois chaque URL dans la colonne des aperçus.
+    const previews = [
+      ...new Set(
+        ([
+          ['M', pair.m],
+          ['F', pair.f],
+        ] as const)
+          .filter(([, it]) => it?.nom)
+          .flatMap(([sexe, it]) => midasAssetUrls(it!, sexe)),
+      ),
+    ];
     rows.push({
       id,
       name: itemLabel(item, lang),

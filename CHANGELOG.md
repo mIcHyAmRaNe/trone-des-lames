@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-20 — Catalogue : aperçus CDN dédupliqués
+
+### Corrigé
+
+- La colonne « URLs CDN » affichait deux fois la même URL pour un objet mixte : `buildRows` concaténait les aperçus de la fiche homme et de la fiche femme (ex. « Fond Jour de marché »). Les URL sont désormais dédupliquées avant affichage.
+- Le catalogue lui-même n'était pas en cause : chaque fiche ne porte qu'un seul chemin CDN (`fonds/fondJourMarche_0_@1X.png`).
+
 ## 2026-11-20 — Catalogue : libellés issus des titres wiki
 
 ### Corrigé
