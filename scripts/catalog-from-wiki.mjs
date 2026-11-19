@@ -344,7 +344,8 @@ async function fetchPages(entries) {
 }
 
 // --- synthèse d'un objet ------------------------------------------------------
-function makeItem(nameFr, nameEn, sex, assets, categories, section, kind) {
+function makeItem(nameFr, nameEn, sex, rawAssets, categories, section, kind) {
+  const assets = dedupeAssets(rawAssets);
   const nom = [...assets.reduce((m, a) => (a.nom ? m.set(a.nom, (m.get(a.nom) ?? 0) + 1) : m), new Map()).entries()]
     .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   const decls = [...new Set(assets.map((a) => a.decl).filter((d) => d !== null && Number.isFinite(d)))].sort((a, b) => a - b);
@@ -386,6 +387,11 @@ const urlsForFile = (file) =>
   data.urlsByFile.get(`Image:${file}`) ??
   [];
 const assetsForFiles = (files) => [...new Set(files.flatMap(urlsForFile))].map(assetInfo);
+const dedupeAssets = (assets) => [...new Map(assets.filter((a) => a.path).map((a) => [a.path, a])).values()];
+const assetNameFromFiles = (files) => {
+  const file = files?.find((f) => /[fh]\.(?:png|gif|jpe?g|webp)$/i.test(f)) ?? files?.[0];
+  return file ? file.replace(/[fh]?\.(?:png|gif|jpe?g|webp)$/i, '') : null;
+};
 const filesForSex = (files, sex) =>
   (files ?? []).filter((f) => {
     const match = f.match(/([fh])?\.(?:png|gif|jpe?g|webp)$/i);
@@ -469,10 +475,7 @@ for (const obj of objects.values()) {
   decomposed.push({ name: obj.nameFr, elements: elements.map((e) => e.label) });
   const findRow = (label) => rows.find((r) => normalize(r.label) === normalize(label));
   const wholeRow = rows.find((r) => /entier/i.test(r.label));
-  for (const sex of sexList) {
-    const whole = assetsForFiles(filesForSex(wholeRow?.files, sex));
-    items.push(makeItem(obj.nameFr, obj.nameEn, sex, whole, { [sex]: 'Panoplies' }, '', 'panoplie'));
-  }
+  const allElements = { M: [], F: [] };
   for (const el of elements) {
     const elKey = normalize(el.label);
     const elObj = objects.get(elKey);
@@ -486,15 +489,21 @@ for (const obj of objects.values()) {
           : elObj && elObj.sexes.size ? [...elObj.sexes] : sexList;
     for (const sex of sexes) {
       const inherited = elObj ? (elObj.assets[sex].length ? elObj.assets[sex] : elObj.assets.ANY) : [];
-      const seenPaths = new Set();
-      const assets = [...fromRow[sex], ...inherited].filter((a) => {
-        if (seenPaths.has(a.path)) return false;
-        seenPaths.add(a.path);
-        return true;
-      });
+      const assets = dedupeAssets([...fromRow[sex], ...inherited]);
+      allElements[sex].push(...assets);
       items.push(makeItem(label, elObj?.nameEn ?? null, sex, assets,
         { ...elObj?.categories, ...el.categories }, elObj?.section ?? '', 'element'));
     }
+  }
+  // L'article parent porte tous les calques de ses éléments : choisir la
+  // panoplie dans la cabine d'essayage habille la poupée en une seule fois.
+  const wholeName = assetNameFromFiles(wholeRow?.files);
+  for (const sex of sexList) {
+    const whole = assetsForFiles(filesForSex(wholeRow?.files, sex));
+    const parentAssets = dedupeAssets([...whole, ...allElements[sex]]);
+    const parent = makeItem(obj.nameFr, obj.nameEn, sex, parentAssets, { [sex]: 'Panoplies' }, '', 'panoplie');
+    if (wholeName) parent.nom = wholeName;
+    items.push(parent);
   }
 }
 

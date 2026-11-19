@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-19 — Catalogue : CDN dédupliqués et panoplies complètes
+
+### Corrigé
+
+- Les URL CDN sont dédupliquées par chemin lors de la génération : un élément comme `bas du clair de lune` n'a plus que ses 2 calques au lieu de 4 entrées répétées. 0 fiche avec doublon CDN sur 1663.
+- L'article parent d'une panoplie composée porte maintenant les CDN de **tous ses éléments** : choisir « Panoplie à la Mandragore » dans la cabine d'essayage affiche les 8 sprites d'un coup. Les quatre éléments restent bien sélectionnables séparément.
+- Le nom d'asset du parent est relevé sur le fichier `*entier` de la page wiki (`panomandragore`), ce qui évite que la panoplie soit signalée « sans CDN ».
+
 ## 2026-11-19 — Catalogue : panoplies `PackEnsemble` et CDN des éléments
 
 ### Corrigé
