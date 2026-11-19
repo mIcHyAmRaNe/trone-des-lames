@@ -12,7 +12,10 @@
     "astro": "astro",
     "catalog": "node scripts/catalog.mjs bootstrap",
     "catalog:refresh": "node scripts/catalog.mjs refresh",
-    "catalog:wiki": "node scripts/wiki-audit.mjs"
+    "catalog:wiki": "node scripts/wiki-audit.mjs",
+    "catalog:wiki:scan": "node scripts/catalog-from-wiki.mjs",
+    "catalog:wiki:refresh": "WIKI_REFRESH=1 node scripts/catalog-from-wiki.mjs",
+    "catalog:enrich": "node scripts/catalog-enrich.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.9",

@@ -46,9 +46,15 @@ const BLACKLIST = new Set([
 const CDN_RE = /https?:\/\/[^\s"'<>)\]]*personnages_midas\/[^\s"'<>)\]]+\.(?:png|webp|gif|jpg)/gi;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const FORCE_REFRESH = process.env.WIKI_REFRESH === '1';
+
 async function cached(key, load) {
   const file = join(CACHE, createHash('sha1').update(key).digest('hex'));
-  try { return await readFile(file, 'utf8'); } catch { /* miss */ }
+  // WIKI_REFRESH=1 force un scan neuf : le cache HTTP n'a pas d'expiration et
+  // peut garder des pages Fichier: vides alors que le wiki a depuis été rempli.
+  if (!FORCE_REFRESH) {
+    try { return await readFile(file, 'utf8'); } catch { /* miss */ }
+  }
   const text = await load();
   await mkdir(CACHE, { recursive: true });
   await writeFile(file, text);

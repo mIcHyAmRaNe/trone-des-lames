@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-19 — Catalogue : rescan wiki rafraîchi
+
+### Corrigé
+
+- Le cache HTTP du scan wiki n'avait pas d'expiration : certaines pages `Fichier:` restaient enregistrées avec un contenu vide alors que le wiki publie depuis leurs URL CDN. `Épée brisée` était ainsi affichée « sans CDN » malgré ses quatre calques (`armeEpeeBrisee_0/1`, homme et femme).
+- Le scan reprend les CDN de ces pages ; `Épée brisée` a désormais ses 2 calques par sexe et le nom d'asset `armeEpeeBrisee`. 1498 fiches avec CDN, 0 doublon.
+
+### Ajouté
+
+- `npm run catalog:wiki:refresh` force un scan neuf (`WIKI_REFRESH=1`) pour repartir du wiki plutôt que du cache ; `catalog:wiki:scan` et `catalog:enrich` rejouent les deux passes. Catalogue à 1992 fiches (1004 M / 988 F), tests et build verts.
+
 ## 2026-11-19 — Catalogue : tag d'article parent au lieu de la fiche panoplie
 
 ### Corrigé
