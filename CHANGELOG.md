@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-20 — Catalogue : export Excel en menu « ⋮ »
+
+### Corrigé
+
+- Le bouton texte « Export Excel » de la barre de filtres est remplacé par une icône « ⋮ » compacte. Le clic ouvre un menu contextuel avec « Exporter en Excel » et le nombre de résultats actuellement filtrés.
+- Le menu reprend le comportement de `RowMenu` : portail en position fixe, fermeture au clic extérieur, au scroll et avec Échap, navigation au clavier. L'export lui-même est inchangé (une colonne par catégorie, lignes filtrées uniquement).
+
 ## 2026-11-20 — Catalogue : relecture des pages `Fichier:` vides
 
 ### Corrigé

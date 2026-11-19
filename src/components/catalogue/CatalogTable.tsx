@@ -15,6 +15,7 @@ import {
   sexeLabel,
 } from '../../lib/wardrobe';
 import { buildCategoryXlsx } from '../../lib/xlsx';
+import ExportMenu from './ExportMenu';
 import type { PendingList, Sex } from '../../lib/catalog-submit';
 import CatalogEditDialog from './CatalogEditDialog';
 import ReportDialog from './ReportDialog';
@@ -133,23 +134,6 @@ function SearchIcon({ className }: { className?: string }) {
       aria-hidden="true"
     >
       <path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
-    </svg>
-  );
-}
-
-function DownloadIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v3h16v-3" />
     </svg>
   );
 }
@@ -509,20 +493,12 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
             {lang === 'en' ? 'CDN URLs' : 'URLs CDN'}
           </button>
 
-          <button
-            type="button"
-            onClick={exportXlsx}
+          <ExportMenu
+            onExport={exportXlsx}
+            count={filtered.length}
             disabled={!filtered.length}
-            title={
-              lang === 'en'
-                ? 'Export the filtered items as an Excel file (one column per category)'
-                : 'Exporter les objets filtrés en Excel (une colonne par catégorie)'
-            }
-            className="inline-flex w-full items-center justify-center gap-2 border border-gold/25 bg-ink/60 px-4 py-2.5 text-[0.6875rem] font-bold uppercase leading-5 tracking-[0.16em] text-parchment-dim transition-colors hover:border-gold/60 hover:text-parchment disabled:cursor-not-allowed disabled:opacity-40 sm:mb-0.5 sm:w-auto"
-          >
-            <DownloadIcon className="h-3.5 w-3.5" />
-            {lang === 'en' ? 'Export Excel' : 'Export Excel'}
-          </button>
+            lang={lang}
+          />
 
           {hasFilter && (
             <button type="button" onClick={reset} className="btn-ghost mt-2 sm:mb-0.5 sm:mt-0">
