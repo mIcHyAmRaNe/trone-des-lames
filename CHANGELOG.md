@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-20 — Catalogue : outils non visuels retirés
+
+### Corrigé
+
+- Les objets `Outils_barque`, `Outils_filet` et `Outils_echelle` (Barque, Filet de pêche, Grande/Petite échelle) sont retirés du catalogue : ce sont des outils de jeu, pas des éléments visuels portables par la cabine d'essayage. Ils sont listés dans le rapport d'extraction avec leur motif d'exclusion.
+- Catalogue à 2106 fiches (1060 M / 1046 F), 1649 avec CDN, 0 doublon. Tests et build verts.
+
 ## 2026-11-20 — Catalogue : aperçus CDN dédupliqués
 
 ### Corrigé

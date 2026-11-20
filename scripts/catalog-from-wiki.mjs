@@ -584,8 +584,10 @@ for (const it of ordered) {
   if (!sexes[sex]) { collisions.push({ id: it.id, nameFr: it.nameFr, sex }); continue; }
   // Sans catégorie wiki, l'objet n'est pas classable dans la garde-robe :
   // on ne l'invente pas, on le signale dans le rapport.
-  if (!it.slotGardeRobe) {
-    reportUnclassified.push({ id: it.id, nameFr: it.nameFr, sex });
+  if (!it.slotGardeRobe || it.slotGardeRobe.startsWith('Outils_')) {
+    // Barque, filet et échelles sont des outils de jeu, pas des éléments
+    // visuels portables par la cabine d'essayage.
+    reportUnclassified.push({ id: it.id, nameFr: it.nameFr, sex, reason: it.slotGardeRobe || 'sans catégorie' });
     continue;
   }
   const nameKey = `${sex}|${normalize(it.nameFr)}`;
