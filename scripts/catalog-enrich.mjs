@@ -1,112 +1,211 @@
-// Complète le catalogue propre (wiki) avec les champs de jeu relevés dans la
-// fiche de personnage : zIndex, idItem, déclinaisons, paramètres, postures…
+// Complète le catalogue wiki avec les 15 clés de jeu relevées sur les fiches
+// de personnage, sans registre persistant ni donnée historique.
 //
 //   node scripts/catalog-enrich.mjs
 //
-// Entrée : data/catalog-wiki-clean.json (ou BASE_PATH)
-// Sortie : public/rk/catalog.json + data/catalog-enrich-report.json
-// Aucune donnée ryence, aucun id hérité de l'ancien catalogue.
+// Entrées : data/catalog-wiki-union.json (ou BASE_PATH)
+//           data/character-sheet-assets.json (ou ASSETS_PATH)
+// Sortie  : public/rk/catalog.json (ou OUT_PATH) + data/catalog-enrich-report.json
+//
+// La jointure se fait par nom d'asset (`nom`), seule clé commune au wiki et aux
+// fiches de jeu. `zIndexCalques` est le nom du champ côté jeu ; le catalogue ne
+// porte plus l'ancien alias `zIndex`.
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SHEET = process.env.SHEET_PATH ?? '/home/starlab/Projects/rk/blabla.txt';
-const BASE = process.env.BASE_PATH ?? join(ROOT, 'data/catalog-wiki-clean.json');
+const BASE = process.env.BASE_PATH ?? join(ROOT, 'data/catalog-wiki-union.json');
+const ASSETS = process.env.ASSETS_PATH ?? join(ROOT, 'data/character-sheet-assets.json');
 const OUT = process.env.OUT_PATH ?? join(ROOT, 'public/rk/catalog.json');
 const REPORT = join(ROOT, 'data/catalog-enrich-report.json');
+const RAW_PATH = join(ROOT, 'data/wiki-catalog-raw.json');
+const CLEAN_PATH = join(ROOT, 'data/catalog-wiki-clean.json');
+const EN_PATH = join(ROOT, 'data/catalog-wiki-en.json');
 
-// --- lecture des blocs JSON de la fiche --------------------------------------
-const html = await readFile(SHEET, 'utf8');
-const byNom = new Map();
-let i = 0;
-while (true) {
-  const s = html.indexOf('{"login"', i);
-  if (s < 0) break;
-  let depth = 0; let inStr = false; let esc = false; let end = -1;
-  for (let j = s; j < html.length; j++) {
-    const ch = html[j];
-    if (inStr) {
-      if (esc) esc = false;
-      else if (ch === '\\') esc = true;
-      else if (ch === '"') inStr = false;
-      continue;
+/** Même normalisation que les slugs `wiki:<slug>` du catalogue. */
+const slugify = (value) =>
+  `${value ?? ''}`
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/,?\s*appel\w*\s+aussi.*$/, '')
+    .replace(/^(?:l'|le |la |les |un |une |des |du |de |d')/, '')
+    .replace(/[^a-z0-9]+/g, '');
+
+/** Titre exact de la page wiki par slug (`wiki:<slug>`). */
+async function loadWikiTitles() {
+  const titles = new Map();
+  try {
+    const raw = JSON.parse(await readFile(RAW_PATH, 'utf8'));
+    for (const item of raw.items ?? []) {
+      if (item.wikiKey && item.title) titles.set(item.wikiKey, item.title);
     }
-    if (ch === '"') inStr = true;
-    else if (ch === '{') depth++;
-    else if (ch === '}') { depth--; if (depth === 0) { end = j; break; } }
+  } catch {
+    /* fichier optionnel */
   }
-  if (end < 0) { i = s + 1; continue; }
-  let blob;
-  try { blob = JSON.parse(html.slice(s, end + 1)); } catch { i = end + 1; continue; }
-  for (const it of blob.equipement ?? []) {
-    const list = byNom.get(it.nom) ?? [];
-    if (!list.some((x) => x.declinaison === it.declinaison && x.parametre === it.parametre)) list.push(it);
-    byNom.set(it.nom, list);
+  try {
+    const clean = JSON.parse(await readFile(CLEAN_PATH, 'utf8'));
+    for (const item of [...(clean.sexes?.M ?? []), ...(clean.sexes?.F ?? [])]) {
+      if (item.id?.startsWith('wiki:') && item.nameFr) titles.set(item.id.slice(5), item.nameFr);
+    }
+  } catch {
+    /* fichier optionnel */
   }
-  i = end + 1;
+  // Fiches importées uniquement depuis le wiki EN : leur `nameFr` donne le
+  // titre de la page FR (ex. « Festive mask » -> « Panoplie Fête »).
+  try {
+    const en = JSON.parse(await readFile(EN_PATH, 'utf8'));
+    for (const item of en.items ?? []) {
+      if (!item.nameFr) continue;
+      for (const key of [item.page, item.name]) {
+        const slug = slugify(key);
+        if (slug && !titles.has(slug)) titles.set(slug, item.nameFr);
+      }
+    }
+  } catch {
+    /* fichier optionnel */
+  }
+  return titles;
 }
-console.log(`fiche : ${byNom.size} noms d'assets uniques`);
-
-// Une fiche catalogue correspond à un objet : on prend la déclinaison 0 quand
-// elle existe, sinon la première entrée relevée.
-const pick = (entries) => entries.find((e) => e.declinaison === '0') ?? entries[0];
 
 const catalog = JSON.parse(await readFile(BASE, 'utf8'));
-// Ne pas introduire de slot inconnu de l'application (ex. « Bracelet ») :
-// seuls les slots déjà présents dans le catalogue wiki sont acceptés.
-const knownSlots = new Set(
-  [...catalog.sexes.M, ...catalog.sexes.F].map((it) => it.slot).filter(Boolean),
-);
+const sheet = JSON.parse(await readFile(ASSETS, 'utf8'));
+const byNom = new Map(Object.entries(sheet.assets ?? {}));
+
+/** « chapeau_m0 » et « chapeau » désignent le même asset de base. */
+const stripSuffix = (nom) => `${nom}`.replace(/_+$/, '').replace(/_(?:m\d+|n\d+|p\d+)+$/i, '');
+const candidatesFor = (nom) => [...new Set([nom, stripSuffix(nom), stripSuffix(nom).replace(/\d+$/, '')])].filter(Boolean);
+
+/** Fiche du sexe demandé, sinon l'autre sexe (même objet, même idItem). */
+function recordFor(entry, sex) {
+  return entry[sex] ?? entry.F ?? entry.M ?? null;
+}
+
+/** Une jointure dérivée ne doit pas changer de catégorie d'armoire. */
+function compatible(rec, item) {
+  return !item.slotGardeRobe || !rec.slotGardeRobe || rec.slotGardeRobe === item.slotGardeRobe;
+}
+
+function match(item, sex) {
+  let seen = false;
+  for (const [rank, nom] of candidatesFor(item.nom).entries()) {
+    const entry = byNom.get(nom);
+    if (!entry) continue;
+    seen = true;
+    const rec = recordFor(entry, sex);
+    if (!rec) continue;
+    if (rank === 0) return { rec, how: 'exact' };
+    if (compatible(rec, item)) return { rec, how: 'derived' };
+  }
+  return { rec: null, how: seen ? 'rejected' : 'none' };
+}
+
 const report = {
-  generatedAt: new Date().toISOString(),
-  source: 'character sheet (blabla.txt)',
-  counts: { items: 0, enriched: 0, withoutZIndex: 0 },
-  enrichedIds: [],
+  source: ASSETS,
+  base: BASE,
+  counts: {
+    items: 0,
+    withoutAsset: 0,
+    exact: 0,
+    derived: 0,
+    unmatched: 0,
+    rejected: 0,
+    enriched: 0,
+    withoutZIndex: 0,
+    nomKept: 0,
+  },
+  derivedIds: [],
+  rejected: [],
+  unmatched: [],
 };
 
 for (const sex of ['M', 'F']) {
-  for (const it of catalog.sexes[sex]) {
+  for (const item of catalog.sexes[sex]) {
     report.counts.items++;
-    const candidates = [it.nom, `${it.nom ?? ''}`.replace(/\d+$/, '')].filter(Boolean);
-    const src = candidates.map((n) => byNom.get(n)).find(Boolean) ??
-      // Les noms d'assets du wiki peuvent porter un suffixe _m0/_n0 absent de
-      // la fiche ; on essaie aussi la forme épurée.
-      candidates.map((n) => byNom.get(n.replace(/_(?:m\d+|n\d+|p\d+)+$/i, ''))).find(Boolean);
-    if (!src) continue;
-    const record = pick(src);
+    if (!item.nom) {
+      report.counts.withoutAsset++;
+      item.zIndexCalques = Array.isArray(item.zIndexCalques) ? item.zIndexCalques : [];
+      delete item.zIndex;
+      continue;
+    }
+    const { rec, how } = match(item, sex);
+    if (!rec) {
+      report.counts[how === 'rejected' ? 'rejected' : 'unmatched']++;
+      report[how === 'rejected' ? 'rejected' : 'unmatched'].push(`${sex}:${item.id} (${item.nom})`);
+      item.zIndexCalques = Array.isArray(item.zIndexCalques) ? item.zIndexCalques : [];
+      delete item.zIndex;
+      continue;
+    }
 
-    // Les champs que le wiki sait déjà remplir ne sont pas écrasés : la fiche
-    // est celle d'un personnage féminin, ses emplacements ne valent pas pour
-    // les fiches masculines. On ne comble que les vides.
-    if (!it.nom) it.nom = record.nom;
-    if (!it.slot && knownSlots.has(record.slot)) it.slot = record.slot;
-    if (!it.slotGardeRobe) it.slotGardeRobe = record.slotGardeRobe ?? null;
-    if (!it.miniature) it.miniature = record.miniature ?? 'o';
-    if (!it.declinaisons?.length) it.declinaisons = (record.declinaisons ?? []).map(Number);
-
-    // Champs absents du wiki, repris tels quels de la fiche de jeu.
-    it.idItem = record.idItem;
-    it.declinaison = record.declinaison;
-    it.parametre = record.parametre;
-    it.slotsMasques = record.slotsMasques ?? [];
-    it.dependCouleurPeau = !!record.dependCouleurPeau;
-    it.dependPostureMainG = !!record.dependPostureMainG;
-    it.dependPostureMainD = !!record.dependPostureMainD;
-    it.postureMainG = record.postureMainG ?? null;
-    it.postureMainD = record.postureMainD ?? null;
-    it.zIndexCalques = (record.zIndexCalques ?? []).map(Number);
-    // Le champ historique reste synchronisé pour la cabine d'essayage.
-    it.zIndex = [...it.zIndexCalques];
-
+    report.counts[how]++;
     report.counts.enriched++;
-    report.enrichedIds.push(`${sex}:${it.id}`);
-    if (!it.zIndexCalques.length) report.counts.withoutZIndex++;
+    if (how === 'derived') {
+      // Le nom du catalogue peut être une variante (`_m0`, teinte…) absente de
+      // la fiche : on garde le nom qui sert déjà à construire les URLs CDN.
+      report.counts.nomKept++;
+      report.derivedIds.push(`${sex}:${item.id} (${item.nom} -> ${rec.nom})`);
+    } else {
+      item.nom = rec.nom;
+    }
+
+    item.idItem = rec.idItem;
+    item.declinaison = rec.declinaison;
+    item.parametre = rec.parametre;
+    item.slot = rec.slot;
+    item.slotGardeRobe = rec.slotGardeRobe;
+    item.miniature = rec.miniature;
+    item.declinaisons = [...rec.declinaisons];
+    item.slotsMasques = [...rec.slotsMasques];
+    item.dependCouleurPeau = rec.dependCouleurPeau;
+    item.dependPostureMainG = rec.dependPostureMainG;
+    item.dependPostureMainD = rec.dependPostureMainD;
+    item.postureMainG = rec.postureMainG;
+    item.postureMainD = rec.postureMainD;
+    item.zIndexCalques = [...rec.zIndexCalques];
+    delete item.zIndex;
+
+    if (!item.zIndexCalques.length) report.counts.withoutZIndex++;
   }
 }
 
+// Titre exact de la page wiki : le libellé affiché (nom du template) peut
+// différer par la casse ou un qualificatif, ce qui casse le lien direct.
+const wikiTitles = await loadWikiTitles();
+for (const sex of ['M', 'F']) {
+  for (const item of catalog.sexes[sex]) {
+    if (!item.id?.startsWith('wiki:')) continue;
+    const title =
+      wikiTitles.get(item.id.slice(5)) ??
+      `${item.nameFr ?? ''}`.replace(/\s*,\s*(?:appel[ée]e?s?\s+aussi|anciennement).*$/i, '').trim();
+    if (title && title !== item.nameFr) {
+      item.wikiTitle = title;
+      report.counts.wikiTitle = (report.counts.wikiTitle ?? 0) + 1;
+    }
+  }
+}
+
+// Aucun item ne doit conserver l'ancien alias, même non enrichi.
+for (const sex of ['M', 'F']) {
+  for (const item of catalog.sexes[sex]) {
+    assert.ok(Array.isArray(item.zIndexCalques), `${sex}:${item.id} zIndexCalques`);
+    assert.ok(!('zIndex' in item), `${sex}:${item.id} conserve zIndex`);
+  }
+}
+assert.equal(
+  catalog.sexes.M.length + catalog.sexes.F.length,
+  report.counts.items,
+  'le nombre de fiches change pendant l’enrichissement',
+);
+
 await writeFile(OUT, JSON.stringify(catalog));
 await writeFile(REPORT, JSON.stringify(report, null, 2));
-console.log(`${report.counts.enriched}/${report.counts.items} fiches enrichies (${report.counts.withoutZIndex} sans zIndex)`);
+
+const c = report.counts;
+console.log(`${c.enriched}/${c.items} fiches enrichies (${c.exact} exact, ${c.derived} dérivé, ${c.nomKept} nom conservé)`);
+console.log(`sans correspondance : ${c.unmatched} | rejetées : ${c.rejected} | sans asset : ${c.withoutAsset}`);
+console.log(`sans zIndexCalques : ${c.withoutZIndex}`);
+console.log(`titres wiki corrigés : ${c.wikiTitle ?? 0}`);
 console.log(`-> ${OUT}\n-> ${REPORT}`);

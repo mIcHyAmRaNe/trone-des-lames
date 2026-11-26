@@ -40,4 +40,10 @@ data/catalog-wiki-staged.json
 data/catalog-wiki-report.json
 data/catalog-wiki-clean.json
 data/catalog-wiki-clean-report.json
+data/catalog-wiki-en.json
+data/catalog-wiki-en-report.json
+data/catalog-wiki-union.json
+data/catalog-wiki-union-report.json
 data/catalog-enrich-report.json
+data/migrate-zindex-backup.json
+data/name-map-fr-en.json

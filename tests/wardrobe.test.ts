@@ -56,7 +56,7 @@ import {
   }
   for (const item of items) {
     assert.ok(Array.isArray(item.declinaisons), `${item.id}: déclinaisons`);
-    assert.ok(Array.isArray(item.zIndex), `${item.id}: zIndex`);
+    assert.ok(Array.isArray(item.zIndexCalques), `${item.id}: zIndexCalques`);
   }
   console.log('✓ catalogue complet, slots classés');
 }
@@ -80,7 +80,7 @@ import {
 {
   const item: CatalogItem = {
     id: '42', nom: 'gilet', slot: 'Gilet', slotGardeRobe: null, miniature: 'o',
-    declinaisons: [0, 2], zIndex: [2601], dependCouleurPeau: false,
+    declinaisons: [0, 2], zIndexCalques: [2601], dependCouleurPeau: false,
     dependPostureMainG: false, dependPostureMainD: false, slotsMasques: [], nameEn: 'Vest', nameFr: 'Gilet',
   };
   const entry = entryFrom(item, 2);
@@ -96,7 +96,7 @@ import {
 {
   const item = (id: string, slot: string, slotGardeRobe: string | null): CatalogItem => ({
     id, nom: id, slot, slotGardeRobe, miniature: 'o',
-    declinaisons: [0], zIndex: [1], dependCouleurPeau: false,
+    declinaisons: [0], zIndexCalques: [1], dependCouleurPeau: false,
     dependPostureMainG: false, dependPostureMainD: false, slotsMasques: [],
     nameEn: null, nameFr: id,
   });
@@ -133,7 +133,7 @@ import {
 {
   const items: CatalogItem[] = ['Zèbre', 'abeille', 'Castor'].map((nameFr, i) => ({
     id: String(i), nom: nameFr.toLowerCase(),
-    slot: 'Chapeau', slotGardeRobe: 'Chapeaux', miniature: 'o', declinaisons: [0], zIndex: [1],
+    slot: 'Chapeau', slotGardeRobe: 'Chapeaux', miniature: 'o', declinaisons: [0], zIndexCalques: [1],
     dependCouleurPeau: false, dependPostureMainG: false, dependPostureMainD: false,
     slotsMasques: [], nameEn: null, nameFr,
   }));

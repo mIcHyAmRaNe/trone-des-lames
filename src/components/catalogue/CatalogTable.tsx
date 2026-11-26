@@ -13,6 +13,7 @@ import {
   loadCatalog,
   midasAssetUrls,
   sexeLabel,
+  wikiItemUrl,
 } from '../../lib/wardrobe';
 import { buildCategoryXlsx } from '../../lib/xlsx';
 import ExportMenu from './ExportMenu';
@@ -35,19 +36,20 @@ const DATA_OPTIONS: Record<Lang, { value: DataFilter; label: string }[]> = {
     { value: '', label: 'Toutes' },
     { value: 'incomplete', label: 'À compléter' },
     { value: 'noCdn', label: 'Sans CDN' },
-    { value: 'noZIndex', label: 'Sans zIndex' },
+    { value: 'noZIndex', label: 'Sans zIndexCalques' },
   ],
   en: [
     { value: '', label: 'All' },
     { value: 'incomplete', label: 'Incomplete' },
     { value: 'noCdn', label: 'No CDN' },
-    { value: 'noZIndex', label: 'No zIndex' },
+    { value: 'noZIndex', label: 'No zIndexCalques' },
   ],
 };
 
 interface Row {
   id: string;
   name: string;
+  wikiUrl: string;
   category: string;
   sexe: SexeValue;
   /** Objets bruts par sexe, pour la modale de modification (non affichés). */
@@ -59,7 +61,7 @@ interface Row {
   group?: string;
   hasCdn: boolean;
   hasZIndex: boolean;
-  zIndex: string;
+  zIndexCalques: string;
   variants: number;
   haystack: string;
 }
@@ -93,13 +95,14 @@ function buildRows(catalog: Catalog, lang: Lang): Row[] {
           ['M', pair.m],
           ['F', pair.f],
         ] as const)
-          .filter(([, it]) => it?.nom)
+          .filter(([, it]) => it)
           .flatMap(([sexe, it]) => midasAssetUrls(it!, sexe)),
       ),
     ];
     rows.push({
       id,
       name: itemLabel(item, lang),
+      wikiUrl: wikiItemUrl(item, lang),
       category: categoryOf(item),
       sexe: pair.m && pair.f ? 'Mixte' : pair.m ? 'M' : 'F',
       items: { M: pair.m, F: pair.f },
@@ -108,7 +111,7 @@ function buildRows(catalog: Catalog, lang: Lang): Row[] {
       group: item.group,
       hasCdn: hasCdn(item),
       hasZIndex: hasZIndex(item),
-      zIndex: item.zIndex.join(', '),
+      zIndexCalques: item.zIndexCalques.join(', '),
       variants: item.declinaisons.length || 1,
       haystack: itemHaystack(item),
     });
@@ -124,7 +127,7 @@ const isIncompleteRow = (r: Row) => !r.hasCdn || !r.hasZIndex;
 function missingFields(row: Row, lang: Lang): string[] {
   return [
     ...(row.hasCdn ? [] : [lang === 'en' ? 'CDN asset name' : 'nom d’asset CDN']),
-    ...(row.hasZIndex ? [] : ['zIndex']),
+    ...(row.hasZIndex ? [] : ['zIndexCalques']),
   ];
 }
 
@@ -233,56 +236,93 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
     return present.has('Autres') ? [...keys, 'Autres'] : keys;
   }, [rows]);
 
+  const needle = query.trim().toLowerCase();
+
+  /** Filtre toutes les dimensions SAUF celle passée en paramètre. */
+  const filteredExcept = useCallback(
+    (exclude: 'category' | 'sexe' | 'data' | 'search') =>
+      rows.filter((r) => {
+        if (exclude !== 'category' && category && r.category !== category) return false;
+        if (exclude !== 'sexe' && sexe && r.sexe !== sexe) return false;
+        if (exclude !== 'data' && data) {
+          if (data === 'incomplete' && !isIncompleteRow(r)) return false;
+          if (data === 'noCdn' && r.hasCdn) return false;
+          if (data === 'noZIndex' && r.hasZIndex) return false;
+        }
+        if (exclude !== 'search' && needle && !r.haystack.includes(needle)) return false;
+        return true;
+      }),
+    [rows, category, sexe, data, needle],
+  );
+
   // Libellés + nombre d'objets, pour les badges du sélecteur de catégorie.
+  // Compte les items par catégorie EN TENNANT COMPTE des autres filtres actifs (sexe, données, recherche).
+  // Affiche « x / N » où x = filtré, N = total dans cette catégorie.
   const categoryOptions = useMemo(() => {
+    const filteredForCategory = filteredExcept('category');
     const counts = new Map<string, number>();
-    for (const r of rows) counts.set(r.category, (counts.get(r.category) ?? 0) + 1);
+    for (const r of filteredForCategory) counts.set(r.category, (counts.get(r.category) ?? 0) + 1);
+    // Totaux non filtrés (pour le « N » du x/N)
+    const totalCounts = new Map<string, number>();
+    for (const r of rows) totalCounts.set(r.category, (totalCounts.get(r.category) ?? 0) + 1);
+    const total = filteredForCategory.length;
+    const grandTotal = rows.length;
     return [
-      { value: '', label: lang === 'en' ? 'All' : 'Toutes', count: rows.length },
+      { value: '', label: lang === 'en' ? 'All' : 'Toutes', count: total, totalCount: grandTotal },
       ...categories.map((key) => ({
         value: key,
         label: key === 'Autres' ? (lang === 'en' ? 'Other' : 'Autres') : categoryLabel(key, lang),
         count: counts.get(key) ?? 0,
+        totalCount: totalCounts.get(key) ?? 0,
       })),
     ];
-  }, [rows, categories, lang]);
+  }, [filteredExcept, rows, categories, lang]);
 
   // Compteurs alignés sur le filtre : chaque chiffre = lignes réellement gardées.
+  // Compte les items par sexe EN TENNANT COMPTE des autres filtres actifs (catégorie, données, recherche).
+  // Affiche « x / N » où x = filtré, N = total dans ce sexe.
   const sexeOptions = useMemo(() => {
+    const filteredForSexe = filteredExcept('sexe');
     const counts: Record<SexeValue, number> = { Mixte: 0, M: 0, F: 0 };
-    for (const r of rows) counts[r.sexe] += 1;
+    for (const r of filteredForSexe) counts[r.sexe] += 1;
+    // Totaux non filtrés
+    const totalCounts: Record<SexeValue, number> = { Mixte: 0, M: 0, F: 0 };
+    for (const r of rows) totalCounts[r.sexe] += 1;
+    const total = filteredForSexe.length;
+    const grandTotal = rows.length;
     return [
-      { value: '', label: lang === 'en' ? 'All' : 'Tous', count: rows.length },
-      { value: 'Mixte', label: lang === 'en' ? 'Both' : 'Mixte', count: counts.Mixte },
-      { value: 'M', label: sexeLabel('M', lang), count: counts.M },
-      { value: 'F', label: sexeLabel('F', lang), count: counts.F },
+      { value: '', label: lang === 'en' ? 'All' : 'Tous', count: total, totalCount: grandTotal },
+      { value: 'Mixte', label: lang === 'en' ? 'Both' : 'Mixte', count: counts.Mixte, totalCount: totalCounts.Mixte },
+      { value: 'M', label: sexeLabel('M', lang), count: counts.M, totalCount: totalCounts.M },
+      { value: 'F', label: sexeLabel('F', lang), count: counts.F, totalCount: totalCounts.F },
     ];
-  }, [rows, lang]);
+  }, [filteredExcept, rows, lang]);
 
   const dataOptions = useMemo(() => {
+    const filteredForData = filteredExcept('data');
     const counts: Record<string, number> = {
+      '': filteredForData.length,
+      incomplete: filteredForData.filter(isIncompleteRow).length,
+      noCdn: filteredForData.filter((r) => !r.hasCdn).length,
+      noZIndex: filteredForData.filter((r) => !r.hasZIndex).length,
+    };
+    // Totaux non filtrés
+    const totalCounts: Record<string, number> = {
       '': rows.length,
       incomplete: rows.filter(isIncompleteRow).length,
       noCdn: rows.filter((r) => !r.hasCdn).length,
       noZIndex: rows.filter((r) => !r.hasZIndex).length,
     };
-    return DATA_OPTIONS[lang].map((o) => ({ ...o, count: counts[o.value] ?? 0 }));
-  }, [rows, lang]);
+    return DATA_OPTIONS[lang].map((o) => ({
+      ...o,
+      count: counts[o.value] ?? 0,
+      totalCount: totalCounts[o.value] ?? 0,
+    }));
+  }, [filteredExcept, rows, lang]);
 
-  const needle = query.trim().toLowerCase();
   const filtered = useMemo(
-    () =>
-      rows.filter(
-        (r) =>
-          (!category || r.category === category) &&
-          (!sexe || r.sexe === sexe) &&
-          (!data ||
-            (data === 'incomplete' && isIncompleteRow(r)) ||
-            (data === 'noCdn' && !r.hasCdn) ||
-            (data === 'noZIndex' && !r.hasZIndex)) &&
-          (!needle || r.haystack.includes(needle)),
-      ),
-    [rows, category, sexe, data, needle],
+    () => filteredExcept('category').filter((r) => !category || r.category === category),
+    [filteredExcept, category],
   );
 
   const stats = useMemo(
@@ -591,7 +631,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
                     {lang === 'en' ? 'Sex' : 'Sexe'}
                   </th>
                   <th scope="col" className="px-4 py-3 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-gold">
-                    zIndex
+                    zIndexCalques
                   </th>
                   <th scope="col" className="px-4 py-3 text-right text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-gold">
                     {lang === 'en' ? 'Colour variants' : 'Déclinaisons'}
@@ -611,7 +651,19 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
                       className="border-b border-gold/10 transition-colors last:border-b-0 hover:bg-gold/[0.04]"
                     >
                       <td className="px-4 py-2.5 font-medium text-parchment">
-                        {r.name}
+                        {r.wikiUrl ? (
+                          <a
+                            href={r.wikiUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={lang === 'en' ? 'Open wiki page' : 'Ouvrir la fiche wiki'}
+                            className="underline decoration-gold/30 underline-offset-2 transition-colors hover:text-gold-light hover:decoration-gold/60"
+                          >
+                            {r.name}
+                          </a>
+                        ) : (
+                          r.name
+                        )}
                         {r.group && (
                           <span
                             title={`${lang === 'en' ? 'Part of' : 'Élément de'} ${r.group}`}
@@ -675,7 +727,7 @@ export default function CatalogTable({ lang = 'fr' }: { lang?: Lang }) {
                       <td className={r.sexe === 'Mixte' ? 'px-4 py-2.5 text-gold-light/90' : 'px-4 py-2.5 text-parchment-dim'}>
                         {r.sexe === 'Mixte' ? mixte : sexeLabel(r.sexe, lang)}
                       </td>
-                      <td className="px-4 py-2.5 tabular-nums text-parchment-dim/60">{r.zIndex || ' - '}</td>
+                      <td className="px-4 py-2.5 tabular-nums text-parchment-dim/60">{r.zIndexCalques || ' - '}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-parchment-dim">
                         {format.format(r.variants)}
                       </td>

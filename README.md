@@ -114,15 +114,18 @@ Le visiteur ne saisit jamais d'identifiants : le serveur ouvre la session du jeu
 
 ### Catalogue
 
-`public/rk/catalog.json` est un fichier statique (1792 entrées, 30 catégories du jeu) qui contient, pour chaque objet, son slot technique, son `slotGardeRobe`, son nom d'image CDN, ses déclinaisons de couleur et surtout son `zIndexCalques` — sans z-index réel, les vêtements se superposent mal au corps.
+`public/rk/catalog.json` est un fichier statique (2 104 entrées, 30 catégories du jeu) qui contient, pour chaque objet, son slot technique, son `slotGardeRobe`, son nom d'image CDN, ses déclinaisons de couleur et surtout son `zIndexCalques` — sans ordre de superposition, les vêtements se dessinent mal sur le corps.
+
+Le catalogue est construit en trois temps : extraction du wiki FR et EN, fusion, puis enrichissement depuis les fiches de personnage.
 
 ```bash
-npm run catalog           # reconstruction complète depuis ryence.de (~1777 objets)
-npm run catalog:refresh   # connexion au jeu, ajout des objets manquants
-npm run catalog:wiki      # audit de couverture face au wiki officiel
+npm run catalog:wiki:scan  # extraction wiki FR -> data/catalog-wiki-clean.json
+npm run catalog:wiki:en    # extraction wiki EN -> data/catalog-wiki-en.json
+npm run catalog:public     # fusion EN + enrichissement -> public/rk/catalog.json
+npm run catalog:wiki       # audit de couverture face au wiki officiel
 ```
 
-`catalog:refresh` lit `RK_USERNAME` / `RK_PASS` dans `.env` : c'est le même compte de service que celui utilisé par la garde-robe. Le jeu n'expose pas de catalogue : le script moissonne les pages qui rendent des objets et fusionne les `idItem` inconnus. Traiter le fichier comme un cache du jeu, pas comme une source de vérité.
+L'enrichissement ne lit jamais les captures de fiches de personnage : `data/character-sheet-assets.json` (committé) les a résumées une fois, via `node scripts/sheet-assets.mjs --female <fiche> --male <fiche>`. Il fournit les 15 clés de jeu (`idItem`, `declinaisons`, `slot`, `slotGardeRobe`, `miniature`, `zIndexCalques`…) ; aucune donnée historique n'est conservée. `npm run catalog` et `npm run catalog:refresh` restent disponibles comme reconstruction de secours depuis ryence.de ou le jeu.
 
 `catalog:wiki` balaie la page wiki « Vêtement » (16 tableaux, colonnes MIXTE / FEMME / HOMME), suit chaque objet jusqu'aux pages `Fichier:` de ses sprites et compare les noms d'assets CDN au catalogue. Résultat dans `data/wiki-gaps.json` : `gaps` (asset CDN absent → objet à ajouter), `namedOnly` (objet absent d'après son nom, mais le wiki ne documente pas d'asset) et `unknownAssets`. Le wiki ne donne ni `idItem` ni `zIndexCalques` : ces deux champs restent à récupérer côté jeu avant de fusionner une entrée.
 

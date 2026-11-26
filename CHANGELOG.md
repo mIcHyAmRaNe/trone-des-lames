@@ -1,5 +1,88 @@
 # Changelog
 
+## 2026-11-26 — Catalogue : filtres à facettes, import CDN wiki robuste, liens wiki exacts
+
+### Ajouté
+- **Comptes à facettes** dans les dropdowns de filtre (catégorie, sexe, données) : le badge affiche `x / N` où `x` = nombre d'objets correspondant à *tous les autres filtres actifs* et `N` = total sans filtre. Implémenté via `filteredExcept(dimension)` dans `CatalogTable.tsx` + `totalCount` optionnel dans `Select.tsx`.
+- Champ `wikiTitle` dans `CatalogItem` : titre exact de la page wiki (sensible à la casse, sans qualificatif « appelé aussi… »). Prioritaire dans `wikiItemUrl()` pour générer des liens directs valides.
+
+### Corrigé
+- **Import CDN wiki** (`wiki-fill-cdn.mjs`) :
+  - Regex élargie : capture toutes les racines CDN (`personnages_midas/`, `interieurTaverne/`, etc.) et les URLs tronquées finissant par `_@1X.` ou `.`.
+  - `fixTruncatedCdnUrl()` répare les URLs incomplètes (ex. `fondGrotteMarine_0_@1X.` → `.png`).
+  - `assetInfo()` conserve le préfixe de racine CDN pour reconstruire l'URL complète correcte.
+  - `CDN_FULL_ROOT` (`.../images/`) utilisé pour les vérifications d'existence (pas seulement `personnages_midas/`).
+- **Blacklist** : `Guenilles en forme de` ajoutée (page mère listant des éléments déjà dans le catalogue), avec `Guenilles` et `Renard de la nuit`.
+- **Enrichissement** (`catalog-enrich.mjs`) : `BASE_PATH=public/rk/catalog.json` par défaut dans `package.json` → l'enrichissement préserve les CDN/nom ajoutés par `wiki-fill-cdn` au lieu de les écraser depuis `data/catalog-wiki-union.json`.
+- **Titres wiki** : 351 fiches corrigées (casse, qualificatifs) via correspondance slug→titre depuis `wiki-catalog-raw.json`, `catalog-wiki-clean.json` et `catalog-wiki-en.json` (ex. « Festive mask » → « Panoplie Fête »).
+
+### Résultat
+- `public/rk/catalog.json` : 2 137 fiches (1 077 M / 1 060 F), 2 123 avec CDN (99 %), 2 019 avec `zIndexCalques` (94 %).
+- 1 099 titres wiki uniques vérifiés via l'API MediaWiki : 0 manquant.
+- 5 URLs signalées (Hache de Robert Guiscard, Brutus, Gants Académiques, Gants parfumés des Quatre Maisons, Toque des Quatre Maisons) répondent HTTP 200.
+- `npm run build` et `node --test tests/wardrobe.test.ts` verts.
+
+## 2026-11-25 — Catalogue : pipeline wiki → enrichissement JSON, clé `zIndexCalques` unique
+
+### Modifié
+
+- Le catalogue est désormais reconstruit depuis le wiki FR + EN (`catalog:wiki:scan`, `catalog:wiki:en`, puis `catalog:public`) puis enrichi depuis un JSON unique `data/character-sheet-assets.json`. Les txt de fiches de personnage ne sont plus lus à chaque passe.
+- `scripts/sheet-assets.mjs` génère ce JSON une fois (`--female`, `--male`) : 724 noms d'assets, une fiche par sexe, dédupliquée par nom et déclinaison de référence.
+- `scripts/catalog-enrich.mjs` recopie les 15 clés de jeu (`idItem`, `declinaisons`, `slot`, `slotGardeRobe`, `miniature`, `zIndexCalques`…) et n'utilise plus `data/item-assets.json` ni `blabla.txt`. `KNOWN_SLOTS` est supprimé.
+- `zIndex` est renommé `zIndexCalques` dans le catalogue, les formulaires, l'admin et les soumissions ; l'alias n'existe plus dans les fiches. `scripts/migrate-zindex-key.mjs` migre les JSON déjà stockés (dry-run par défaut, `--write`, sauvegarde, idempotent).
+- Enrichissement : 1 334 / 2 064 fiches (1 309 exactes, 25 dérivées, 25 noms conservés), 453 sans correspondance, 62 liaisons refusées par la garde de catégorie, 215 fiches sans asset.
+- `Bracelet` ajouté aux slots connus (libellés FR/EN, repli catégorie Bijoux).
+- Filtrage des objets non portables : les pages dont l'infobox est `Amenagement`, `Outil`, `MatierePremiere2`, `Aliment` ou `ObjetNonCode` sont exclues, même si elles figurent dans une catégorie autorisée (ex. les bons d'achat dans « Vêtement événementiel », les meubles dans « Panoplie »). 21 entrées retirées (meubles de packs IRL, bons d'achat, matières premières, aliment, objets décoratifs).
+- Les éléments de panoplie qui n'ont pas de page wiki propre (simplement listés comme variantes de couleur dans le tableau de la panoplie parente) ne créent plus de fiche séparée. Retire « Bure blanche » (variante de « Bure de Rituel ») et « Ultime Missive » (redirection vers « L'Ultime Missive »).
+- La catégorie `Tatouage` est maintenant scannée.
+- **Mapping FR/EN fiable** : nouveau script `scripts/build-name-map.mjs` qui télécharge `FragmentsRAR.php` (FR et EN) du jeu et construit un mapping bidirectionnel des 2 393 noms d'objets par ID numérique. `catalog-merge-en.mjs` l'utilise maintenant (méthode `game-map-fr-en`) pour retrouver la page EN correspondante à un objet FR, même quand les noms diffèrent totalement (ex. « Porte-bébé par Alii » ↔ « Baby carrier by Alii »). Résultat : 165 CDN récupérés via ce mapping (contre 0 avant), seulement 46 fiches sans CDN au final.
+- **Catégorisation par modèle** : le type d'infobox (`Familier`, `Arme`, `CadreDecor`, etc.) lu dans le wikitexte détermine maintenant la catégorie d'armoire (`slotGardeRobe`), prioritaire sur la catégorie wiki ou la section. Corrige les éléments de panoplie qui sont en réalité des familiers, armes, décors, etc. (ex. « Hibou de Baba Yaga » → `Familiers` au lieu de `Panoplies`).
+
+### Résultat
+
+- `public/rk/catalog.json` : 2 064 fiches, aucune clé `zIndex` résiduelle, 1 334 avec `zIndexCalques`, 1 849 avec `nom`, 2 018 avec CDN.
+- Tests `wardrobe` et `npm run build` verts. `tests/tournament.test.ts` échoue toujours hors catalogue (attendu `—`, obtenu ` - `).
+
+## 2026-11-22 — Catalogue : rescan wiki complet sans cache
+
+### Modifié
+
+- Pipeline relancé avec `WIKI_REFRESH=1` sur les deux langues (aucune réponse HTTP réutilisée) : FR → `data/catalog-wiki-clean.json`, EN → `data/catalog-wiki-en.json`, puis export FR, merge EN et enrichissement.
+- `public/rk/wiki-fr.json` : 1 076 objets, 906 avec CDN (890 avant). `public/rk/wiki-en.json` : 1 278 objets, 1 094 avec CDN (1 093 avant).
+
+### Résultat
+
+- Catalogue public : 2 010 / 2 104 fiches avec CDN (2 008 avant), 94 restantes sans CDN. 1 224 fiches enrichies depuis la fiche de jeu.
+- Tests `wardrobe` et `npx astro build` verts. `tests/tournament.test.ts` échoue déjà hors catalogue (attendu `—`, obtenu ` - `).
+
+## 2026-11-21 — Catalogues wiki séparés + catalogue public FR complété par l'EN
+
+### Ajouté
+
+- Deux extractions wiki indépendantes, sans donnée de l'autre langue ni donnée de jeu : `public/rk/wiki-fr.json` (1 076 objets, 890 avec CDN) et `public/rk/wiki-en.json` (1 278 objets, 1 093 avec CDN). `Special_object` est exclu du catalogue EN (objets de jeu, pas de garde-robe).
+- Nouvel onglet admin « Wiki » (`/admin/wiki`) avec sous-onglets FR / EN, filtres react-select avec compteurs, badges, pagination et export Excel à deux feuilles (Catalogue / Sans CDN).
+- `scripts/catalog-from-wiki-en.mjs` (extraction EN, cache `.cache/wiki-en`) et `scripts/wiki-catalog-export.mjs` (aplatissement FR). Scripts npm `catalog:wiki:fr`, `catalog:wiki:en`, `catalog:wiki:en:refresh`.
+- `scripts/catalog-merge-en.mjs` + script npm `catalog:public` : le catalogue public reste la version FR, complétée uniquement par les CDN relevés sur les pages `File:` du wiki EN (288 fiches récupérées). Aucun nom ni section ne change de langue.
+- Lien direct vers la fiche wiki dans le catalogue public : cliquer sur le nom ouvre la page dans un nouvel onglet, dans la langue de l'interface.
+
+### Résultat
+
+- Catalogue public : 2 008 / 2 104 fiches avec CDN (contre 1 720 avant complétion), 96 restantes sans CDN. Aucun `nameFr` modifié.
+- `npx astro build` : exit 0.
+
+## 2026-11-20 — Catalogue : jointure fiche de jeu fiable + registre `item-assets`
+
+### Corrigé
+
+- Le nom d'asset tiré du CDN ne colle plus un `0` en fin de nom (`pantalonEnSoie_d0_0` → `pantalonEnSoie` au lieu de `pantalonEnSoie0`) : la jointure avec la fiche de jeu devient exacte pour 53 fiches de plus.
+- La jointure par nom approché (`nom` sans suffixe `_m0`/`_n0`/`_p0` ou sans chiffre final) exige désormais une catégorie d'armoire compatible : 43 coiffures ne prennent plus le zIndex du chapeau `coiffure` (calque 10300).
+- Le `slot` technique fourni par la fiche de jeu est enfin recopié (1146 fiches) : la liste d'autorisation était construite depuis un catalogue où tous les slots étaient vides.
+- Enrichissement : 1150 / 2106 fiches (contre 1140), 1124 par nom exact, 26 par nom dérivé, 43 liaisons douteuses refusées.
+
+### Ajouté
+
+- `data/item-assets.json` : registre durable du lien, clé `idItem`, valeur les champs d'affichage relevés sur une fiche (nom, slot, zIndex, masques, postures). Fusionné entre fiches, il survit aux passes wiki et sert de source à `catalog-enrich.mjs`.
+
 ## 2026-11-20 — Catalogue : outils non visuels retirés
 
 ### Corrigé

@@ -18,13 +18,19 @@ export interface CatalogItem {
   slotGardeRobe: string | null;
   miniature: string;
   declinaisons: number[];
-  zIndex: number[];
+  zIndexCalques: number[];
   dependCouleurPeau: boolean;
   dependPostureMainG: boolean;
   dependPostureMainD: boolean;
   slotsMasques: string[];
   nameEn: string | null;
   nameFr: string | null;
+  /**
+   * Titre exact de la page wiki, quand il diffère du libellé affiché (casse,
+   * qualificatif « appelé aussi… »). Sert au lien direct : MediaWiki est
+   * sensible à la casse après la première lettre.
+   */
+  wikiTitle?: string | null;
   /**
    * Chemins CDN exacts relevés sur le wiki (relatifs à `CDN_ROOT`), pour les
    * objets dont l'URL ne se déduit pas du nom d'asset (variantes, extension).
@@ -33,7 +39,7 @@ export interface CatalogItem {
   /**
    * Article parent auquel appartient cet objet (panoplie, ensemble de chats,
    * lot d'éléments…). Permet de retrouver tous les éléments d'un même article
-   * sans garder une fiche parent sans zIndex dans le catalogue.
+   * sans garder une fiche parent sans zIndexCalques dans le catalogue.
    */
   group?: string;
   /** Champs relevés sur la fiche de personnage (source de jeu, pas du wiki). */
@@ -42,7 +48,6 @@ export interface CatalogItem {
   parametre?: string;
   postureMainG?: string | null;
   postureMainD?: string | null;
-  zIndexCalques?: number[];
 }
 
 export interface Catalog {
@@ -199,6 +204,7 @@ const SLOT_CATEGORY: Record<string, string> = {
   Baton: 'Armes',
   Bijoux: 'Bijoux',
   Bouclier: 'Boucliers',
+  Bracelet: 'Bijoux',
   Braies: 'Braies',
   Bustier: 'Bustiers',
   Cadre: 'Cadres',
@@ -310,6 +316,7 @@ const SLOT_LABELS: Record<string, string> = {
   Baton: 'Bâton',
   Bijoux: 'Bijoux',
   Bouclier: 'Bouclier',
+  Bracelet: 'Bracelet',
   Braies: 'Braies',
   Bustier: 'Bustier',
   Cadre: 'Cadre',
@@ -352,6 +359,7 @@ const SLOT_LABELS_EN: Record<string, string> = {
   Baton: 'Staff',
   Bijoux: 'Jewellery',
   Bouclier: 'Shield',
+  Bracelet: 'Bracelet',
   Braies: 'Breeches',
   Bustier: 'Bodice',
   Cadre: 'Frame',
@@ -499,6 +507,18 @@ export function itemLabel(item: CatalogItem, lang: Lang = 'fr'): string {
   return item.nameFr ?? item.nameEn ?? item.nom ?? item.id;
 }
 
+/** Lien direct vers la fiche wiki de l'objet, dans la langue affichée. */
+export function wikiItemUrl(item: CatalogItem, lang: Lang = 'fr'): string {
+  // `wikiTitle` est le titre exact de la page : il prime sur le libellé
+  // d'affichage, qui peut différer par la casse ou un qualificatif.
+  const title =
+    lang === 'en'
+      ? item.nameEn ?? item.wikiTitle ?? item.nameFr
+      : item.wikiTitle ?? item.nameFr ?? item.nameEn;
+  if (!title) return '';
+  return `https://wiki.renaissancekingdoms.com/${lang}/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+}
+
 /**
  * Numéro d'un asset de style (`coiffure12`, `barbe3`).
  * Le catalogue nomme certains articles sans libellé lisible : ce numéro permet
@@ -512,11 +532,11 @@ export function assetStyleNumber(nom: string | null, prefix: string): number | n
 
 /** Un objet sans nom d'asset ne peut pas être dessiné par Midas. */
 export function hasCdn(item: CatalogItem): boolean {
-  return !!item.nom;
+  return !!item.nom || (Array.isArray(item.cdn) && item.cdn.length > 0);
 }
 
 export function hasZIndex(item: CatalogItem): boolean {
-  return item.zIndex.length > 0;
+  return item.zIndexCalques.length > 0;
 }
 
 /** Fiche à compléter : asset CDN, z-index, ou les deux manquent. */
@@ -537,9 +557,9 @@ export const CDN_ROOT = 'https://lesroyaumes.cdn.oxv.fr/images/personnages_midas
  *   sous `{sexe}/vetements/`. Postures et peau figées à 0 : aperçu d'objet.
  */
 export function midasAssetUrls(item: CatalogItem, sexe: Sexe): string[] {
-  if (!item.nom) return [];
-  // URL exacte relevée sur le wiki : elle fait foi quand le nom ne suffit pas.
+  // URL exacte relevée sur le wiki : elle fait foi même sans nom d'asset.
   if (item.cdn?.length) return item.cdn.map((path) => `${CDN_ROOT}${path}`);
+  if (!item.nom) return [];
   const dir = sexe === 'F' ? 'femmes' : 'hommes';
   // Les fiches importées du wiki n'ont pas de slot technique : la catégorie
   // de garde-robe prend le relais ('Fonds', 'Cadres', 'Barbes', 'Coiffures').
@@ -630,7 +650,7 @@ export function entryFrom(item: CatalogItem, declinaison: number): EquipEntry {
     dependPostureMainD: item.dependPostureMainD,
     postureMainG: null,
     postureMainD: null,
-    zIndexCalques: item.zIndex,
+    zIndexCalques: item.zIndexCalques,
   };
 }
 

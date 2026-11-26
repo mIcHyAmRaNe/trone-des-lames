@@ -96,7 +96,7 @@ const MSG = {
     maxValues: (field: string) => `${field} : 64 valeurs max.`,
     numRange: (field: string) => `${field} : nombres entre 0 et 100000.`,
     slotsMasques: 'Slots masqués : 20 max, 40 caractères chacun.',
-    nomOrZIndex: 'Un objet doit avoir un nom d\'asset OU au moins un zIndex.',
+    nomOrZIndex: 'Un objet doit avoir un nom d\'asset OU au moins un zIndexCalques.',
     itemIdRequired: 'ID objet requis pour une modification.',
     itemNotFound: 'Objet introuvable dans le catalogue.',
     reasonUnknown: 'Motif inconnu.',
@@ -111,7 +111,7 @@ const MSG = {
     maxValues: (field: string) => `${field}: 64 values max.`,
     numRange: (field: string) => `${field}: numbers between 0 and 100000.`,
     slotsMasques: 'Hidden slots: 20 max, 40 characters each.',
-    nomOrZIndex: 'An item needs an asset name OR at least one zIndex.',
+    nomOrZIndex: 'An item needs an asset name OR at least one zIndexCalques.',
     itemIdRequired: 'Item ID required for an edit.',
     itemNotFound: 'Item not found in the catalogue.',
     reasonUnknown: 'Unknown reason.',
@@ -146,7 +146,7 @@ function validatePayload(payload: SubmissionPayload, lang: Lang = 'fr'): Record<
       }
     }
   };
-  checkNums(payload.zIndex, 'zIndex');
+  checkNums(payload.zIndexCalques, 'zIndexCalques');
   checkNums(payload.declinaisons, 'declinaisons');
   if (payload.slotsMasques.length > 20 || payload.slotsMasques.some(s => s.length > 40)) {
     errors.slotsMasques = msg.slotsMasques;
@@ -236,7 +236,7 @@ export async function createSubmission(login: string, req: SubmissionRequest, la
     nameFr: req.item.nameFr?.trim() ?? null,
     nameEn: req.item.nameEn?.trim() ?? null,
     slot: req.item.slot.trim(),
-    zIndex: req.item.zIndex ?? [],
+    zIndexCalques: req.item.zIndexCalques ?? [],
     declinaisons: req.item.declinaisons ?? [],
     slotsMasques: req.item.slotsMasques ?? [],
     dependCouleurPeau: !!req.item.dependCouleurPeau,
@@ -268,8 +268,8 @@ export async function createSubmission(login: string, req: SubmissionRequest, la
       return { error: 'already-exists', id: exists.id, label: exists.nameFr ?? exists.nameEn ?? exists.nom ?? exists.id };
     }
 
-    // Un create doit avoir au moins nom OU zIndex
-    if ((!payload.nom || payload.nom === '') && (!payload.zIndex || payload.zIndex.length === 0)) {
+    // Un create doit avoir au moins nom OU zIndexCalques
+    if ((!payload.nom || payload.nom === '') && (!payload.zIndexCalques || payload.zIndexCalques.length === 0)) {
       return { error: 'invalid item', fields: { nom: msg.nomOrZIndex } };
     }
   } else {
@@ -394,7 +394,7 @@ export async function decideSubmission(id: string, status: 'approved' | 'rejecte
         nameFr: payload.nameFr ?? mergedItem.nameFr,
         nameEn: payload.nameEn ?? mergedItem.nameEn,
         slot: payload.slot,
-        zIndex: payload.zIndex,
+        zIndexCalques: payload.zIndexCalques,
         declinaisons: payload.declinaisons,
         dependCouleurPeau: payload.dependCouleurPeau,
         dependPostureMainG: payload.dependPostureMainG,
@@ -429,7 +429,7 @@ export async function decideSubmission(id: string, status: 'approved' | 'rejecte
         slotGardeRobe: null,
         miniature: 'o',
         declinaisons,
-        zIndex: payload.zIndex,
+        zIndexCalques: payload.zIndexCalques,
         dependCouleurPeau: payload.dependCouleurPeau,
         dependPostureMainG: payload.dependPostureMainG,
         dependPostureMainD: payload.dependPostureMainD,

@@ -33,8 +33,8 @@ const HARVEST_PAGES = [
 ];
 
 // --- item shape -------------------------------------------------------------
-// One flat object per item. `zIndex` and `declinaisons` are numbers because
-// midas.js interpolates them straight into image URLs.
+// One flat object per item. `zIndexCalques` and `declinaisons` are numbers
+// because midas.js interpolates them straight into image URLs.
 function normalize(raw, names) {
   const id = String(raw.idItem);
   return {
@@ -44,7 +44,7 @@ function normalize(raw, names) {
     slotGardeRobe: raw.slotGardeRobe ?? null,
     miniature: raw.miniature ?? 'o',
     declinaisons: (raw.declinaisons ?? []).map(Number),
-    zIndex: (raw.zIndexCalques ?? []).map(Number),
+    zIndexCalques: (raw.zIndexCalques ?? []).map(Number),
     dependCouleurPeau: !!raw.dependCouleurPeau,
     dependPostureMainG: !!raw.dependPostureMainG,
     dependPostureMainD: !!raw.dependPostureMainD,

@@ -31,7 +31,7 @@ const STR = {
     // General
     catalogLoadError: 'Le catalogue n\'a pas pu être chargé. Réessayez.',
     sending: 'Envoi en cours…',
-    zIndexError: 'zIndex : entrez des nombres séparés par des virgules ou des espaces.',
+    zIndexError: 'zIndexCalques : entrez des nombres séparés par des virgules ou des espaces.',
     declinaisonsError: 'Déclinaisons : entrez des nombres séparés par des virgules ou des espaces.',
     slotRequired: 'Choisissez un emplacement.',
     nameRequired: 'Renseignez au moins le nom d\'asset ou le nom affiché.',
@@ -59,7 +59,7 @@ const STR = {
     slot: 'Emplacement (requis)',
     slotChoose: 'Choisir…',
     sexes: 'Sexes (requis)',
-    zIndex: 'zIndex (optionnel)',
+    zIndexCalques: 'zIndexCalques (optionnel)',
     zIndexPlaceholder: 'ex. 42 ou 40, 41',
     note: 'Note pour l\'admin (optionnel)',
     notePlaceholder: 'Précisions pour la validation…',
@@ -89,7 +89,7 @@ const STR = {
       maxValues: (field: string) => `${field} : 64 valeurs max.`,
       numRange: (field: string) => `${field} : nombres entre 0 et 100000.`,
       slotsMasques: 'Slots masqués : 20 max, 40 caractères chacun.',
-      nomOrZIndex: 'Un objet doit avoir un nom d\'asset OU au moins un zIndex.',
+      nomOrZIndex: 'Un objet doit avoir un nom d\'asset OU au moins un zIndexCalques.',
       itemIdRequired: 'ID objet requis pour une modification.',
       itemNotFound: 'Objet introuvable dans le catalogue.',
     },
@@ -98,7 +98,7 @@ const STR = {
     // General
     catalogLoadError: 'Could not load catalogue. Please try again.',
     sending: 'Sending…',
-    zIndexError: 'zIndex: enter numbers separated by commas or spaces.',
+    zIndexError: 'zIndexCalques: enter numbers separated by commas or spaces.',
     declinaisonsError: 'Declinaisons: enter numbers separated by commas or spaces.',
     slotRequired: 'Choose a slot.',
     nameRequired: 'Provide at least the asset name or displayed name.',
@@ -126,7 +126,7 @@ const STR = {
     slot: 'Slot (required)',
     slotChoose: 'Choose…',
     sexes: 'Sexes (required)',
-    zIndex: 'zIndex (optional)',
+    zIndexCalques: 'zIndexCalques (optional)',
     zIndexPlaceholder: 'ex. 42 or 40, 41',
     note: 'Note for the admin (optional)',
     notePlaceholder: 'Anything useful for review…',
@@ -156,7 +156,7 @@ const STR = {
       maxValues: (field: string) => `${field}: 64 values max.`,
       numRange: (field: string) => `${field}: numbers between 0 and 100000.`,
       slotsMasques: 'Hidden slots: 20 max, 40 characters each.',
-      nomOrZIndex: 'An item needs an asset name OR at least one zIndex.',
+      nomOrZIndex: 'An item needs an asset name OR at least one zIndexCalques.',
       itemIdRequired: 'Item ID required for an edit.',
       itemNotFound: 'Item not found in the catalogue.',
     },
@@ -173,7 +173,7 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
   const [nameFr, setNameFr] = useState('');
   const [slot, setSlot] = useState('');
   const [sexe, setSexe] = useState<'Mixte' | Sex>('Mixte');
-  const [zIndex, setZIndex] = useState('');
+  const [zIndexCalques, setZIndex] = useState('');
   const [note, setNote] = useState('');
   const [declinaisons, setDeclinaisons] = useState('');
   const [slotsMasques, setSlotsMasques] = useState('');
@@ -233,7 +233,7 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setOk(false);
-    const z = parseNumberList(zIndex);
+    const z = parseNumberList(zIndexCalques);
     if (z === null) return setMessage(s.zIndexError);
     const d = parseNumberList(declinaisons);
     if (d === null) return setMessage(s.declinaisonsError);
@@ -256,7 +256,7 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
             nameEn: nameEn.trim() || null,
             nameFr: nameFr.trim() || null,
             slot: slot.trim(),
-            zIndex: z,
+            zIndexCalques: z,
             declinaisons: d,
             slotsMasques: parseTextList(slotsMasques),
             dependCouleurPeau,
@@ -418,15 +418,15 @@ export default function SubmitForm({ lang = 'fr' }: { lang?: Lang }) {
             </div>
           </fieldset>
           <label className="block text-sm text-parchment-dim">
-            <span className={LABEL}>{s.zIndex}</span>
+            <span className={LABEL}>{s.zIndexCalques}</span>
             <input
-              value={zIndex}
+              value={zIndexCalques}
               onChange={(e) => setZIndex(e.target.value)}
               placeholder={s.zIndexPlaceholder}
               inputMode="numeric"
               className={`${FIELD_INPUT} mt-1.5`}
             />
-            <span className={HELP}>{help.zIndex}</span>
+            <span className={HELP}>{help.zIndexCalques}</span>
           </label>
           <label className="block text-sm text-parchment-dim sm:col-span-2">
             <span className={LABEL}>{s.note}</span>

@@ -6,14 +6,14 @@ import type { Lang } from '../../i18n';
 export const FIELD_HELP = {
   fr: {
     nom: 'Identifiant du fichier image sur le CDN. Laisser vide si inconnu.',
-    zIndex: 'Ordre de superposition des calques. Rempli automatiquement quand il est connu.',
+    zIndexCalques: 'Ordre de superposition des calques. Rempli automatiquement quand il est connu.',
     declinaisons: 'Une valeur par variante de couleur.',
     slotsMasques: 'Emplacements recouverts par cet objet.',
     depends: 'À cocher si le calque change selon la peau ou la posture des mains.',
   },
   en: {
     nom: 'Image file identifier on the CDN. Leave blank if unknown.',
-    zIndex: 'Layer stacking order. Filled automatically when known.',
+    zIndexCalques: 'Layer stacking order. Filled automatically when known.',
     declinaisons: 'One value per colour variant.',
     slotsMasques: 'Slots covered by this item.',
     depends: 'Tick if the layer changes with skin colour or hand posture.',

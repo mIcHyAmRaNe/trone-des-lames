@@ -1,0 +1,18 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Admin from '../../components/admin/Admin';
+
+const { lang = 'fr' } = Astro.locals;
+const copy = {
+  fr: { title: 'Wiki  -  Administration' },
+  en: { title: 'Wiki  -  Administration' },
+}[lang];
+
+export const prerender = false;
+---
+
+<Layout title={copy.title}>
+  <div class="container-tdl py-14">
+    <Admin view="wiki" lang={lang} client:only="react" />
+  </div>
+</Layout>

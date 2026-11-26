@@ -104,9 +104,9 @@ function columnName(index: number): string {
 }
 
 export type XlsxColumn = { header: string; values: string[] };
+export type XlsxSheet = { name: string; columns: XlsxColumn[] };
 
-/** Construit un classeur dont chaque colonne est une catégorie. */
-export function buildCategoryXlsx(columns: XlsxColumn[], sheetName = 'Catalogue'): Uint8Array {
+function sheetXml(columns: XlsxColumn[]): string {
   const maxRows = Math.max(1, ...columns.map((c) => c.values.length + 1));
   const rows: string[] = [];
   for (let r = 0; r < maxRows; r++) {
@@ -120,15 +120,40 @@ export function buildCategoryXlsx(columns: XlsxColumn[], sheetName = 'Catalogue'
     }
     if (cells.length) rows.push(`<row r="${r + 1}">${cells.join('')}</row>`);
   }
-  const sheet =
+  return (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    `<sheetData>${rows.join('')}</sheetData></worksheet>`;
+    `<sheetData>${rows.join('')}</sheetData></worksheet>`
+  );
+}
+
+/** Construit un classeur multi-feuilles. Chaque feuille est une liste de colonnes. */
+export function buildSheetsXlsx(sheets: XlsxSheet[]): Uint8Array {
+  const list = sheets.length ? sheets : [{ name: 'Feuille', columns: [] }];
+  const names = list.map((s, i) => {
+    const base = (s.name || `Feuille ${i + 1}`).slice(0, 31);
+    return base;
+  });
   const workbook =
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
     'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-    `<sheets><sheet name="${escapeXml(sheetName.slice(0, 31))}" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+    `<sheets>${names
+      .map((name, i) => `<sheet name="${escapeXml(name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
+      .join('')}</sheets></workbook>`;
+
+  const overrides = names
+    .map(
+      (_, i) =>
+        `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`,
+    )
+    .join('');
+  const rels = names
+    .map(
+      (_, i) =>
+        `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`,
+    )
+    .join('');
 
   return zip([
     {
@@ -139,7 +164,7 @@ export function buildCategoryXlsx(columns: XlsxColumn[], sheetName = 'Catalogue'
           '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
           '<Default Extension="xml" ContentType="application/xml"/>' +
           '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
-          '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+          overrides +
           '</Types>',
       ),
     },
@@ -158,10 +183,15 @@ export function buildCategoryXlsx(columns: XlsxColumn[], sheetName = 'Catalogue'
       data: enc.encode(
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
           '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+          rels +
           '</Relationships>',
       ),
     },
-    { name: 'xl/worksheets/sheet1.xml', data: enc.encode(sheet) },
+    ...list.map((s, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc.encode(sheetXml(s.columns)) })),
   ]);
+}
+
+/** Construit un classeur dont chaque colonne est une catégorie. */
+export function buildCategoryXlsx(columns: XlsxColumn[], sheetName = 'Catalogue'): Uint8Array {
+  return buildSheetsXlsx([{ name: sheetName, columns }]);
 }

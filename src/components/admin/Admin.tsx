@@ -6,6 +6,7 @@ import { parsePoints } from '../../lib/format';
 import { GROUPS } from '../../lib/tournament';
 import { ForfeitSelect, ScoreSelect } from './ScoreSelect';
 import CatalogAdmin from '../catalogue/CatalogAdmin';
+import WikiCatalogAdmin from './WikiCatalogAdmin';
 import type { AgendaEvent } from '../../lib/events';
 
 type Match = TournamentState['matches'][number];
@@ -14,11 +15,13 @@ const STR = {
   fr: {
     sessionExpired: 'Session expirée. Reconnectez-vous.',
     genericError: 'Une erreur est survenue',
-    tabs: { tournoi: 'Tournoi', agenda: 'Agenda', catalog: 'Catalogue' },
+    tabs: { tournoi: 'Tournoi', agenda: 'Agenda', catalog: 'Catalogue', wiki: 'Wiki' },
     loading: 'Chargement',
     adminSpace: 'Espace administrateur',
     tournamentTitle: 'Gestion du tournoi',
     agendaTitle: "Gestion de l'agenda",
+    catalogTitle: 'Modération du catalogue',
+    wikiTitle: 'Extractions du wiki',
     signOut: 'Déconnexion',
     signedOut: 'Déconnecté',
     navAria: "Sections de l'administration",
@@ -134,11 +137,13 @@ const STR = {
   en: {
     sessionExpired: 'Session expired. Please sign in again.',
     genericError: 'An error occurred',
-    tabs: { tournoi: 'Tournament', agenda: 'Agenda', catalog: 'Catalogue' },
+    tabs: { tournoi: 'Tournament', agenda: 'Agenda', catalog: 'Catalogue', wiki: 'Wiki' },
     loading: 'Loading',
     adminSpace: 'Administrator area',
     tournamentTitle: 'Tournament management',
     agendaTitle: 'Agenda management',
+    catalogTitle: 'Catalogue moderation',
+    wikiTitle: 'Wiki extractions',
     signOut: 'Sign out',
     signedOut: 'Signed out',
     navAria: 'Administration sections',
@@ -320,12 +325,13 @@ function payload(match: Match, draft: Draft) {
   };
 }
 
-type AdminView = 'tournoi' | 'agenda' | 'catalog';
+type AdminView = 'tournoi' | 'agenda' | 'catalog' | 'wiki';
 
 const ADMIN_TABS = [
   { view: 'tournoi', href: '/admin', labelKey: 'tournoi' },
   { view: 'agenda', href: '/admin/agenda', labelKey: 'agenda' },
   { view: 'catalog', href: '/admin/catalog', labelKey: 'catalog' },
+  { view: 'wiki', href: '/admin/wiki', labelKey: 'wiki' },
 ] as const;
 
 type PendingCounts = { catalog: number; agenda: number };
@@ -333,6 +339,14 @@ type PendingCounts = { catalog: number; agenda: number };
 export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: Lang }) {
   const s = STR[lang];
   const isTournoi = view === 'tournoi';
+  const title =
+    view === 'tournoi'
+      ? s.tournamentTitle
+      : view === 'agenda'
+      ? s.agendaTitle
+      : view === 'catalog'
+      ? s.catalogTitle
+      : s.wikiTitle;
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [state, setState] = useState<TournamentState | null>(null);
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
@@ -421,7 +435,7 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
         <div>
           <p className="label-caps">{s.adminSpace}</p>
           <h1 className="mt-1 font-display text-2xl tracking-[0.06em] text-parchment">
-            {isTournoi ? s.tournamentTitle : s.agendaTitle}
+            {title}
           </h1>
         </div>
         <button
@@ -438,7 +452,7 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
         </button>
       </div>
 
-      <nav aria-label={s.navAria} className="flex gap-1 border-b border-gold/15">
+      <nav aria-label={s.navAria} className="flex gap-1 overflow-x-auto border-b border-gold/15">
         {ADMIN_TABS.map((tab) => {
           const count = tab.view === 'catalog' ? pendingCounts.catalog : tab.view === 'agenda' ? pendingCounts.agenda : 0;
           return (
@@ -475,7 +489,9 @@ export default function Admin({ view, lang = 'fr' }: { view: AdminView; lang?: L
         })}
       </nav>
 
-      {view === 'catalog' ? (
+      {view === 'wiki' ? (
+        <WikiCatalogAdmin lang={lang} />
+      ) : view === 'catalog' ? (
         <CatalogAdmin lang={lang} onPendingChange={fetchPendingCounts} />
       ) : isTournoi ? (
         <>

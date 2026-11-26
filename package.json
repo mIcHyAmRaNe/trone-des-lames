@@ -15,21 +15,26 @@
     "catalog:wiki": "node scripts/wiki-audit.mjs",
     "catalog:wiki:scan": "node scripts/catalog-from-wiki.mjs",
     "catalog:wiki:refresh": "WIKI_REFRESH=1 node scripts/catalog-from-wiki.mjs",
-    "catalog:enrich": "node scripts/catalog-enrich.mjs"
+    "catalog:enrich": "BASE_PATH=public/rk/catalog.json node scripts/catalog-enrich.mjs",
+    "catalog:public": "node scripts/catalog-merge-en.mjs && BASE_PATH=data/catalog-wiki-union.json node scripts/catalog-enrich.mjs",
+    "catalog:wiki:fr": "node scripts/wiki-catalog-export.mjs",
+    "catalog:wiki:en": "node scripts/catalog-from-wiki-en.mjs",
+    "catalog:wiki:en:refresh": "WIKI_REFRESH=1 node scripts/catalog-from-wiki-en.mjs",
+    "catalog:names:map": "node scripts/build-name-map.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.9",
     "@astrojs/vercel": "^11.0.22",
     "@libsql/client": "^0.18.0",
     "@tailwindcss/vite": "^4.3.5",
-    "astro": "^7.4.12",
+    "astro": "^7.4.13",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-select": "^5.10.2",
     "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
+    "@types/react": "^19.3.1",
     "@types/react-dom": "^19.3.0"
   }
 }

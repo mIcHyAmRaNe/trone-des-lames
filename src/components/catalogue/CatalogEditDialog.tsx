@@ -61,7 +61,7 @@ export default function CatalogEditDialog({
   const [nom, setNom] = useState(initial.nom ?? '');
   const [slot, setSlot] = useState(initial.slot);
   const [selectedSexes, setSelectedSexes] = useState<Sex[]>(sexes);
-  const [zIndex, setZIndex] = useState(initial.zIndex.join(', '));
+  const [zIndexCalques, setZIndex] = useState(initial.zIndexCalques.join(', '));
   const [declinaisons, setDeclinaisons] = useState(initial.declinaisons.join(' '));
   const [slotsMasques, setSlotsMasques] = useState(initial.slotsMasques.join(', '));
   const [dependCouleurPeau, setDependCouleurPeau] = useState(initial.dependCouleurPeau);
@@ -136,10 +136,10 @@ export default function CatalogEditDialog({
       });
       return;
     }
-    const z = parseNumberList(zIndex);
+    const z = parseNumberList(zIndexCalques);
     if (z === null) {
       setFieldErrors({
-        zIndex:
+        zIndexCalques:
           lang === 'en'
             ? 'Enter numbers separated by commas or spaces.'
             : 'Entrez des nombres séparés par des virgules ou des espaces.',
@@ -163,7 +163,7 @@ export default function CatalogEditDialog({
       nameFr: nameFr.trim() || null,
       nameEn: nameEn.trim() || null,
       slot: slot.trim(),
-      zIndex: z,
+      zIndexCalques: z,
       declinaisons: d,
       slotsMasques: parseTextList(slotsMasques),
       dependCouleurPeau,
@@ -465,23 +465,23 @@ export default function CatalogEditDialog({
                 </fieldset>
 
                 <div>
-                  <label htmlFor={`${uid}-zIndex`} className="label-caps">
-                    zIndex
+                  <label htmlFor={`${uid}-zIndexCalques`} className="label-caps">
+                    zIndexCalques
                   </label>
                   <input
-                    id={`${uid}-zIndex`}
-                    value={zIndex}
+                    id={`${uid}-zIndexCalques`}
+                    value={zIndexCalques}
                     onChange={(e) => setZIndex(e.target.value)}
                     placeholder={lang === 'en' ? 'e.g. 42 or 40, 41' : 'ex. 42 ou 40, 41'}
                     inputMode="numeric"
-                    aria-invalid={invalid('zIndex')}
-                    aria-describedby={describedBy('zIndex', `${uid}-zIndex-help`)}
+                    aria-invalid={invalid('zIndexCalques')}
+                    aria-describedby={describedBy('zIndexCalques', `${uid}-zIndexCalques-help`)}
                     className={`${FIELD_INPUT} mt-1.5`}
                   />
-                  <span id={`${uid}-zIndex-help`} className={HELP}>
-                    {help.zIndex}
+                  <span id={`${uid}-zIndexCalques-help`} className={HELP}>
+                    {help.zIndexCalques}
                   </span>
-                  {errorFor('zIndex')}
+                  {errorFor('zIndexCalques')}
                 </div>
 
                 <div className="sm:col-span-2">

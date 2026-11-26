@@ -389,7 +389,7 @@ function groupForImport(rows) {
 
 /**
  * Ajoute les fiches manquantes au catalogue, sans rien inventer : `id` synthétique
- * préfixé `wiki:`, `zIndex` vide, `nom` nul quand le wiki ne documente pas
+ * préfixé `wiki:`, `zIndexCalques` vide, `nom` nul quand le wiki ne documente pas
  * l'asset. La garde-robe écarte déjà les fiches sans `nom`.
  */
 function importWikiItems(catalog, gaps, namedOnly) {
@@ -426,7 +426,7 @@ function importWikiItems(catalog, gaps, namedOnly) {
         slotGardeRobe: categoryForSection(entry.section),
         miniature: 'o',
         declinaisons: asset?.decls ?? [],
-        zIndex: [],
+        zIndexCalques: [],
         dependCouleurPeau: false,
         dependPostureMainG: false,
         dependPostureMainD: false,
@@ -619,7 +619,7 @@ async function main() {
 
   const incomplete = ['M', 'F']
     .flatMap((sex) => catalog.sexes[sex])
-    .filter((it) => !it.nom || !it.zIndex.length).length;
+    .filter((it) => !it.nom || !(it.zIndexCalques ?? []).length).length;
 
   await mkdir(dirname(OUT), { recursive: true });
   await writeFile(

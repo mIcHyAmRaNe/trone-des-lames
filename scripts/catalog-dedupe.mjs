@@ -26,9 +26,9 @@ function normalizeName(value) {
     .replace(/[^a-z0-9]+/g, '');
 }
 
-const isComplete = (it) => !!it.nom && it.zIndex.length > 0;
+const isComplete = (it) => !!it.nom && (it.zIndexCalques ?? []).length > 0;
 const isWiki = (it) => String(it.id ?? '').startsWith('wiki:');
-const hasRealZ = (it) => (it.zIndex ?? []).some((z) => Number(z) !== 0);
+const hasRealZ = (it) => (it.zIndexCalques ?? []).some((z) => Number(z) !== 0);
 const isCanonical = (it) => !isWiki(it) && !!it.nom && hasRealZ(it);
 const isPlaceholder = (it) => isWiki(it) && (!it.cdn?.length || !hasRealZ(it) || !it.slot);
 const keysOf = (it) => [...new Set([it.nameFr, it.nameEn, it.nom].map(normalizeName).filter(Boolean))];

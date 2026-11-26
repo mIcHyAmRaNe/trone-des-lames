@@ -12,7 +12,14 @@ import type { Lang } from '../../i18n';
  * `size="sm"` celui des petits contrôles (calculateurs).
  */
 
-export type Option = { value: string; label: string; /** Nombre affiché en badge à droite du libellé. */ count?: number };
+export type Option = {
+  value: string;
+  label: string;
+  /** Nombre affiché en badge à droite du libellé (après filtres croisés). */
+  count?: number;
+  /** Total dans cette option (sans filtres croisés) — pour afficher « x / N ». */
+  totalCount?: number;
+};
 export type SelectSize = 'field' | 'sm';
 
 export type Palette = {
@@ -195,6 +202,7 @@ export default function SelectField({
   const p = usePalette();
   // Badge de comptage : uniquement quand l'appelant fournit `count` sur l'option,
   // donc les autres sélecteurs de l'app restent inchangés.
+  // Si `totalCount` est fourni, affiche « x / N » (filtré / total).
   const formatOptionLabel = (option: Option) =>
     option.count === undefined ? (
       option.label
@@ -211,7 +219,9 @@ export default function SelectField({
             letterSpacing: '0.04em',
           }}
         >
-          {option.count.toLocaleString(lang === 'en' ? 'en' : 'fr')}
+          {option.totalCount !== undefined && option.totalCount !== option.count
+            ? `${option.count.toLocaleString(lang === 'en' ? 'en' : 'fr')} / ${option.totalCount.toLocaleString(lang === 'en' ? 'en' : 'fr')}`
+            : option.count.toLocaleString(lang === 'en' ? 'en' : 'fr')}
         </span>
       </span>
     );

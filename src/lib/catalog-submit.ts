@@ -13,7 +13,7 @@ export interface SubmissionPayload {
   nameFr: string | null;
   nameEn: string | null;
   slot: string;
-  zIndex: number[];
+  zIndexCalques: number[];
   declinaisons: number[];
   slotsMasques: string[];
   dependCouleurPeau: boolean;
@@ -115,7 +115,7 @@ export const SUBMISSION_FIELDS = [
   ['nom', 'Asset CDN'],
   ['slot', 'Emplacement'],
   ['sexes', 'Sexes'],
-  ['zIndex', 'zIndex'],
+  ['zIndexCalques', 'zIndexCalques'],
   ['declinaisons', 'Déclinaisons'],
   ['slotsMasques', 'Slots masqués'],
   ['dependCouleurPeau', 'Dépend de la peau'],
@@ -132,7 +132,7 @@ const SUBMISSION_LABELS_EN: Record<SubmissionField, string> = {
   nom: 'CDN asset',
   slot: 'Slot',
   sexes: 'Sexes',
-  zIndex: 'zIndex',
+  zIndexCalques: 'zIndexCalques',
   declinaisons: 'Colour variants',
   slotsMasques: 'Masked slots',
   dependCouleurPeau: 'Depends on skin colour',
@@ -174,7 +174,7 @@ export function payloadFromItem(item: CatalogItem, sexes: Sex[]): SubmissionPayl
     nameFr: item.nameFr,
     nameEn: item.nameEn,
     slot: item.slot || item.slotGardeRobe || '',
-    zIndex: [...item.zIndex],
+    zIndexCalques: [...item.zIndexCalques],
     declinaisons: [...item.declinaisons],
     slotsMasques: [...item.slotsMasques],
     dependCouleurPeau: item.dependCouleurPeau,

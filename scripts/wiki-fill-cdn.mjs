@@ -26,6 +26,7 @@ const WIKI = 'https://wiki.renaissancekingdoms.com';
 const API_FR = `${WIKI}/fr/api.php`;
 const API_EN = `${WIKI}/en/api.php`;
 const CDN_ROOT = 'https://lesroyaumes.cdn.oxv.fr/images/personnages_midas/';
+const CDN_FULL_ROOT = 'https://lesroyaumes.cdn.oxv.fr/images/';
 const UA = 'trone-des-lames-cdn-fill/1.0';
 const WRITE = process.argv.includes('--write');
 
@@ -80,11 +81,18 @@ const BLACKLIST = new Set([
   'Doodled background', 'Doodled',              // EN category pages
   // Pages EN qui sont des catégories de groupe
   'Common duck', 'Rare duck', 'Epic duck', 'Duck family',  // listées dans Category:Pet
-  'Jousting horse', 'Jousting horse (bay)', 'Jousting horse (white)', 
+  'Jousting horse', 'Jousting horse (bay)', 'Jousting horse (white)',
   'Jousting horse (isabelline)', 'Jousting horse (jet black)',  // variantes listées
+  // Pages mères composées de plusieurs éléments déjà dans le catalogue
+  'Guenilles', 'Renard de la nuit', 'Guenilles en forme de',
 ]);
 
-const CDN_RE = /https?:\/\/[^\s"'<>)\]]*personnages_midas\/[^\s"'<>)\]]+\.(?:png|webp|gif|jpg)/gi;
+// Certaines pages ont un champ `nom` erroné : le titre de la page fait foi.
+const NAME_OVERRIDES = new Map([['coiffuredanslevent', 'Coiffure dans le vent']]);
+
+// CDN URLs can be under different paths: personnages_midas/, interieurTaverne/, etc.
+  // Some wiki pages have truncated URLs ending with '.' or '_@1X.' instead of '.png'
+  const CDN_RE = /https?:\/\/lesroyaumes\.cdn\.oxv\.fr\/images\/[^\s"'<>)\]]+/gi;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -218,17 +226,35 @@ function normalizeCdnPath(path) {
   return path.replace(/\/{2,}/g, '/').replace(/_@\d+X(\.\w+)$/i, '_@1X$1');
 }
 
+/** Répare les URLs CDN tronquées (ex: finissant par '_@1X.' ou '.') */
+function fixTruncatedCdnUrl(url) {
+  // _@1X. -> _@1X.png
+  if (/_@\d+X\.$/i.test(url)) return url + 'png';
+  // Se termine par un point isolé (après le domaine/chemin)
+  if (/\.[^/]+\.$/.test(url)) return url + 'png';
+  return url;
+}
+
 /**
  * Décompose une URL CDN en chemin, nom d'asset et variantes.
  * `vetements/gantMineur_m0_n0_d1_0_@1X.webp` -> nom `gantMineur`, flags main G/D.
  */
 function assetInfo(url) {
-  const path = normalizeCdnPath(
-    decodeURIComponent(url.slice(url.indexOf('personnages_midas/') + 'personnages_midas/'.length)),
-  );
+  // Réparer les URLs tronquées
+  url = fixTruncatedCdnUrl(url);
+  // Extraire le chemin après le domaine CDN (supporte plusieurs racines)
+  const cdnRoot = 'lesroyaumes.cdn.oxv.fr/images/';
+  const idx = url.indexOf(cdnRoot);
+  if (idx === -1) return { path: '', sex: null, nom: '', kind: 'vetement', decl: null, flags: {} };
+  let path = normalizeCdnPath(decodeURIComponent(url.slice(idx + cdnRoot.length)));
+  // Ne PAS retirer le préfixe 'personnages_midas/' : on en a besoin pour reconstruire l'URL complète
+  // avec le bon CDN_ROOT. La logique de détection du sexe/nom saura l'ignorer.
   const parts = path.split('/');
-  const sexFolder = parts[0];
-  const sub = parts.length > 2 ? parts[1] : null;
+  // Ignorer le dossier racine 'personnages_midas' pour la détection du sexe
+  let partIdx = 0;
+  if (parts[0] === 'personnages_midas') partIdx = 1;
+  const sexFolder = parts[partIdx];
+  const sub = parts.length > partIdx + 2 ? parts[partIdx + 1] : null;
   const file = parts[parts.length - 1];
   const sex = sexFolder === 'hommes' ? 'M' : sexFolder === 'femmes' ? 'F' : null;
   // Strip extension and @1X/@2X suffix
@@ -728,7 +754,7 @@ for (const sex of ['M', 'F']) {
     // Une URL exacte du wiki vaut mieux qu'une URL calculée : on la stocke.
     const usable = [];
     for (const p of paths) {
-      if (await exists(CDN_ROOT + p)) usable.push(p);
+      if (await exists(CDN_FULL_ROOT + p)) usable.push(p);
     }
     if (!usable.length) continue;
     const unique = dedupeCdnPaths(usable);
@@ -832,8 +858,6 @@ for (const sex of ['M', 'F']) {
 // Le wiki étiquette parfois le sprite du bon sexe avec le mauvais dossier CDN
 // (`Item819f.png` -> `hommes/...`) : on garde ces cas explicites.
 const SEX_OVERRIDES = new Map([['renardpolaire', ['M', 'F']]]);
-// Certaines pages ont un champ `nom` erroné : le titre de la page fait foi.
-const NAME_OVERRIDES = new Map([['coiffuredanslevent', 'Coiffure dans le vent']]);
 // Construit une map nom -> sexes corrects depuis les données wiki
 const correctSexes = new Map();
 for (const item of wikiItemsByName.values()) {
@@ -917,8 +941,8 @@ function twinOf(sex, name) {
   const key = normalizeName(name);
   if (!key) return null;
   return (
-    catalog.sexes[other].find((it) => it.nom && it.zIndex.length && normalizeName(it.nameFr) === key) ??
-    catalog.sexes[other].find((it) => it.nom && it.zIndex.length && normalizeName(it.nameEn) === key)
+    catalog.sexes[other].find((it) => it.nom && (it.zIndexCalques ?? []).length && normalizeName(it.nameFr) === key) ??
+    catalog.sexes[other].find((it) => it.nom && (it.zIndexCalques ?? []).length && normalizeName(it.nameEn) === key)
   );
 }
 
@@ -991,7 +1015,7 @@ for (const item of wikiItemsByName.values()) {
     const twin = twinOf(sex, name);
     if (existingIdx >= 0) {
       const existing = catalog.sexes[sex][existingIdx];
-      if (!existing.zIndex.length && twin) {
+      if (!(existing.zIndexCalques ?? []).length && twin) {
         catalog.sexes[sex][existingIdx] = { ...twin, cdn: existing.cdn?.length ? existing.cdn : twin.cdn };
         added.push(`${sex} ${name} -> copie de ${twin.id} (${twin.nom})`);
       }
@@ -1005,7 +1029,7 @@ for (const item of wikiItemsByName.values()) {
     if (known.has(`${normalizeName(name)}|${sex}`)) continue;
     const paths = pathsFor(infos, sex);
     const usable = [];
-    for (const p of paths) if (await exists(CDN_ROOT + p)) usable.push(p);
+    for (const p of paths) if (await exists(CDN_FULL_ROOT + p)) usable.push(p);
     if (!usable.length) continue;
     const unique = dedupeCdnPaths(usable);
     if (unique.length !== usable.length) {
@@ -1033,7 +1057,7 @@ for (const item of wikiItemsByName.values()) {
       slotGardeRobe: category,
       miniature: 'o',
       declinaisons: decls,
-      zIndex: [],
+      zIndexCalques: [],
       dependCouleurPeau: !!asset.flags.peau,
       dependPostureMainG: !!asset.flags.mainG,
       dependPostureMainD: !!asset.flags.mainD,

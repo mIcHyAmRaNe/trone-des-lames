@@ -3,7 +3,7 @@
 //   node scripts/catalog-from-wiki.mjs
 //
 // Sortie : public/rk/catalog.json — aucune donnée ryence, aucun id hérité,
-// aucun zIndex inventé. L'enrichissement (zIndex, slotsMasques) se fait ensuite
+// aucun zIndexCalques inventé. L’enrichissement (zIndexCalques, slotsMasques) se fait ensuite
 // avec catalog-enrich.mjs à partir de sources de jeu (fiches de personnage).
 //
 // Règles d'extraction :
@@ -41,6 +41,7 @@ const BLACKLIST = new Set([
   'Common duck', 'Rare duck', 'Epic duck', 'Duck family',
   'Jousting horse (bay)', 'Jousting horse (white)',
   'Jousting horse (isabelline)', 'Jousting horse (jet black)',
+  'Bure blanche', "L'Ultime Missive", 'Ultime Missive',
 ]);
 
 const CDN_RE = /https?:\/\/[^\s"'<>)\]]*personnages_midas\/[^\s"'<>)\]]+\.(?:png|webp|gif|jpg)/gi;
@@ -179,7 +180,9 @@ function assetInfo(url) {
   const std = bare.match(/_d(\d+)(?:_|$)/i);
   const wiki = !std ? bare.match(/_(\d+)$/) : null;
   let base = bare; let decl = null;
-  if (std) { base = bare.replace(/_d\d+_\d+$/i, '0').replace(/_d\d+(?:_|$)/i, ''); decl = Number(std[1]); }
+  // `_d<teinte>_<parametre>` : seul le nom de base compte, sinon on colle un
+  // « 0 » au nom (`pantalonEnSoie0`) et la jointure avec la fiche de jeu casse.
+  if (std) { base = bare.replace(/_d\d+_\d+$/i, '').replace(/_d\d+(?:_|$)/i, ''); decl = Number(std[1]); }
   else if (wiki) { const n = Number(wiki[1]); base = bare.replace(/_\d+$/, ''); if (n > 0) decl = n; }
   else base = bare.replace(/_0$/, '');
   const beard = base.match(/^barbe_(\d+)/i);
@@ -236,6 +239,38 @@ const SOURCE_CATEGORY = {
   'Catégorie:Vêtement événementiel': '',
   'Catégorie:Vêtement': '',
 };
+
+/** Extrait le type de modèle (Vetement, Familier, Arme, etc.) depuis le wikitexte.
+ *  Ignore le modèle {{note|...}} qui est purement décoratif. */
+function templateType(text) {
+  const names = [...`${text ?? ''}`.matchAll(/\{\{\s*([A-Za-zÀ-ÿ0-9_ -]+)/g)]
+    .map((m) => m[1].trim().toLowerCase())
+    .filter((n) => n !== 'note');
+  return names[0] ?? '';
+}
+
+/** Mappe le type de modèle vers la catégorie d'armoire. */
+const TEMPLATE_CATEGORY = {
+  vetement: null,           // sera déterminé par l'emplacement
+  vetementcouleur: null,    // idem
+  familier: 'Familiers',
+  arme: 'Armes',
+  cadredecor: 'Fonds',
+  cadre: 'Cadres',
+  decor: 'Fonds',
+  apparence: 'Coiffures',
+  accessoire: 'Bijoux',
+  panoplie: 'Panoplies',
+  packensemble: 'Panoplies',
+  outil: null,              // non portable
+  amenagement: null,        // non portable
+  matierepremiere2: null,   // non portable
+  aliment: null,            // non portable
+  objetnoncode: null,       // non portable
+};
+function categoryFromTemplate(text) {
+  return TEMPLATE_CATEGORY[templateType(text)] ?? null;
+}
 function categoryFromSource(source) {
   return SOURCE_CATEGORY[source] ?? null;
 }
@@ -301,6 +336,19 @@ function isCompositePage(page) {
   const text = page?.text ?? '';
   return /\{\{\s*PackEnsemble/i.test(text) ||
     (/vetementType\s*=\s*Panoplie/i.test(text) && Number(field(text, 'elementPano') || 0) > 0);
+}
+
+// Modèles d'infobox qui ne décrivent pas un objet portable. Une page peut
+// traîner dans une catégorie autorisée sans être un vêtement : les bons
+// d'achat sont dans « Vêtement événementiel », les meubles dans « Panoplie ».
+const NON_WEARABLE_TEMPLATES = new Set(['amenagement', 'outil', 'matierepremiere2', 'aliment', 'objetnoncode']);
+function infoboxTemplate(text) {
+  return [...`${text ?? ''}`.matchAll(/\{\{\s*([A-Za-zÀ-ÿ0-9_ -]+)/g)]
+    .map((m) => m[1].trim().toLowerCase())
+    .find((n) => n !== 'note') ?? '';
+}
+function isNonWearable(text) {
+  return NON_WEARABLE_TEMPLATES.has(infoboxTemplate(text));
 }
 function parseImageRows(wikitext) {
   const rows = [];
@@ -412,7 +460,7 @@ function makeItem(nameFr, nameEn, sex, rawAssets, categories, section, kind) {
     id: `wiki:${normalize(nameFr)}`,
     nom, slot: '', slotGardeRobe: category, miniature: 'o',
     declinaisons: assets.length ? [...new Set([0, ...decls])] : [],
-    zIndex: [], dependCouleurPeau: assets.some((a) => a.flags.peau),
+    zIndexCalques: [], dependCouleurPeau: assets.some((a) => a.flags.peau),
     dependPostureMainG: assets.some((a) => a.flags.mainG),
     dependPostureMainD: assets.some((a) => a.flags.mainD),
     slotsMasques: [], nameEn: nameEn || null, nameFr,
@@ -425,7 +473,7 @@ function makeItem(nameFr, nameEn, sex, rawAssets, categories, section, kind) {
 
 const tableEntries = await readWikiPage();
 console.log(`Vêtement : ${tableEntries.length} objets`);
-const CATEGORY_PAGES = ['Panoplie', 'Vêtement événementiel', 'Vêtement', 'Familier', 'Arme', 'Cadre', 'Decor', 'Apparence', 'Accessoire'];
+const CATEGORY_PAGES = ['Panoplie', 'Vêtement événementiel', 'Vêtement', 'Familier', 'Arme', 'Cadre', 'Decor', 'Apparence', 'Accessoire', 'Tatouage'];
 const known = new Set(tableEntries.map((e) => e.title));
 const entries = [...tableEntries];
 for (const cat of CATEGORY_PAGES) {
@@ -479,7 +527,7 @@ let skipped = 0;
 for (const entry of entries) {
   const page = data.byItem.get(data.resolve(entry.title)) ?? data.byItem.get(entry.title) ?? data.byLower.get(String(entry.title).toLowerCase());
   const text = page?.text ?? '';
-  if (/^\s*#REDIRECTION/i.test(text) || !/\bnom\s*=|\{\{\s*Vetement/i.test(text)) { skipped++; continue; }
+  if (/^\s*#REDIRECTION/i.test(text) || !/\bnom\s*=|\{\{\s*Vetement/i.test(text) || isNonWearable(text)) { skipped++; continue; }
   // Le titre de la page wiki fait foi pour le libellé : le champ `nom` du
   // modèle peut être une formulation différente (« Le décor jour de marché »
   // sur la page « Fond Jour de marché »).
@@ -499,6 +547,10 @@ for (const entry of entries) {
   const cats = categoriesFromEmplacement(fieldRaw(text, 'emplacement'));
   for (const s of sexList) if (cats[s]) obj.categories[s] = cats[s];
   if (cats.any) for (const s of sexList) obj.categories[s] ??= cats.any;
+  // Le type de modèle (Familier, Arme, etc.) est l'indicateur le plus fiable
+  // pour la catégorie d'armoire, surtout quand l'emplacement n'est pas renseigné.
+  const templateCat = categoryFromTemplate(text);
+  if (templateCat) for (const s of sexList) obj.categories[s] ??= templateCat;
   const fromSource = categoryFromSource(entry.source);
   if (fromSource) for (const s of sexList) obj.categories[s] ??= fromSource;
   // Un pack / une panoplie sans élément listé n'a pas d'emplacement : son type
@@ -542,6 +594,14 @@ for (const obj of objects.values()) {
   for (const el of elements) {
     const elKey = normalize(el.label);
     const elObj = objects.get(elKey);
+    // L'élément a sa propre page wiki : si c'est un meuble, un bon, une matière
+    // première ou un aliment, ce n'est pas un objet portable.
+    const elPage = data.byItem.get(data.resolve(el.label)) ?? data.byItem.get(el.label) ?? data.byLower.get(String(el.label).toLowerCase());
+    if (elPage?.text && isNonWearable(elPage.text)) continue;
+    // Pas de page wiki propre pour cet élément (juste une ligne dans le tableau
+    // de la panoplie parente) -> ce n'est pas un objet distinct, c'est une
+    // variante de couleur de la panoplie parente. On ne crée pas de fiche séparée.
+    if (!elObj) continue;
     const label = elObj?.nameFr ?? displayName(el.label);
     // Un décor / fond n'est pas un élément portable d'une panoplie : ce n'est
     // ni un vêtement, ni une arme. Il reste un objet Fonds/Cadres autonome.
@@ -559,7 +619,7 @@ for (const obj of objects.values()) {
       const assets = dedupeAssets([...fromRow[sex], ...inherited]);
       const element = makeItem(label, elObj?.nameEn ?? null, sex, assets,
         { ...elObj?.categories, ...el.categories }, elObj?.section ?? '', 'element');
-      // Pas de fiche pour l'article parent : on n'a pas son zIndex. On tague
+      // Pas de fiche pour l'article parent : on n’a pas son zIndexCalques. On tague
       // ses éléments pour retrouver l'ensemble en une seule recherche.
       element.group = obj.nameFr;
       items.push(element);
